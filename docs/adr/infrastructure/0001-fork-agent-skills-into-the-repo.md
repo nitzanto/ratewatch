@@ -1,3 +1,9 @@
+---
+area: infrastructure
+issue: https://github.com/nitzanto/ratewatch/issues/2
+status: accepted
+---
+
 # Fork the agent skills into the repo instead of tracking upstream
 
 The agent skills come from [mattpocock/skills](https://github.com/mattpocock/skills). We copied them into `.claude/skills/` at upstream `59db609` and own them from here, rather than installing the auto-updating Claude Code plugin or re-syncing with `npx skills update`. We removed the skills this project doesn't use (`setup-matt-pocock-skills`, `triage`, `implement-spec`, `teach`, `to-questionnaire`, `wizard`), renamed the router to `ask-agent`, and edited the kept skills so they don't reference the removed ones. A trimmed, edited set only stays that way if updates can't overwrite it, and committing the skills makes the AI workflow reviewable and identical for anyone who clones the repo.

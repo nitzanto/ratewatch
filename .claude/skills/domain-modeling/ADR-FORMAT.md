@@ -1,12 +1,27 @@
 # ADR Format
 
-ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.
+ADRs live in `docs/adr/<area>/` and are numbered with **one sequence across all areas**: `0001-slug.md`, `0002-slug.md`, etc. A number is never reused or changed, even if the ADR moves to another area.
 
-Create the `docs/adr/` directory lazily: only when the first ADR is needed.
+## Areas
+
+| Folder | Holds decisions about |
+| --- | --- |
+| `docs/adr/architecture/` | Anything that affects **two or more** areas: system shape, shared contracts, the single stateful store |
+| `docs/adr/backend/` | The NestJS API: rate limiting, auth, events, persistence |
+| `docs/adr/frontend/` | The web dashboard: UI library, state, socket handling |
+| `docs/adr/infrastructure/` | Delivery and tooling: Docker, CI, observability, the docs site, AI tooling and agent skills |
+
+If a decision fits two areas, it goes in `architecture/`. Never copy an ADR into a second folder.
 
 ## Template
 
 ```md
+---
+area: {architecture | backend | frontend | infrastructure}
+issue: https://github.com/nitzanto/ratewatch/issues/{n}
+status: accepted
+---
+
 # {Short title of the decision}
 
 {1-3 sentences: what's the context, what did we decide, and why.}
@@ -14,17 +29,28 @@ Create the `docs/adr/` directory lazily: only when the first ADR is needed.
 
 That's it. An ADR can be a single paragraph. The value is in recording *that* a decision was made and *why*, not in filling out sections.
 
+- **`area`** must match the folder.
+- **`issue`** is required: the full URL of the GitHub issue the decision was made for. Use the full URL, because GitHub doesn't link a bare `#n` inside repo files and neither does the docs site. If no issue exists yet, ask the user which one it belongs to, or create one first.
+- **`status`**: `proposed | accepted | deprecated | superseded by ADR-NNNN`.
+
+## Link back from the issue
+
+After writing the ADR, comment on its issue so the link works in both directions:
+
+```sh
+gh issue comment <n> --body "Decision recorded: [ADR-NNNN: <title>](https://github.com/nitzanto/ratewatch/blob/main/docs/adr/<area>/NNNN-slug.md)"
+```
+
 ## Optional sections
 
 Only include these when they add genuine value. Most ADRs won't need them.
 
-- **Status** frontmatter (`proposed | accepted | deprecated | superseded by ADR-NNNN`): useful when decisions are revisited
 - **Considered Options**: only when the rejected alternatives are worth remembering
 - **Consequences**: only when non-obvious downstream effects need to be called out
 
 ## Numbering
 
-Scan `docs/adr/` for the highest existing number and increment by one.
+Scan **every** folder under `docs/adr/` for the highest existing number and increment by one.
 
 ## When to offer an ADR
 

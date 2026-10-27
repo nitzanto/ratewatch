@@ -9,35 +9,19 @@ Actively build and sharpen the project's domain model as you design. This is the
 
 ## File structure
 
-Most repos have a single context:
+This repo has a single domain context, with ADRs split by area:
 
 ```
 /
 ├── GLOSSARY.md
-├── docs/
-│   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
-└── src/
+└── docs/adr/
+    ├── architecture/      ← affects two or more areas
+    ├── backend/
+    ├── frontend/
+    └── infrastructure/    ← includes AI tooling
 ```
 
-If a `GLOSSARY-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
-
-```
-/
-├── GLOSSARY-MAP.md
-├── docs/
-│   └── adr/                          ← system-wide decisions
-├── src/
-│   ├── ordering/
-│   │   ├── GLOSSARY.md
-│   │   └── docs/adr/                 ← context-specific decisions
-│   └── billing/
-│       ├── GLOSSARY.md
-│       └── docs/adr/
-```
-
-Create files lazily: only when you have something to write. If no `GLOSSARY.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+The area folders always exist. Pick the area, numbering and required frontmatter (including the GitHub issue link) from [ADR-FORMAT.md](./ADR-FORMAT.md). If no `GLOSSARY.md` exists, create one when the first term is resolved.
 
 ## During the session
 

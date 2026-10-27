@@ -23,7 +23,7 @@ Each decision is written once, in one place. Never duplicate an ADR into the doc
 
 | Content | Source of truth | Audience |
 | --- | --- | --- |
-| ADRs (`docs/adr/`), `GLOSSARY.md` | Repo root | Agents and humans. Keep them short and precise. |
+| ADRs (`docs/adr/<area>/`), `GLOSSARY.md` | Repo root | Agents and humans. Keep them short and precise. |
 | HLD, architecture walkthroughs, runbooks, how-to-run guides | `apps/docs` (Astro Starlight) | Humans. Narrative pages with diagrams. |
 | `CLAUDE.md`, `docs/agents/` | Repo root | Agents only. |
 
@@ -49,4 +49,4 @@ The five default labels, unchanged: `needs-triage`, `needs-info`, `ready-for-age
 
 ### Domain docs
 
-Single-context: one root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
+Single-context: one root `GLOSSARY.md`. ADRs are split by area into `docs/adr/{architecture,backend,frontend,infrastructure}/` (AI tooling goes in `infrastructure/`, anything spanning two or more areas in `architecture/`), numbered in one sequence across all areas. Every ADR links the GitHub issue it was made for, and the issue gets a comment linking back. See `docs/agents/domain.md` and `.claude/skills/domain-modeling/ADR-FORMAT.md`.
