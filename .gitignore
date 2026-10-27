@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.nx/
+coverage/
+.env
+.env.*
+!.env.example
+.serena/
+.scratch/
