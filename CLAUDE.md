@@ -1,0 +1,52 @@
+# ratewatch
+
+Distributed per-user rate limiter (NestJS + Redis) with a real-time admin dashboard.
+Built as a production-grade take-home: every significant decision needs an ADR with its trade-offs.
+
+`CLAUDE.md` is the single agent instruction file for this repo. There is no `AGENTS.md`.
+
+## Tooling
+
+- Node: current LTS, pinned in `.node-version` (use `fnm use`).
+- Package manager: pnpm.
+- Work is tracked in GitHub Issues and built in vertical slices.
+
+## Git workflow
+
+- **Always use [Conventional Commits](https://www.conventionalcommits.org/)**: `<type>(<optional scope>): <description>`, for example `feat(rate-limit): enforce limit with atomic Lua script`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`, `style`, `revert`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer.
+- **Every branch starts from an issue**: `<type>/<issue-number>-<short-kebab-description>`, for example `chore/2-ai-platform`. The type uses the same vocabulary as commits.
+- Never commit directly to `main`. Open a PR whose body contains `Closes #<issue-number>`.
+
+## Documentation
+
+Each decision is written once, in one place. Never duplicate an ADR into the docs site by hand.
+
+| Content | Source of truth | Audience |
+| --- | --- | --- |
+| ADRs (`docs/adr/`), `GLOSSARY.md` | Repo root | Agents and humans. Keep them short and precise. |
+| HLD, architecture walkthroughs, runbooks, how-to-run guides | `apps/docs` (Astro Starlight) | Humans. Narrative pages with diagrams. |
+| `CLAUDE.md`, `docs/agents/` | Repo root | Agents only. |
+
+- The Starlight site renders the root ADRs and glossary through a build step that copies them in. Edit only the root files.
+- Diagrams are Mermaid, so they render both on GitHub and in the docs site.
+- **Why:** agents maintain ADRs through the skills (`/grill-with-docs`, `/domain-modeling`), and humans get a Notion-style site without a second copy that drifts.
+
+## Agent skills
+
+Skills live in `.claude/skills/` and are committed, so they apply to this repo only. They are **forked** from [mattpocock/skills](https://github.com/mattpocock/skills) at `59db609` and owned by this repo: edit them directly and don't run `npx skills update`, because it would overwrite local changes and restore removed skills.
+
+- Kept: the engineering flow (grill → spec → tickets → implement → review → PR) plus `research`, `prototype`, `diagnosing-bugs`, `handoff`, `retro`, `wait-what`, `writing-for-agents`. `/ask-agent` (renamed from `ask-matt`) routes between them.
+- Removed as not useful for this project: `setup-matt-pocock-skills` (its output lives in `docs/agents/`), `triage`, `implement-spec`, `teach`, `to-questionnaire`, `wizard`. Nothing in the kept skills references them.
+- New project-specific skills go in the same folder.
+
+### Issue tracker
+
+GitHub Issues on `nitzanto/ratewatch`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels, unchanged: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
