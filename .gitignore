@@ -11,3 +11,5 @@ tmp/
 out-tsc/
 .claude/worktrees
 .claude/settings.local.json
+
+test-output
