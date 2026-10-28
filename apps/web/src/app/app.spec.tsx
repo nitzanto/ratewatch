@@ -1,19 +1,10 @@
 import { render, screen } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/node';
 import App from './app';
 
-// shortcut: stubs fetch directly; switch to MSW handlers when #9 lands.
-function stubFetch(response: Response) {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
-}
-
 describe('App', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it('shows the API health status', async () => {
-    stubFetch(Response.json({ status: 'ok' }));
-
     render(<App />);
 
     expect(screen.getByRole('progressbar')).toBeTruthy();
@@ -21,11 +12,12 @@ describe('App', () => {
       'textContent',
       'API status: ok',
     );
-    expect(fetch).toHaveBeenCalledWith('/api/health', expect.anything());
   });
 
   it('shows an error when the API is unreachable', async () => {
-    stubFetch(new Response(null, { status: 503 }));
+    server.use(
+      http.get('/api/health', () => new HttpResponse(null, { status: 503 })),
+    );
 
     render(<App />);
 
@@ -33,7 +25,9 @@ describe('App', () => {
   });
 
   it('shows an error when the response breaks the contract', async () => {
-    stubFetch(Response.json({ status: 'down' }));
+    server.use(
+      http.get('/api/health', () => HttpResponse.json({ status: 'down' })),
+    );
 
     render(<App />);
 

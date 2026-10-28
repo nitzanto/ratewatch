@@ -1,6 +1,7 @@
 /// <reference types='vitest' />
 import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import react from '@vitejs/plugin-react';
+import { msw } from 'msw/vite';
 import { defaultClientConditions, defineConfig } from 'vite';
 
 export default defineConfig(() => ({
@@ -20,7 +21,12 @@ export default defineConfig(() => ({
     port: 4300,
     host: 'localhost',
   },
-  plugins: [react(), nxReadySignal()],
+  plugins: [
+    react(),
+    nxReadySignal(),
+    // Serves MSW's worker script from node_modules in dev only, so it is neither committed nor shipped.
+    { ...msw({ mode: 'worker-only' }), apply: 'serve' },
+  ],
   build: {
     outDir: './dist',
     emptyOutDir: true,
@@ -35,6 +41,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'jsdom',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    setupFiles: ['src/test-setup.ts'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',

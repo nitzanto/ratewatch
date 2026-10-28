@@ -6,7 +6,18 @@
     "name": "web",
     "tags": [
       "scope:web"
-    ]
+    ],
+    "targets": {
+      "serve": {
+        "configurations": {
+          "mock": {
+            "env": {
+              "VITE_MOCKS": "true"
+            }
+          }
+        }
+      }
+    }
   },
   "dependencies": {
     "@ratewatch/contracts": "workspace:*"
