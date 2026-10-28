@@ -15,3 +15,5 @@ out-tsc/
 test-output
 vitest.config.*.timestamp*
 .vitest
+
+vite.config.*.timestamp*

@@ -1,0 +1,44 @@
+/// <reference types='vitest' />
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
+import react from '@vitejs/plugin-react';
+import { defaultClientConditions, defineConfig } from 'vite';
+
+export default defineConfig(() => ({
+  root: import.meta.dirname,
+  cacheDir: '../../node_modules/.vite/apps/web',
+  resolve: {
+    // Resolve workspace libs (e.g. @ratewatch/contracts) from source, so they need no prior build.
+    conditions: ['@ratewatch/source', ...defaultClientConditions],
+  },
+  server: {
+    port: 4200,
+    host: 'localhost',
+    // Same origin as production, where nginx forwards /api to the API.
+    proxy: { '/api': 'http://localhost:3000' },
+  },
+  preview: {
+    port: 4300,
+    host: 'localhost',
+  },
+  plugins: [react(), nxReadySignal()],
+  build: {
+    outDir: './dist',
+    emptyOutDir: true,
+    reportCompressedSize: true,
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
+  test: {
+    name: 'web',
+    watch: false,
+    globals: true,
+    environment: 'jsdom',
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    reporters: ['default'],
+    coverage: {
+      reportsDirectory: './test-output/vitest/coverage',
+      provider: 'v8' as const,
+    },
+  },
+}));
