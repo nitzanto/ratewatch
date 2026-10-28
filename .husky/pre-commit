@@ -1,0 +1,1 @@
+pnpm nx format:check --uncommitted || { echo "Unformatted or invalid files. Run: pnpm nx format:write --uncommitted"; exit 1; }
