@@ -1,0 +1,36 @@
+{
+  "name": "@ratewatch/source",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  },
+  "packageManager": "pnpm@12.16.1",
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@nx/eslint": "24.0.2",
+    "@nx/eslint-plugin": "24.0.2",
+    "@nx/js": "24.0.2",
+    "@swc-node/register": "^1.12.1",
+    "@swc/core": "^1.16.20",
+    "@swc/helpers": "^0.5.23",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "nx": "24.0.2",
+    "prettier": "^3.9.10",
+    "tslib": "^2.8.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24",
+      "onFail": "error"
+    }
+  }
+}
