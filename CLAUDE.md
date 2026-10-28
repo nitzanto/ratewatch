@@ -3,6 +3,8 @@
 Distributed per-user rate limiter (NestJS + Redis) with a real-time admin dashboard.
 Built production-grade: every significant decision needs an ADR with its trade-offs.
 
+**A human is always in the loop.** Every issue is built by a developer working with an agent, and the developer validates the agent's work before it lands.
+
 `CLAUDE.md` is the single agent instruction file for this repo. There is no `AGENTS.md`.
 
 ## Tooling
@@ -46,7 +48,7 @@ GitHub Issues on `nitzanto/ratewatch`, via the `gh` CLI. See `docs/agents/issue-
 
 ### Triage labels
 
-The five default labels, unchanged: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Four labels: `needs-triage`, `needs-info`, `ready-for-development`, `wontfix`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
