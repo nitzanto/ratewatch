@@ -15,7 +15,7 @@ Built production-grade: every significant decision needs an ADR with its trade-o
 
 - **Always use [Conventional Commits](https://www.conventionalcommits.org/)**: `<type>(<optional scope>): <description>`, for example `feat(rate-limit): enforce limit with atomic Lua script`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`, `style`, `revert`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer.
 - **Every branch starts from an issue**: `<type>/<issue-number>-<short-kebab-description>`, for example `chore/2-ai-platform`. The type uses the same vocabulary as commits.
-- Never commit directly to `main`. Open a PR whose body contains `Closes #<issue-number>`.
+- Never commit directly to `main`. Open a PR whose body follows `.github/pull_request_template.md`, including its `(closes #<issue-number>)` line.
 - **Leave every change unstaged for manual review.** Don't stage, commit or push unless explicitly asked for that specific change; this overrides any skill that says to commit.
 
 ## Documentation
