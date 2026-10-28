@@ -11,6 +11,7 @@ Built production-grade: every significant decision needs an ADR with its trade-o
 
 - Node: current LTS, pinned in `.node-version` (use `fnm use`).
 - Package manager: pnpm.
+- ESLint stays on 9: `eslint-plugin-react` (used by Nx's React lint config) crashes on ESLint 10. Upgrade once it supports 10.
 - Work is tracked in GitHub Issues and built in vertical slices.
 
 ## Git workflow
@@ -41,6 +42,7 @@ Skills live in `.claude/skills/` and are committed, so they apply to this repo o
 - Kept: the engineering flow (grill → spec → tickets → implement → review → PR) plus `research`, `prototype`, `diagnosing-bugs`, `handoff`, `retro`, `wait-what`, `writing-for-agents`. `/ask-agent` (renamed from `ask-matt`) routes between them.
 - Removed as not useful for this project: `setup-matt-pocock-skills` (its output lives in `docs/agents/`), `triage`, `implement-spec`, `teach`, `to-questionnaire`, `wizard`. Nothing in the kept skills references them.
 - `nestjs-best-practices` is copied from [Kadajett/agent-nestjs-skills](https://github.com/Kadajett/agent-nestjs-skills) at `3986e0c` and adapted to the ADRs (Zod validation via `nestjs-zod`, Vitest, rate limiting as the product's own interceptor; microservice patterns removed). Edit it directly; don't re-copy from upstream.
+- `nx-workspace`, `nx-generate`, `nx-run-tasks`, `nx-plugins` and `link-workspace-packages` are copied from [nrwl/nx-ai-agents-config](https://github.com/nrwl/nx-ai-agents-config) at `d36b530` and pointed at pnpm. The Nx plugin and MCP server are not used (they mostly serve Nx Cloud, and auto-update outside review); don't run `nx configure-ai-agents`.
 - New project-specific skills go in the same folder.
 
 ### Issue tracker
@@ -54,3 +56,9 @@ Four labels: `needs-triage`, `needs-info`, `ready-for-development`, `wontfix`. S
 ### Domain docs
 
 Single-context: one root `GLOSSARY.md`. ADRs are split by area into `docs/adr/{architecture,backend,frontend,infrastructure}/` (AI tooling goes in `infrastructure/`, anything spanning two or more areas in `architecture/`), numbered in one sequence across all areas. Every ADR links the GitHub issue it was made for, and the issue gets a comment linking back. See `docs/agents/domain.md` and `.claude/skills/domain-modeling/ADR-FORMAT.md`.
+
+## Working with Nx
+
+- Explore projects, targets and dependencies with the `nx-workspace` skill; scaffold with the `nx-generate` skill, before writing files by hand.
+- Run tasks through Nx (`pnpm nx run`, `run-many`, `affected`), never the underlying tool directly, so caching and task dependencies apply.
+- Check `--help` for a command or generator instead of guessing flags.

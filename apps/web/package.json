@@ -1,0 +1,14 @@
+{
+  "name": "@ratewatch/web",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "web",
+    "tags": [
+      "scope:web"
+    ]
+  },
+  "dependencies": {
+    "@ratewatch/contracts": "workspace:*"
+  }
+}

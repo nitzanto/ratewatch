@@ -24,6 +24,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup
       - run: pnpm nx affected -t lint
+      - run: pnpm nx affected -t typecheck
       - run: pnpm nx format:check
 
   test:
