@@ -12,3 +12,7 @@ The skills speak in terms of four canonical triage roles. This file maps those r
 Upstream also has `ready-for-human`. This repo merges it into `ready-for-development`: every issue is built by a developer working with an agent, so the split carries no information.
 
 When a skill mentions a role (e.g. the upstream `ready-for-agent` role), use the corresponding label string from this table.
+
+## Kind labels
+
+`research` marks discovery work, set alongside a triage label. Its PR delivers ADRs (`docs/adr/`) and HLD or other developer-facing pages in `apps/docs`, not product code. Distinct from `wayfinder:research`, which is one question inside a wayfinder map, answered in an issue comment without a PR.
