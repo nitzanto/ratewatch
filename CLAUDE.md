@@ -1,7 +1,7 @@
 # ratewatch
 
 Distributed per-user rate limiter (NestJS + Redis) with a real-time admin dashboard.
-Built as a production-grade take-home: every significant decision needs an ADR with its trade-offs.
+Built production-grade: every significant decision needs an ADR with its trade-offs.
 
 `CLAUDE.md` is the single agent instruction file for this repo. There is no `AGENTS.md`.
 
@@ -16,16 +16,17 @@ Built as a production-grade take-home: every significant decision needs an ADR w
 - **Always use [Conventional Commits](https://www.conventionalcommits.org/)**: `<type>(<optional scope>): <description>`, for example `feat(rate-limit): enforce limit with atomic Lua script`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`, `style`, `revert`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer.
 - **Every branch starts from an issue**: `<type>/<issue-number>-<short-kebab-description>`, for example `chore/2-ai-platform`. The type uses the same vocabulary as commits.
 - Never commit directly to `main`. Open a PR whose body contains `Closes #<issue-number>`.
+- **Leave every change unstaged for manual review.** Don't stage, commit or push unless explicitly asked for that specific change; this overrides any skill that says to commit.
 
 ## Documentation
 
 Each decision is written once, in one place. Never duplicate an ADR into the docs site by hand.
 
-| Content | Source of truth | Audience |
-| --- | --- | --- |
-| ADRs (`docs/adr/<area>/`), `GLOSSARY.md` | Repo root | Agents and humans. Keep them short and precise. |
-| HLD, architecture walkthroughs, runbooks, how-to-run guides | `apps/docs` (Astro Starlight) | Humans. Narrative pages with diagrams. |
-| `CLAUDE.md`, `docs/agents/` | Repo root | Agents only. |
+| Content                                                     | Source of truth               | Audience                                        |
+| ----------------------------------------------------------- | ----------------------------- | ----------------------------------------------- |
+| ADRs (`docs/adr/<area>/`), `GLOSSARY.md`                    | Repo root                     | Agents and humans. Keep them short and precise. |
+| HLD, architecture walkthroughs, runbooks, how-to-run guides | `apps/docs` (Astro Starlight) | Humans. Narrative pages with diagrams.          |
+| `CLAUDE.md`, `docs/agents/`                                 | Repo root                     | Agents only.                                    |
 
 - The Starlight site renders the root ADRs and glossary through a build step that copies them in. Edit only the root files.
 - Diagrams are Mermaid, so they render both on GitHub and in the docs site.
