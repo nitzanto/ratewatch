@@ -40,6 +40,7 @@ Skills live in `.claude/skills/` and are committed, so they apply to this repo o
 
 - Kept: the engineering flow (grill → spec → tickets → implement → review → PR) plus `research`, `prototype`, `diagnosing-bugs`, `handoff`, `retro`, `wait-what`, `writing-for-agents`. `/ask-agent` (renamed from `ask-matt`) routes between them.
 - Removed as not useful for this project: `setup-matt-pocock-skills` (its output lives in `docs/agents/`), `triage`, `implement-spec`, `teach`, `to-questionnaire`, `wizard`. Nothing in the kept skills references them.
+- `nestjs-best-practices` is copied from [Kadajett/agent-nestjs-skills](https://github.com/Kadajett/agent-nestjs-skills) at `3986e0c` and adapted to the ADRs (Zod validation via `nestjs-zod`, Vitest, rate limiting as the product's own interceptor; microservice patterns removed). Edit it directly; don't re-copy from upstream.
 - New project-specific skills go in the same folder.
 
 ### Issue tracker

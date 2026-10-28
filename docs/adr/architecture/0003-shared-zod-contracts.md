@@ -19,3 +19,6 @@ Every request, response and WebSocket event shape the API and web app exchange i
 
 - `libs/contracts` holds shapes only: no business logic, and no imports from `scope:api` or `scope:web` (enforced by the module boundary rule).
 - Zod is a runtime dependency of both apps.
+- The API validates with `nestjs-zod`: a global `ZodValidationPipe` checks every body, query and param against its schema, and a global `ZodSerializerInterceptor` checks the responses of routes marked `@ZodSerializerDto`. DTO classes are built from the contracts with `createZodDto`, never written by hand. NestJS 12's built-in `StandardSchemaValidationPipe` can replace the library after the upgrade in ADR 0004.
+
+_Amended 2026-10-29 ([#7](https://github.com/nitzanto/ratewatch/issues/7)): added how the API validates._

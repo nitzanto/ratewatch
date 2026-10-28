@@ -13,3 +13,5 @@ out-tsc/
 .claude/settings.local.json
 
 test-output
+vitest.config.*.timestamp*
+.vitest
