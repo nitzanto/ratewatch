@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
-`
+
 permissions:
   contents: read
   # nx-set-shas reads past runs to find the last green commit on main.
