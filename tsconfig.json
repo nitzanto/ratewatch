@@ -5,6 +5,9 @@
   "references": [
     {
       "path": "./libs/contracts"
+    },
+    {
+      "path": "./apps/api"
     }
   ],
   "compilerOptions": {}
