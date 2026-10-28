@@ -13,6 +13,7 @@
 ## Author checklist
 
 - [ ] Lint passes: `pnpm nx affected -t lint`
+- [ ] Typecheck passes: `pnpm nx affected -t typecheck`
 - [ ] Tests pass: `pnpm nx affected -t test`
 - [ ] Build passes: `pnpm nx affected -t build`
 - [ ] Formatted: `pnpm nx format:check`
