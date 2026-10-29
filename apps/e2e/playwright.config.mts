@@ -1,13 +1,23 @@
 import { workspaceRoot } from '@nx/devkit';
 import { nxE2EPreset } from '@nx/playwright/preset';
-import { defineConfig, devices } from '@playwright/test';
+import {
+  defineConfig,
+  devices,
+  type ReporterDescription,
+} from '@playwright/test';
 
 // shortcut: hardcoded local addresses; read them from env config with #24.
 const apiUrl = 'http://localhost:3000';
 const webUrl = 'http://localhost:4200';
 
+const preset = nxE2EPreset(import.meta.dirname, { testDir: './src' });
+
 export default defineConfig({
-  ...nxE2EPreset(import.meta.dirname, { testDir: './src' }),
+  ...preset,
+  // The preset only writes HTML and blob reports on CI: add one line per test, and failure annotations on the PR.
+  reporter: process.env['CI']
+    ? [...(preset.reporter as ReporterDescription[]), ['list'], ['github']]
+    : preset.reporter,
   use: { trace: 'on-first-retry' },
   // Nx starts both servers first (inferred from these commands), so Playwright must reuse them, on CI too.
   webServer: [
