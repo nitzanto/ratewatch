@@ -56,8 +56,10 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm nx affected -t e2e
-      - if: failure()
+      # Nx hides successful tasks' output in CI; stream it so every test shows in the log.
+      - run: pnpm nx affected -t e2e --output-style=stream
+      # Upload passing runs too, so the report is there to compare against when one fails.
+      - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
