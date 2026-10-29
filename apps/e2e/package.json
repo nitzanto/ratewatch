@@ -1,0 +1,18 @@
+{
+  "name": "@ratewatch/e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "ratewatch-e2e",
+    "tags": [
+      "scope:e2e"
+    ],
+    "implicitDependencies": [
+      "api",
+      "web"
+    ]
+  },
+  "dependencies": {
+    "@ratewatch/contracts": "workspace:*"
+  }
+}

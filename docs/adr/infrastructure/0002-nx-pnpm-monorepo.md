@@ -6,7 +6,7 @@ status: accepted
 
 # Nx + pnpm monorepo
 
-The API, web app, shared contracts, e2e tests and docs site live in one repo so a contract change and both of its consumers land in one PR. We use Nx on pnpm workspaces, with TypeScript project references and Nx's generator defaults, because Nx gives us the dependency graph, `affected` runs, caching and tag-based import boundaries (`@nx/enforce-module-boundaries`) out of the box. Every project tests with Vitest, so the repo has one runner and one config style; the API adds `unplugin-swc` so Nest's decorator metadata survives the test transform.
+The API, web app, shared contracts, e2e tests and docs site live in one repo so a contract change and both of its consumers land in one PR. We use Nx on pnpm workspaces, with TypeScript project references and Nx's generator defaults, because Nx gives us the dependency graph, `affected` runs, caching and tag-based import boundaries (`@nx/enforce-module-boundaries`) out of the box. Every project tests with Vitest, so the repo has one runner and one config style (end-to-end tests use Playwright, see ADR-0007); the API adds `unplugin-swc` so Nest's decorator metadata survives the test transform.
 
 _Amended 2026-10-29 ([#7](https://github.com/nitzanto/ratewatch/issues/7)): originally each project kept its generator's runner (Jest for Nest). Nx's Nest generator has no default runner and NestJS itself now defaults to Vitest, so the split no longer had a reason._
 

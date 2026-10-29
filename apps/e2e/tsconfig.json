@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/playwright",
+    "sourceMap": false,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts", "playwright.config.mts"],
+  "exclude": ["out-tsc", "test-output", "eslint.config.mjs"],
+  "references": [
+    {
+      "path": "../../libs/contracts"
+    }
+  ]
+}

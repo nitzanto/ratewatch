@@ -1,0 +1,36 @@
+import { workspaceRoot } from '@nx/devkit';
+import { nxE2EPreset } from '@nx/playwright/preset';
+import { defineConfig, devices } from '@playwright/test';
+
+// shortcut: hardcoded local addresses; read them from env config with #24.
+const apiUrl = 'http://localhost:3000';
+const webUrl = 'http://localhost:4200';
+
+export default defineConfig({
+  ...nxE2EPreset(import.meta.dirname, { testDir: './src' }),
+  use: { trace: 'on-first-retry' },
+  // Nx starts both servers first (inferred from these commands), so Playwright must reuse them, on CI too.
+  webServer: [
+    {
+      command: 'pnpm nx serve api',
+      url: `${apiUrl}/api/health`,
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+    },
+    {
+      command: 'pnpm nx serve web',
+      url: webUrl,
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+    },
+  ],
+  projects: [
+    // HTTP only, straight to the API through the `request` fixture: no browser, no web app.
+    { name: 'api', testDir: './src/api', use: { baseURL: apiUrl } },
+    {
+      name: 'web',
+      testDir: './src/web',
+      use: { ...devices['Desktop Chrome'], baseURL: webUrl },
+    },
+  ],
+});

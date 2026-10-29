@@ -10,6 +10,7 @@ export default [
       '**/out-tsc',
       '**/vitest.config.*.timestamp*',
       '**/vite.config.*.timestamp*',
+      '**/test-output',
     ],
   },
   {
@@ -33,6 +34,10 @@ export default [
             {
               sourceTag: 'scope:web',
               onlyDependOnLibsWithTags: ['scope:web', 'scope:shared'],
+            },
+            {
+              sourceTag: 'scope:e2e',
+              onlyDependOnLibsWithTags: ['scope:shared'],
             },
           ],
         },

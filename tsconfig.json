@@ -11,6 +11,9 @@
     },
     {
       "path": "./apps/web"
+    },
+    {
+      "path": "./apps/e2e"
     }
   ],
   "compilerOptions": {}
