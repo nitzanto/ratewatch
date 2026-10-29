@@ -17,3 +17,5 @@ vitest.config.*.timestamp*
 .vitest
 
 vite.config.*.timestamp*
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
