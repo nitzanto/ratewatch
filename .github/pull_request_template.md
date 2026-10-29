@@ -16,6 +16,7 @@
 - [ ] Typecheck passes: `pnpm nx affected -t typecheck`
 - [ ] Tests pass: `pnpm nx affected -t test`
 - [ ] Build passes: `pnpm nx affected -t build`
+- [ ] E2E passes: `pnpm nx affected -t e2e`
 - [ ] Formatted: `pnpm nx format:check`
 - [ ] New behaviour has tests, or none is needed
 - [ ] Ran the change locally and checked it does what the issue asks
