@@ -7,7 +7,7 @@ sidebar:
 
 **Status:** Accepted · **Issue:** [#31](https://github.com/nitzanto/ratewatch/issues/31)
 
-Every upcoming dashboard feature needs the same plumbing: an API call, a cached query, a hook, a component, a mock and a test. Without a shared shape, the first feature to land would set the pattern by accident. We split `apps/web/src` **by layer** (`components/`, `hooks/`, `libs/`, `mocks/`, …), and every layer holds one working example, so a feature starts by copying the example next to it.
+Every upcoming dashboard feature needs the same plumbing: an API call, a cached query, a hook, a component, a mock and a test. Without a shared shape, the first feature to land would set the pattern by accident. We split `apps/web/src` **by layer** (`pages/`, `components/`, `hooks/`, `libs/`, `mocks/`, …), and every layer holds one working example, so a feature starts by copying the example next to it.
 
 **Options considered**
 

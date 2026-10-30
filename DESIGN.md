@@ -5,6 +5,9 @@ colors:
   shell: '#0B1F33'
   shell-text: '#FFFFFF'
   shell-muted: '#AFC0D3'
+  shell-raised: '#283A4C'
+  shell-ok: '#3FC1A1'
+  shell-down: '#F28BA6'
   ground: '#F4F6F9'
   surface: '#FFFFFF'
   surface-sunken: '#F8FAFC'
@@ -32,6 +35,8 @@ colors:
   status-exceeded-tint: '#F7E4E9'
   status-paused: '#52606D'
   crumb-dough: '#E2A75B'
+  crumb-dough-bitten: '#D9A15A'
+  crumb-crumbs: '#C98A45'
   crumb-crust: '#B9773A'
   crumb-highlight: '#F1C88A'
   crumb-chip: '#5B3A1F'
@@ -157,13 +162,13 @@ components:
 
 ratewatch is an operator's tool with one playful corner. The admin dashboard is **Operate** mode: calm, dense, familiar controls, colour spent only on actions, selection and status. The cookie clicker is where personality lives, through **Crumb**, a chocolate-chip cookie whose face and chips track the user's allowance.
 
-The palette is called **Harbor**: a deep navy shell, a cool grey ground, white surfaces and a single cobalt accent. Navy is the complement of Crumb's dough, so the mascot reads instantly in the app bar. The look is built on MUI components; the theme in `apps/web/src/libs/theme/theme.ts` should carry these tokens (it still holds MUI's default status hues until the shell work in issue #33).
+The palette is called **Harbor**: a deep navy shell, a cool grey ground, white surfaces and a single cobalt accent. Navy is the complement of Crumb's dough, so the mascot reads instantly in the app bar. The look is built on MUI components. The theme in `apps/web/src/libs/theme/` carries these tokens (`palette.ts`, `typography.ts`, `sizes.ts`, and one override file per component in `components/`). Code never hardcodes a colour (lint enforces it), so add a new token here and in `palette.ts` first.
 
 Prototypes for every screen are in `docs/design/prototypes/`; Crumb's artwork is in `apps/docs/public/design/crumb/`.
 
 ## Colors
 
-- **Shell** (`shell`, navy): app bar and the sign-in welcome panel. Text on it is white; secondary text is `shell-muted`.
+- **Shell** (`shell`, navy): app bar and the sign-in welcome panel. Text on it is white; secondary text is `shell-muted`. `shell-raised` fills hovered tabs and the status pill; the pill's dot is `shell-ok` or `shell-down`; focus rings on navy use `accent-on-dark`.
 - **Ground and surfaces**: the page is `ground`; cards, tables, drawers and forms are `surface` with a 1px `border`. Table headers use `surface-sunken`.
 - **Text**: `ink` for content, `ink-secondary` for supporting copy (6:1 on white), `icon` for glyphs. Never use translucent black for text.
 - **Accent** (`accent`, cobalt): primary buttons, selected filter chips, links, the selected row's inset bar and the keyboard focus ring. Nothing decorative is cobalt. On the navy snackbar, actions use `accent-on-dark`.
@@ -185,10 +190,11 @@ One family: **IBM Plex Sans** (400, 500, 600, 700), self-hosted with `@fontsourc
 ## Layout
 
 - App shell: 64px navy app bar with the Crumb mark, product name, tabs (Dashboard, Cookie clicker) and one status pill on the right ("Live · API OK", "Reconnecting · API OK", "API unreachable"). Content is centred at 1240px max with 24px side padding.
-- Dashboard: title row; four summary cards in an auto-fit grid (min 220px); the users table (flex 999 1 640px) beside a side column (flex 1 1 300px) of Status breakdown and Top users. Everything stacks at phone width; the table scrolls inside its own box.
+- Dashboard: title row; four summary cards in an auto-fit grid (min 220px); the users table (flex 999 1 640px) beside a side column (flex 1 1 300px) of Status breakdown and Top users. The table scrolls inside its own box.
 - Clicker: a centred 880px column with one card holding Crumb, the count, the usage bar and a fixed-height message slot.
-- Sign-in: a split page, navy welcome panel with waving Crumb on the left, the form on the right (max 380px); the halves stack on phones.
+- Sign-in: a split page, navy welcome panel with waving Crumb on the left, the form on the right (max 380px).
 - Spacing is an 8px grid (`spacing` tokens).
+- Desktop only: every screen is designed for desktop browser windows 1280px and wider. There are no phone or tablet layouts or breakpoints.
 
 ## Elevation & Depth
 

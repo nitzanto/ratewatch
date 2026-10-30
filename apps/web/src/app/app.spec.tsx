@@ -1,16 +1,25 @@
 import { renderApp } from '@/libs/test-utils/render-app';
 import { server } from '@/mocks/node';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
+const page = () => within(screen.getByRole('main'));
+const appBar = () => within(screen.getByRole('banner'));
+const pageTitle = (name: string) =>
+  page().findByRole('heading', { level: 1, name });
+
 describe('App', () => {
-  it('shows the API health status', async () => {
+  it('shows the API health status on the dashboard and in the app bar', async () => {
     renderApp();
 
-    expect(screen.getByRole('progressbar')).toBeTruthy();
-    expect(await screen.findByRole('status')).toHaveProperty(
+    expect(page().getByRole('progressbar')).toBeTruthy();
+    expect(await page().findByRole('status')).toHaveProperty(
       'textContent',
       'API status: ok',
+    );
+    expect(appBar().getByRole('status')).toHaveProperty(
+      'textContent',
+      'API OK',
     );
   });
 
@@ -21,7 +30,11 @@ describe('App', () => {
 
     renderApp();
 
-    expect(await screen.findByText('API unreachable')).toBeTruthy();
+    expect(await page().findByText('API unreachable')).toBeTruthy();
+    expect(appBar().getByRole('status')).toHaveProperty(
+      'textContent',
+      'API unreachable',
+    );
   });
 
   it('shows an error when the response breaks the contract', async () => {
@@ -31,6 +44,35 @@ describe('App', () => {
 
     renderApp();
 
-    expect(await screen.findByText('API unreachable')).toBeTruthy();
+    expect(await page().findByText('API unreachable')).toBeTruthy();
+  });
+});
+
+describe('Routing', () => {
+  it('moves between the dashboard and the cookie clicker', async () => {
+    renderApp('/play');
+
+    expect(await pageTitle('Cookie clicker')).toBeTruthy();
+    expect(
+      appBar().getByRole('link', { name: 'Cookie clicker', current: 'page' }),
+    ).toBeTruthy();
+
+    fireEvent.click(appBar().getByRole('link', { name: 'Dashboard' }));
+
+    expect(await pageTitle('Dashboard')).toBeTruthy();
+    expect(
+      appBar().getByRole('link', { name: 'Dashboard', current: 'page' }),
+    ).toBeTruthy();
+  });
+
+  it('shows a not-found page inside the shell for an unknown URL', async () => {
+    renderApp('/no-such-page');
+
+    expect(await pageTitle('Page not found')).toBeTruthy();
+    expect(appBar().getByRole('navigation', { name: 'Main' })).toBeTruthy();
+
+    fireEvent.click(page().getByRole('link', { name: 'Go to the dashboard' }));
+
+    expect(await pageTitle('Dashboard')).toBeTruthy();
   });
 });

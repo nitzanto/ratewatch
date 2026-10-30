@@ -1,10 +1,14 @@
 import { test as base } from '@playwright/test';
 import { HomePage } from './pages/home.page';
+import { PlayPage } from './pages/play.page';
 
 /** Web tests import `test` from here to get page objects as fixtures. */
-export const test = base.extend<{ homePage: HomePage }>({
+export const test = base.extend<{ homePage: HomePage; playPage: PlayPage }>({
   homePage: async ({ page }, use) => {
     await use(new HomePage(page));
+  },
+  playPage: async ({ page }, use) => {
+    await use(new PlayPage(page));
   },
 });
 export { expect } from '@playwright/test';
