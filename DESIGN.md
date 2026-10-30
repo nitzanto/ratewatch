@@ -189,7 +189,7 @@ One family: **IBM Plex Sans** (400, 500, 600, 700), self-hosted with `@fontsourc
 
 ## Layout
 
-- App shell: 64px navy app bar with the Crumb mark, product name, tabs (Dashboard, Cookie clicker) and one status pill on the right ("Live · API OK", "Reconnecting · API OK", "API unreachable"). Content is centred at 1240px max with 24px side padding.
+- App shell: 64px navy app bar with the Crumb mark, product name, tabs (Dashboard, Cookie Clicker) and one status pill on the right ("Live · API OK", "Reconnecting · API OK", "API unreachable"). Content is centred at 1240px max with 24px side padding.
 - Dashboard: title row; four summary cards in an auto-fit grid (min 220px); the users table (flex 999 1 640px) beside a side column (flex 1 1 300px) of Status breakdown and Top users. The table scrolls inside its own box.
 - Clicker: a centred 880px column with one card holding Crumb, the count, the usage bar and a fixed-height message slot.
 - Sign-in: a split page, navy welcome panel with waving Crumb on the left, the form on the right (max 380px).
@@ -217,6 +217,7 @@ Radius 8px for cards and drawers, 6px for buttons, inputs, banners and toasts, p
   - OK has five stages, one per 20 requests used; he drops a chocolate chip at each, so his chips are a rough gauge of what's left: Fresh (5 chips), Warming up (4), Excited (3), Focused (2), Tired (1, slower bob).
   - Warning (90%+): wide eyes, worried brows, sweat drop, one chip, a nervous jitter in short bursts every 4s.
   - Exceeded (100%): a bite out of the top right, no chips, crossed-out eyes, crumbs.
+  - Limit unavailable (the API sent no usable count): dots for eyes, a flat mouth, no chips, the usual bob. He never shows a gauge he doesn't have.
   - During a 429 wait the bite grows back as a teal ring fills; at halfway his eyes rest; when the allowance resets he hops and a "Welcome back" note shows.
   - Click: squash to 90 × 84% and settle in 250ms with a "−1" float. The request fires on click, never after the animation.
   - Technique: inline SVG with CSS keyframes; no animation library.

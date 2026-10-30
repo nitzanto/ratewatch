@@ -16,7 +16,7 @@ The dashboard is mostly server state: users, their counts and the API's health, 
 - **SWR**: smaller, but weaker mutations and key-prefix invalidation, and a smaller ecosystem.
 - **RTK Query**: pulls in Redux, and the dashboard has no client state that needs a store.
 
-**Why:** the live table, user detail and admin controls all read and invalidate the same server data. Each resource exports its query key as a constant and builds its query options on it, so fetching, prefetching and invalidation all share one definition of the key and the fetch.
+**Why:** the live table, user detail and admin controls all read and invalidate the same server data. Each resource exports its query key as a constant and builds its query options on it (and its mutation options, for writes such as a cookie click), so fetching, prefetching and invalidation all share one definition of the key and the fetch.
 
 **Trade-offs we accept:**
 

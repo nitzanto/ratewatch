@@ -1,16 +1,19 @@
-import { Crumb } from '@/components/ui/crumb';
+import { CookieClicker } from '@/features/cookie-clicker/components/cookie-clicker';
 import { sizes } from '@/libs/theme/sizes';
 import { Stack, Typography } from '@mui/material';
+import { defaultHourlyLimit } from '@ratewatch/contracts';
 
-// shortcut: placeholder until the clicker itself (#34) makes every click a request.
 export const PlayPage = () => (
-  <Stack spacing={3} sx={{ alignItems: 'center' }}>
-    <Typography variant="h4" component="h1">
-      Cookie clicker
-    </Typography>
-    <Crumb mood="fresh" size={sizes.crumbClicker} />
-    <Typography sx={{ color: 'text.secondary' }}>
-      Crumb is getting ready. Clicking arrives soon.
-    </Typography>
+  <Stack spacing={3} sx={{ maxWidth: sizes.clickerColumn, mx: 'auto' }}>
+    <Stack spacing={0.5} sx={{ alignItems: 'center', textAlign: 'center' }}>
+      <Typography variant="h4" component="h1">
+        Cookie Clicker
+      </Typography>
+      <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+        Every click is one request. You can make {defaultHourlyLimit} an hour,
+        and Crumb gets nervous as you near the limit.
+      </Typography>
+    </Stack>
+    <CookieClicker />
   </Stack>
 );

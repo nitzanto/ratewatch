@@ -22,7 +22,7 @@ The limit is visible from both sides: admins see every user against their allowa
 ## Operating Context
 
 - Admin dashboard (`/`): summary cards, live user table, user detail drawer with admin controls, status breakdown, top users.
-- Cookie clicker (`/play`): every click is one `POST` request; the `x-count` header on each success carries requests left; a 429 body carries a message and `retryAt`.
+- Cookie Clicker (`/play`): every click is one `POST` request; the `x-count` header on each success carries requests left; a 429 body carries a message and `retryAt`.
 - Admins land on the dashboard, regular users on the clicker (decided with auth, issue #35).
 - Development runs in Docker Compose or natively, with a mock mode (MSW) that needs no API.
 

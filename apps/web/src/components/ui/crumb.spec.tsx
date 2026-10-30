@@ -22,6 +22,8 @@ describe('Crumb', () => {
     ['tired', 'Crumb, OK: tired'],
     ['warning', 'Crumb, Warning: nervous, one chip left'],
     ['exceeded', 'Crumb, Exceeded: bitten, no chips left'],
+    ['resting', 'Crumb, Exceeded: resting while his bite grows back'],
+    ['unsure', 'Crumb, limit unavailable'],
   ])('renders the %s mood', (mood, name) => {
     render(<Crumb mood={mood} size={sizes.crumbClicker} />);
 

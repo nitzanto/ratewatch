@@ -6,7 +6,7 @@ status: accepted
 
 # Shared Zod contracts between api and web
 
-Every request, response and WebSocket event shape the API and web app exchange is defined once, as a Zod schema in `libs/contracts` (`@ratewatch/contracts`, tagged `scope:shared`). Each schema exports its inferred TypeScript type, so the API validates untrusted input at runtime and the web app gets compile-time types from the same definition, and a breaking shape change fails the build of both consumers in the same PR.
+Every request, response (body and the headers a client reads, such as `x-count`) and WebSocket event shape the API and web app exchange is defined once, as a Zod schema in `libs/contracts` (`@ratewatch/contracts`, tagged `scope:shared`). Each schema exports its inferred TypeScript type, so the API validates untrusted input at runtime and the web app gets compile-time types from the same definition, and a breaking shape change fails the build of both consumers in the same PR.
 
 ## Considered Options
 
@@ -17,8 +17,10 @@ Every request, response and WebSocket event shape the API and web app exchange i
 
 ## Consequences
 
-- `libs/contracts` holds shapes only: no business logic, and no imports from `scope:api` or `scope:web` (enforced by the module boundary rule).
+- `libs/contracts` holds shapes and the constants both apps must agree on (header names, the default limit, status thresholds): no business logic, and no imports from `scope:api` or `scope:web` (enforced by the module boundary rule).
+- Files in `libs/contracts/src/lib/` are named `<resource>.<kind>.ts`: `.schema.ts` for Zod schemas and their inferred types, `.constants.ts` for shared values. One resource per file (`click.schema.ts`, `rate-limit.schema.ts`, `rate-limit.constants.ts`), each re-exported from `src/index.ts`.
 - Zod is a runtime dependency of both apps.
 - The API validates with `nestjs-zod`: a global `ZodValidationPipe` checks every body, query and param against its schema, and a global `ZodSerializerInterceptor` checks the responses of routes marked `@ZodSerializerDto`. DTO classes are built from the contracts with `createZodDto`, never written by hand. NestJS 12's built-in `StandardSchemaValidationPipe` can replace the library after the upgrade in ADR 0004.
 
 _Amended 2026-10-29 ([#7](https://github.com/nitzanto/ratewatch/issues/7)): added how the API validates._
+_Amended 2026-10-31 ([#34](https://github.com/nitzanto/ratewatch/issues/34)): added shared constants, response header schemas and the file naming._

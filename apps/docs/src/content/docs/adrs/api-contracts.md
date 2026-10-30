@@ -38,4 +38,4 @@ flowchart LR
 
 **Revisit when:** external consumers need an OpenAPI document; generate it from the schemas.
 
-**In the code:** the schemas are in `libs/contracts/src/lib/`, and a lint rule stops the library importing from either app. The API validates through `nestjs-zod` (see the [request pipeline](../../architecture/backend/#request-pipeline)); the web app parses every response in its API client, `apps/web/src/libs/api/api-client.ts`.
+**In the code:** the schemas are in `libs/contracts/src/lib/`, one resource per file, named by what the file holds: `click.schema.ts` and `rate-limit.schema.ts` for schemas and their types (response headers a client reads included: `rateLimitHeadersSchema` parses `x-count`), `rate-limit.constants.ts` for values both apps must agree on, such as the `x-count` header name, the default limit of 100 and the 90% warning threshold. The library holds no business logic, and a lint rule stops the library importing from either app. The API validates through `nestjs-zod` (see the [request pipeline](../../architecture/backend/#request-pipeline)); the web app parses every response in its API client, `apps/web/src/libs/api/api-client.ts`.

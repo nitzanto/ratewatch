@@ -3,7 +3,7 @@ import pluginQuery from '@tanstack/eslint-plugin-query';
 import baseConfig from '../../eslint.config.mjs';
 
 const noUseEffect =
-  "Don't call useEffect: derive state, use an event handler, a hooks/api query, a key, or useMountEffect. See the no-use-effect skill.";
+  "Don't call useEffect: derive state, use an event handler, a hooks/api query, a key, or useMountEffect. A component's own timer or subscription may disable this with a reason. See the no-use-effect skill.";
 
 const noUseEffectRules = [
   {
@@ -34,6 +34,42 @@ export default [
         {
           selector: `TemplateElement[value.raw=${colorPattern}]`,
           message: noColor,
+        },
+      ],
+    },
+  },
+  {
+    // Shared layers never reach into a feature: move shared code up instead.
+    files: ['src/{app,components,contexts,hooks,libs,mocks}/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/**'],
+              message:
+                'Shared code must not import a feature. Move what both need into a shared layer.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // A feature imports its own files relatively and never another feature.
+    files: ['src/features/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/**'],
+              message:
+                "Features don't import each other. Move what both need into a shared layer.",
+            },
+          ],
         },
       ],
     },

@@ -7,7 +7,7 @@ import { ROUTES } from './route-paths';
 
 const tabs = [
   { to: ROUTES.dashboard, label: 'Dashboard' },
-  { to: ROUTES.play, label: 'Cookie clicker' },
+  { to: ROUTES.play, label: 'Cookie Clicker' },
 ];
 
 const content = { maxWidth: sizes.contentMaxWidth };
