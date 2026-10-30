@@ -4,4 +4,6 @@
 /.nx/workspace-data
 .nx/self-healing
 /.claude/skills
+# Design canvas sources: the editor's template syntax must stay as authored.
+/docs/design/prototypes/*.dc.html
 /pnpm-lock.yaml

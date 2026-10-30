@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ratewatch admin dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#1F5BD8}a:hover{color:#0B1F33}
+::selection{background:#CFE0FB;color:#0F1A24}
+.rw-row{cursor:pointer}
+.rw-row:hover{background:rgba(15,26,36,0.04)}
+.rw-btn:hover{background:rgba(15,26,36,0.05)}
+.rw-primary:hover{background:#1849B0}
+.rw-sort:hover,.rw-link:hover{color:#1F5BD8}
+.rw-link:hover{text-decoration:underline}
+.rw-btn:focus-visible,.rw-tab:focus-visible,.rw-input:focus-visible,.rw-sort:focus-visible,.rw-link:focus-visible,.rw-primary:focus-visible,.rw-check:focus-visible{outline:2px solid #1F5BD8;outline-offset:2px}
+.rw-snack:focus-visible{outline:2px solid #9DBBF5;outline-offset:2px}
+.rw-tab:hover{background:rgba(255,255,255,0.12)}
+.rw-input:hover{border-color:#0F1A24}
+.rw-input:focus{border-color:#1F5BD8;box-shadow:inset 0 0 0 1px #1F5BD8;outline:none}
+.rw-check{width:18px;height:18px;accent-color:#1F5BD8;cursor:pointer}
+@keyframes rw-pulse{0%{box-shadow:0 0 0 0 rgba(14,124,102,0.5)}70%{box-shadow:0 0 0 8px rgba(14,124,102,0)}100%{box-shadow:0 0 0 0 rgba(14,124,102,0)}}
+.rw-live{animation:rw-pulse 2s cubic-bezier(0.4,0,0.2,1) infinite}
+@keyframes rw-flash-a{from{background:#DCE6F2}to{background:rgba(220,230,242,0)}}
+@keyframes rw-flash-b{from{background:#DCE6F2}to{background:rgba(220,230,242,0)}}
+.rw-flash-a{animation:rw-flash-a 1.6s cubic-bezier(0,0,0.2,1)}
+.rw-flash-b{animation:rw-flash-b 1.6s cubic-bezier(0,0,0.2,1)}
+@keyframes rw-drawer{from{transform:translateX(32px);opacity:0}to{transform:none;opacity:1}}
+.rw-drawer{animation:rw-drawer 225ms cubic-bezier(0,0,0.2,1)}
+@media (prefers-reduced-motion: reduce){.rw-live,.rw-flash-a,.rw-flash-b,.rw-drawer{animation:none}}
+.rw-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F4F6F9; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; font-size: 0.875rem; line-height: 1.43">
+
+<header style="background: #0B1F33; color: #FFFFFF">
+<div style="max-width: 1240px; margin: 0 auto; padding: 0 24px; min-height: 64px; display: flex; flex-wrap: wrap; align-items: center; gap: 0 24px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none; min-height: 64px">
+<svg viewBox="0 0 200 200" width="36" height="36" aria-hidden="true">
+<circle cx="100" cy="106" r="86" fill="#B9773A"></circle>
+<circle cx="100" cy="100" r="86" fill="#E2A75B"></circle>
+<g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="8" ry="7"></ellipse><ellipse cx="146" cy="60" rx="7" ry="6"></ellipse><ellipse cx="40" cy="122" rx="6" ry="7"></ellipse><ellipse cx="162" cy="128" rx="8" ry="7"></ellipse><ellipse cx="120" cy="164" rx="7" ry="6"></ellipse></g>
+<g fill="none" stroke="#3A2414" stroke-width="9" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g>
+</svg>
+<span style="font-size: 1.25rem; font-weight: 600">ratewatch</span>
+</a>
+<nav aria-label="Main" style="display: flex; align-self: stretch; flex-grow: 1">
+<a class="rw-tab" href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; padding: 0 16px; min-height: 64px; box-sizing: border-box; color: #FFFFFF; text-decoration: none; font-weight: 600; border-bottom: 2px solid #FFFFFF">Dashboard</a>
+<a class="rw-tab" href="Clicker.dc.html" style="display: flex; align-items: center; padding: 0 16px; min-height: 64px; box-sizing: border-box; color: #FFFFFF; text-decoration: none; font-weight: 500; border-bottom: 2px solid transparent">Cookie clicker</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 0">
+<span role="status" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 16px; background: rgba(255,255,255,0.12); font-size: 0.8125rem">
+<span class="{{ liveDotClass }}" style="width: 8px; height: 8px; border-radius: 50%; background: {{ liveDot }}"></span>
+{{ connLabel }}
+</span>
+<span aria-label="Signed in as admin" role="img" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #DCE6F2; color: #0B1F33; font-size: 1rem; font-weight: 600">AD</span>
+</div>
+</div>
+</header>
+
+<main style="max-width: 1240px; margin: 0 auto; padding: 32px 24px 48px; display: flex; flex-direction: column; gap: 24px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 2.125rem; font-weight: 600; line-height: 1.235; letter-spacing: -0.01em">Rate limits</h1>
+<p style="margin: 0; font-size: 1rem; line-height: 1.5; color: #52606D">100 requests per user per hour unless an admin sets a custom limit. The table re-sorts as requests arrive, and holds still while you point at it or have a user open.</p>
+</div>
+<span style="display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 16px; background: #E2E7ED; font-size: 0.8125rem">Sample data</span>
+</div>
+
+<sc-if value="{{ isOffline }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 6px; background: #E2E7ED">
+<svg viewBox="0 0 24 24" width="22" height="22" fill="#52606D" aria-hidden="true"><path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"></path></svg>
+<span style="flex-grow: 1"><strong style="font-weight: 600">Live updates paused.</strong> Reconnecting to the server. Everything below is as of 19:52, so "last request" times are frozen.</span>
+</div>
+</sc-if>
+
+<section aria-label="Summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+<sc-for list="{{ cards }}" as="k" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #E2E7ED; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="color: #52606D; font-weight: 500">{{ k.label }}</span>
+<span style="display: inline-flex; width: 36px; height: 36px; border-radius: 8px; align-items: center; justify-content: center; background: {{ k.tint }}"><svg viewBox="0 0 24 24" width="20" height="20" fill="{{ k.color }}" aria-hidden="true"><path d="{{ k.icon }}"></path></svg></span>
+</div>
+<span style="font-size: 2rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; font-variant-numeric: tabular-nums">{{ k.value }}</span>
+<span style="font-size: 0.75rem; line-height: 1.66; color: #52606D">{{ k.caption }}</span>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<section aria-labelledby="users-title" onMouseEnter="{{ onTableEnter }}" onMouseLeave="{{ onTableLeave }}" style="flex: 999 1 640px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E7ED; border-radius: 8px">
+<div style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<h2 id="users-title" style="margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.4">Users</h2>
+<div style="position: relative; display: flex; align-items: center">
+<label for="user-search" style="position: absolute; top: -9px; left: 10px; padding: 0 4px; background: #FFFFFF; font-size: 0.75rem; line-height: 1; color: #52606D">Search user ID</label>
+<svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6B78" aria-hidden="true" style="position: absolute; left: 12px"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+<input id="user-search" class="rw-input" type="search" placeholder="user_…" value="{{ q }}" onChange="{{ onSearch }}" style="height: 40px; width: 260px; box-sizing: border-box; border: 1px solid #84919F; border-radius: 6px; padding: 0 12px 0 40px; font: 400 1rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; background: #FFFFFF">
+</div>
+</div>
+
+<div style="min-height: 48px; display: flex; flex-direction: column; justify-content: center">
+<sc-if value="{{ noChecked }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<div role="group" aria-label="Filter by status" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+<button class="rw-btn" type="button" aria-pressed="{{ c.pressed }}" onClick="{{ c.pick }}" style="{{ c.style }}">
+<sc-if value="{{ c.hasIcon }}" hint-placeholder-val="{{ true }}">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="{{ c.iconColor }}" aria-hidden="true"><path d="{{ c.icon }}"></path></svg>
+</sc-if>
+<span>{{ c.label }}</span>
+<span style="font-variant-numeric: tabular-nums">{{ c.count }}</span>
+</button>
+</sc-for>
+</div>
+<sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+<button class="rw-btn" type="button" onClick="{{ onClear }}" style="height: 36px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #1F5BD8; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Clear filters</button>
+</sc-if>
+<span style="flex-grow: 1"></span>
+<label for="last-active" style="color: #52606D">Last active</label>
+<select id="last-active" class="rw-input" value="{{ active }}" onChange="{{ onActive }}" style="height: 40px; border: 1px solid #84919F; border-radius: 6px; padding: 0 12px; font: 400 0.875rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; background: #FFFFFF">
+<option value="any">Any time</option>
+<option value="5m">Last 5 minutes</option>
+<option value="1h">Last hour</option>
+<option value="today">Today</option>
+</select>
+</div>
+</sc-if>
+<sc-if value="{{ hasChecked }}" hint-placeholder-val="{{ false }}">
+<div role="toolbar" aria-label="Actions for selected users" style="height: 48px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 0 6px 0 14px; border-radius: 6px; background: #E8EFFC">
+<strong aria-live="polite" style="font-weight: 600; flex-grow: 1">{{ checkedLabel }}</strong>
+<button class="rw-btn" type="button" onClick="{{ onBulkReset }}" style="height: 36px; padding: 0 14px; border: 1px solid #84919F; border-radius: 6px; background: #FFFFFF; color: #0F1A24; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Reset their limits</button>
+<button class="rw-btn" type="button" onClick="{{ onClearChecked }}" style="height: 36px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #1F5BD8; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Clear selection</button>
+</div>
+</sc-if>
+</div>
+
+</div>
+
+<sc-if value="{{ isDown }}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="margin: 0 16px 16px; padding: 32px 24px; border-radius: 6px; background: #F7E4E9; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+<svg viewBox="0 0 24 24" width="32" height="32" fill="#8E1B3A" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path></svg>
+<strong style="font-size: 1rem; font-weight: 600">Can't reach the API</strong>
+<span style="color: #52606D; max-width: 440px">The dashboard retries every 10 seconds. Last successful update at 19:52. If this keeps happening, check that the API and Redis are running.</span>
+<button class="rw-primary" type="button" onClick="{{ onRetry }}" style="margin-top: 8px; height: 40px; padding: 0 18px; border: 0; border-radius: 6px; background: #1F5BD8; color: #FFFFFF; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">{{ retryLabel }}</button>
+<p aria-live="polite" style="margin: 0; min-height: 20px; color: #52606D">{{ retryMsg }}</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEmptyState }}" hint-placeholder-val="{{ false }}">
+<div style="margin: 0 16px 16px; padding: 40px 24px; border-radius: 6px; background: #F4F6F9; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+<svg viewBox="0 0 200 200" width="72" height="72" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="8" ry="7"></ellipse><ellipse cx="146" cy="60" rx="7" ry="6"></ellipse><ellipse cx="40" cy="122" rx="6" ry="7"></ellipse><ellipse cx="162" cy="128" rx="8" ry="7"></ellipse><ellipse cx="120" cy="164" rx="7" ry="6"></ellipse></g><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M86 126 Q100 132 114 126"></path></g></svg>
+<strong style="font-size: 1rem; font-weight: 600">No users yet</strong>
+<span style="color: #52606D; max-width: 420px">Users show up here after their first request. Try a few clicks on the <a href="Clicker.dc.html">cookie clicker</a> to see one arrive.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTable }}" hint-placeholder-val="{{ true }}">
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse">
+<caption class="rw-sr">Users and their usage this hour. {{ sortCaption }}</caption>
+<thead>
+<tr>
+<th scope="col" style="width: 44px; padding: 0 0 0 16px; border-bottom: 1px solid #E2E7ED; background: #F8FAFC; text-align: left">
+<input class="rw-check" type="checkbox" aria-label="Select all users on this page" checked="{{ allChecked }}" onChange="{{ onCheckAll }}">
+</th>
+<sc-for list="{{ cols }}" as="col" hint-placeholder-count="5">
+<th scope="col" aria-sort="{{ col.ariaSort }}" style="text-align: left; padding: 0 8px; border-bottom: 1px solid #E2E7ED; background: #F8FAFC">
+<button class="rw-sort" type="button" onClick="{{ col.onSort }}" style="display: inline-flex; align-items: center; gap: 4px; height: 44px; padding: 0 8px; border: 0; background: transparent; font: 600 0.8125rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; cursor: pointer">
+{{ col.label }}
+<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="opacity: {{ col.arrowOpacity }}; transform: rotate({{ col.rot }}deg)"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"></path></svg>
+</button>
+</th>
+</sc-for>
+<th scope="col" style="width: 40px; border-bottom: 1px solid #E2E7ED; background: #F8FAFC"><span class="rw-sr">Open</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ rows }}" as="u" hint-placeholder-count="10">
+<tr class="{{ u.cls }}" onClick="{{ u.open }}" style="{{ u.rowStyle }}">
+<td style="padding: 10px 0 10px 16px; border-bottom: 1px solid #E8ECF1" onClick="{{ u.stop }}">
+<input class="rw-check" type="checkbox" aria-label="{{ u.checkLabel }}" checked="{{ u.checked }}" onChange="{{ u.toggle }}">
+</td>
+<td style="padding: 10px 16px; border-bottom: 1px solid #E8ECF1">
+<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px">
+<button class="rw-link" type="button" aria-current="{{ u.current }}" aria-haspopup="dialog" onClick="{{ u.open }}" style="padding: 0; border: 0; background: transparent; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; font-variant-numeric: tabular-nums; cursor: pointer">{{ u.id }}</button>
+<sc-if value="{{ u.custom }}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 0.75rem; color: #52606D">Custom limit</span>
+</sc-if>
+</div>
+</td>
+<td style="padding: 10px 16px; border-bottom: 1px solid #E8ECF1">
+<div style="display: flex; flex-direction: column; gap: 6px; width: 150px">
+<span style="font-variant-numeric: tabular-nums"><strong style="font-weight: 600">{{ u.rem }}</strong> / {{ u.total }}</span>
+<span style="display: block; height: 4px; border-radius: 2px; background: #E2E7ED; overflow: hidden"><span style="display: block; height: 4px; width: {{ u.usedPct }}%; background: {{ u.fill }}"></span></span>
+</div>
+</td>
+<td style="padding: 10px 16px; border-bottom: 1px solid #E8ECF1">
+<div style="display: flex; flex-direction: column">
+<span style="font-variant-numeric: tabular-nums">{{ u.reset }}</span>
+<span style="font-size: 0.75rem; color: #52606D">{{ u.resetIn }}</span>
+</div>
+</td>
+<td style="padding: 10px 16px; border-bottom: 1px solid #E8ECF1">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 14px; border: 1px solid {{ u.color }}; background: #FFFFFF; font-size: 0.8125rem; white-space: nowrap">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="{{ u.color }}" aria-hidden="true"><path d="{{ u.icon }}"></path></svg>
+{{ u.label }}
+</span>
+</td>
+<td style="padding: 10px 16px; border-bottom: 1px solid #E8ECF1; color: #52606D; font-variant-numeric: tabular-nums; white-space: nowrap">{{ u.last }}</td>
+<td style="padding: 4px 8px; border-bottom: 1px solid #E8ECF1; text-align: center">
+<svg viewBox="0 0 24 24" width="22" height="22" fill="#5F6B78" aria-hidden="true"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+<sc-if value="{{ noMatches }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 32px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: #52606D">
+<span>No users match this search and these filters.</span>
+<button class="rw-btn" type="button" onClick="{{ onClear }}" style="height: 36px; padding: 0 14px; border: 1px solid #84919F; border-radius: 6px; background: #FFFFFF; color: #0F1A24; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Clear filters</button>
+</div>
+</sc-if>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 16px; padding: 8px 16px; color: #52606D">
+<label for="per-page">Rows per page</label>
+<select id="per-page" class="rw-input" value="{{ perPage }}" onChange="{{ onPerPage }}" style="height: 36px; border: 1px solid #84919F; border-radius: 6px; padding: 0 8px; font: 400 0.875rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; background: #FFFFFF">
+<option value="10">10</option>
+<option value="25">25</option>
+<option value="50">50</option>
+</select>
+<span style="font-variant-numeric: tabular-nums; margin-left: 8px">{{ countLabel }}</span>
+<div style="display: flex; gap: 4px">
+<button class="rw-btn" type="button" aria-label="Previous page" disabled="{{ prevDisabled }}" onClick="{{ onPrev }}" style="width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg viewBox="0 0 24 24" width="24" height="24" fill="{{ prevColor }}" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg></button>
+<button class="rw-btn" type="button" aria-label="Next page" disabled="{{ nextDisabled }}" onClick="{{ onNext }}" style="width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg viewBox="0 0 24 24" width="24" height="24" fill="{{ nextColor }}" aria-hidden="true"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button>
+</div>
+</div>
+</sc-if>
+</section>
+
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="breakdown-title" style="background: #FFFFFF; border: 1px solid #E2E7ED; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<h2 id="breakdown-title" style="margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.4">Status breakdown</h2>
+<div role="img" aria-label="{{ breakdownLabel }}" style="display: flex; gap: 2px; height: 12px; border-radius: 4px; overflow: hidden; background: #E2E7ED">
+<sc-for list="{{ breakdown }}" as="b" hint-placeholder-count="4">
+<span style="flex: {{ b.flex }}; min-width: {{ b.minW }}; background: {{ b.fill }}"></span>
+</sc-for>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ breakdown }}" as="b" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: 8px"><svg viewBox="0 0 24 24" width="20" height="20" fill="{{ b.color }}" aria-hidden="true"><path d="{{ b.icon }}"></path></svg><span style="flex-grow: 1">{{ b.label }} <span style="color: #52606D">· {{ b.rule }}</span></span><span style="font-variant-numeric: tabular-nums; font-weight: 600">{{ b.count }}</span></li>
+</sc-for>
+</ul>
+</section>
+
+<section aria-labelledby="top-title" style="background: #FFFFFF; border: 1px solid #E2E7ED; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column">
+<h2 id="top-title" style="margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.4">Top users this hour</h2>
+<span style="font-size: 0.75rem; color: #52606D">Ranked by requests made since the last reset. Select one to see details.</span>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{ top }}" as="t" hint-placeholder-count="5">
+<li>
+<button class="rw-btn" type="button" aria-haspopup="dialog" onClick="{{ t.open }}" style="width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; display: flex; flex-direction: column; gap: 4px; text-align: left; font: 400 0.875rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; cursor: pointer">
+<span style="display: flex; align-items: baseline; gap: 8px; width: 100%">
+<span style="width: 16px; color: #52606D; font-variant-numeric: tabular-nums">{{ t.rank }}</span>
+<span style="flex-grow: 1; font-weight: 600; font-variant-numeric: tabular-nums">{{ t.id }}</span>
+<span style="font-variant-numeric: tabular-nums; font-weight: 600">{{ t.usedLabel }}</span>
+</span>
+<span style="display: flex; justify-content: space-between; width: calc(100% - 24px); margin-left: 24px; font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums"><span>{{ t.leftLabel }}</span></span>
+<span style="display: block; width: calc(100% - 24px); margin-left: 24px; height: 6px; border-radius: 3px; background: #E2E7ED; overflow: hidden"><span style="display: block; height: 6px; width: {{ t.pct }}%; background: #8A9BB0"></span></span>
+</button>
+</li>
+</sc-for>
+</ol>
+</section>
+</div>
+</div>
+</main>
+
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ onClose }}" style="position: fixed; inset: 0; background: rgba(11,31,51,0.32); z-index: 1200"></div>
+<div class="rw-drawer" role="dialog" aria-modal="true" aria-labelledby="detail-title" onKeyDown="{{ onDrawerKey }}" style="position: fixed; top: 5px; right: 0; bottom: 0; width: 460px; max-width: 100%; box-sizing: border-box; background: #FFFFFF; z-index: 1201; overflow-y: auto; box-shadow: -8px 0 24px rgba(15,26,36,0.16); padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 20px; height: 1235px">
+<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h2 id="detail-title" style="margin: 0; font-size: 1.5rem; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums">{{ d.id }}</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px 0 6px; border-radius: 13px; border: 1px solid {{ d.color }}; font-size: 0.8125rem"><svg viewBox="0 0 24 24" width="16" height="16" fill="{{ d.color }}" aria-hidden="true"><path d="{{ d.icon }}"></path></svg>{{ d.label }}</span>
+<sc-if value="{{ d.custom }}" hint-placeholder-val="{{ false }}">
+<span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 13px; background: #E2E7ED; font-size: 0.8125rem">Custom limit</span>
+</sc-if>
+</div>
+</div>
+<button id="drawer-close" class="rw-btn" type="button" aria-label="Close user details" onClick="{{ onClose }}" style="width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><svg viewBox="0 0 24 24" width="22" height="22" fill="#5F6B78" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg></button>
+</div>
+
+<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px">
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="font-size: 0.75rem; color: #52606D">Requests left</dt><dd style="margin: 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums">{{ d.rem }} / {{ d.total }}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="font-size: 0.75rem; color: #52606D">Used this hour</dt><dd style="margin: 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums">{{ d.usedPct }}%</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="font-size: 0.75rem; color: #52606D">Last reset</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">{{ d.lastReset }}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="font-size: 0.75rem; color: #52606D">Next reset</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">{{ d.reset }} · {{ d.resetIn }}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="font-size: 0.75rem; color: #52606D">Last request</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">{{ d.last }}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><dt style="font-size: 0.75rem; color: #52606D">Throttling</dt><dd style="margin: 0">{{ d.throttleText }}</dd></div>
+</dl>
+<span style="display: block; height: 6px; border-radius: 3px; background: #E2E7ED; overflow: hidden"><span style="display: block; height: 6px; width: {{ d.usedPct }}%; background: {{ d.fill }}"></span></span>
+
+<section aria-labelledby="activity-title" style="display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid #E2E7ED">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<h3 id="activity-title" style="margin: 0; font-size: 0.9375rem; font-weight: 600">Activity</h3>
+<div role="group" aria-label="Activity range" style="display: inline-flex; border: 1px solid #84919F; border-radius: 6px; overflow: hidden">
+<sc-for list="{{ ranges }}" as="rg" hint-placeholder-count="2">
+<button class="rw-btn" type="button" aria-pressed="{{ rg.pressed }}" onClick="{{ rg.pick }}" style="{{ rg.style }}">{{ rg.label }}</button>
+</sc-for>
+</div>
+</div>
+<div role="img" aria-label="{{ d.histLabel }}" style="display: flex; align-items: flex-end; gap: 3px; height: 72px; padding-bottom: 2px; border-bottom: 1px solid #E2E7ED">
+<sc-for list="{{ d.hist }}" as="h" hint-placeholder-count="12">
+<span style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%">
+<span style="display: block; height: {{ h.refusedH }}%; background: #8E1B3A; border-radius: 2px 2px 0 0"></span>
+<span style="display: block; height: {{ h.okH }}%; background: #8A9BB0"></span>
+</span>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums">
+<span>{{ d.histStart }}</span>
+<span style="display: inline-flex; align-items: center; gap: 12px"><span style="display: inline-flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #8A9BB0"></span>Accepted</span><span style="display: inline-flex; align-items: center; gap: 4px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #8E1B3A"></span>Refused</span></span>
+<span>Now</span>
+</div>
+<p style="margin: 0; color: #52606D; font-variant-numeric: tabular-nums">{{ d.histSummary }}</p>
+</section>
+
+<section aria-labelledby="recent-title" style="display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid #E2E7ED">
+<h3 id="recent-title" style="margin: 0; font-size: 0.9375rem; font-weight: 600">Recent requests</h3>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{ d.recent }}" as="r" hint-placeholder-count="5">
+<li style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #E8ECF1; font-variant-numeric: tabular-nums">
+<span style="width: 84px; color: #52606D">{{ r.when }}</span>
+<span style="flex-grow: 1">POST /api/click</span>
+<span style="display: inline-flex; align-items: center; gap: 4px; color: {{ r.color }}; font-weight: 600"><svg viewBox="0 0 24 24" width="14" height="14" fill="{{ r.color }}" aria-hidden="true"><path d="{{ r.icon }}"></path></svg>{{ r.code }}</span>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section aria-labelledby="controls-title" style="display: flex; flex-direction: column; gap: 14px; padding-top: 16px; border-top: 1px solid #E2E7ED">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h3 id="controls-title" style="margin: 0; font-size: 0.9375rem; font-weight: 600">Admin controls</h3>
+<span style="font-size: 0.75rem; color: #52606D">Changes apply immediately and can be undone for 10 seconds.</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button class="rw-btn" type="button" onClick="{{ onReset }}" style="height: 40px; padding: 0 14px; border: 1px solid #84919F; border-radius: 6px; background: #FFFFFF; color: #0F1A24; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Reset limit</button>
+<button class="rw-btn" type="button" aria-disabled="{{ d.paused }}" onClick="{{ onAdd }}" style="height: 40px; padding: 0 14px; border: 1px solid #84919F; border-radius: 6px; background: #FFFFFF; color: {{ d.addColor }}; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: {{ d.addCursor }}">Add 10 requests</button>
+</div>
+<sc-if value="{{ d.paused }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 6px; background: #EDF1F5">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="#52606D" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+<span style="flex-grow: 1">{{ d.throttleText }}. Adding requests is off while paused.</span>
+<button class="rw-btn" type="button" onClick="{{ onResume }}" style="height: 36px; padding: 0 12px; border: 1px solid #84919F; border-radius: 6px; background: #FFFFFF; color: #0F1A24; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Resume throttling</button>
+</div>
+</sc-if>
+<sc-if value="{{ d.notPaused }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label for="pause-for" style="font-size: 0.75rem; color: #52606D">Pause throttling for</label>
+<select id="pause-for" class="rw-input" value="{{ pauseFor }}" onChange="{{ onPauseFor }}" style="height: 40px; border: 1px solid #84919F; border-radius: 6px; padding: 0 10px; font: 400 0.875rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; background: #FFFFFF">
+<option value="15">15 minutes</option>
+<option value="60">1 hour</option>
+<option value="reset">Until the next reset</option>
+</select>
+</div>
+<button class="rw-btn" type="button" onClick="{{ onPause }}" style="height: 40px; padding: 0 14px; border: 1px solid #84919F; border-radius: 6px; background: #FFFFFF; color: #0F1A24; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Pause</button>
+</div>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label for="limit-input" style="font-size: 0.75rem; color: #52606D">Hourly limit</label>
+<input id="limit-input" class="rw-input" type="number" min="1" max="100000" value="{{ adjustVal }}" onChange="{{ onAdjust }}" aria-invalid="{{ limitInvalid }}" aria-describedby="limit-help" style="height: 40px; width: 120px; box-sizing: border-box; border: 1px solid {{ limitBorder }}; border-radius: 6px; padding: 0 12px; font: 400 0.875rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; font-variant-numeric: tabular-nums">
+</div>
+<button class="rw-primary" type="button" onClick="{{ onSaveLimit }}" style="height: 40px; padding: 0 16px; border: 0; border-radius: 6px; background: #1F5BD8; color: #FFFFFF; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Save limit</button>
+</div>
+<p id="limit-help" style="margin: 0; min-height: 20px; color: {{ limitHelpColor }}">{{ limitHelp }}</p>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: fixed; left: 24px; bottom: 24px; z-index: 1400; max-width: calc(100% - 48px); display: flex; align-items: center; gap: 16px; padding: 10px 12px 10px 16px; border-radius: 6px; background: #0B1F33; color: #FFFFFF; box-shadow: 0 6px 20px rgba(15,26,36,0.24)">
+<span>{{ toastText }}</span>
+<sc-if value="{{ toastUndo }}" hint-placeholder-val="{{ true }}">
+<button class="rw-snack" type="button" onClick="{{ onUndo }}" style="height: 36px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #9DBBF5; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Undo</button>
+</sc-if>
+</div>
+</sc-if>
+
+<p class="rw-sr" aria-live="polite">{{ announce }}</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["live","offline","down","empty"],"default":"live","section":"States"},"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    let seed = 20261030;
+    const rnd = () => {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const hex = () => Math.floor(rnd() * 0xffffff).toString(16).padStart(6, '0');
+    const users = [];
+    for (let i = 0; i < 64; i++) {
+      const r = rnd();
+      const custom = i === 5 ? 150 : i === 17 ? 250 : i === 40 ? 50 : 100;
+      let rem;
+      if (r < 0.06) rem = 0;
+      else if (r < 0.16) rem = 1 + Math.floor(rnd() * Math.floor(custom * 0.1));
+      else rem = Math.ceil(custom * 0.1) + 1 + Math.floor(rnd() * (custom * 0.9 - 1));
+      users.push({
+        id: 'user_' + hex(), rem: Math.min(rem, custom), total: custom,
+        resetMin: 1 + Math.floor(rnd() * 59),
+        lastSec: Math.floor(Math.pow(rnd(), 2.2) * 5400),
+        pausedFor: null, h: Math.floor(rnd() * 1000)
+      });
+    }
+    this.state = {
+      users, filter: 'all', q: '', active: 'any', sortKey: 'rem', sortDir: 'asc', perPage: '10', page: 0,
+      order: null, selected: null, checked: {}, adjust: null, pauseFor: '15', range: 'hour',
+      toast: null, hover: false, flashId: null, flashN: 0, refused: 214, announce: '', retrying: 0, retryMsg: ''
+    };
+    this.state.order = this.computeOrder(users, 'rem', 'asc');
+  }
+  componentDidMount() {
+    this.timer = setInterval(() => this.tick(), 2500);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+  }
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.selected && this.state.selected !== prevState.selected) {
+      setTimeout(() => { const el = document.getElementById('drawer-close'); if (el) el.focus(); }, 30);
+    }
+  }
+  mode() {
+    return this.props.state ?? 'live';
+  }
+  statusOf(u) {
+    return u.pausedFor !== null ? 'paused' : u.rem <= 0 ? 'exceeded' : (u.total - u.rem) / u.total >= 0.9 ? 'warning' : 'ok';
+  }
+  computeOrder(users, key, dir) {
+    const rank = { exceeded: 0, warning: 1, paused: 2, ok: 3 };
+    const d = dir === 'asc' ? 1 : -1;
+    const cmp = {
+      id: (a, b) => a.id.localeCompare(b.id),
+      rem: (a, b) => a.rem / a.total - b.rem / b.total,
+      reset: (a, b) => a.resetMin - b.resetMin,
+      status: (a, b) => rank[this.statusOf(a)] - rank[this.statusOf(b)],
+      last: (a, b) => a.lastSec - b.lastSec
+    }[key];
+    return users.slice().sort((a, b) => cmp(a, b) * d || a.id.localeCompare(b.id)).map((u) => u.id);
+  }
+  tick() {
+    const now = Date.now();
+    if (this.state.toast && now > this.state.toast.until) this.setState({ toast: null });
+    if (this.mode() !== 'live') return;
+    const users = this.state.users.map((u) => Object.assign({}, u, { lastSec: u.lastSec + 2.5 }));
+    const pick = users[Math.floor(Math.random() * users.length)];
+    const before = this.statusOf(pick);
+    let refused = this.state.refused;
+    if (pick.pausedFor === null) {
+      if (pick.rem > 0) pick.rem -= 1; else refused += 1;
+    }
+    pick.lastSec = 0;
+    const after = this.statusOf(pick);
+    const announce = before !== after && (after === 'warning' || after === 'exceeded') ? pick.id + ' is now ' + (after === 'warning' ? 'in Warning' : 'Exceeded') + '.' : this.state.announce;
+    const hold = this.state.hover || this.state.selected;
+    const order = hold ? this.state.order : this.computeOrder(users, this.state.sortKey, this.state.sortDir);
+    this.setState({ users, order, refused, flashId: pick.id, flashN: this.state.flashN + 1, announce });
+  }
+  change(ids, fn, text) {
+    const snapshot = this.state.users;
+    const users = snapshot.map((u) => (ids.indexOf(u.id) !== -1 ? Object.assign({}, u, fn(u)) : u));
+    this.setState({ users, toast: { text, until: Date.now() + 10000, snapshot }, announce: text });
+  }
+  renderVals() {
+    const I = {
+      ok: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
+      warning: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z',
+      exceeded: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z',
+      paused: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z',
+      users: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+      down: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'
+    };
+    const S = {
+      ok: { label: 'OK', color: '#0E7C66', fill: '#0E7C66', rule: 'under 90% used' },
+      warning: { label: 'Warning', color: '#9A5B00', fill: '#F5B83D', rule: '90% or more used' },
+      exceeded: { label: 'Exceeded', color: '#8E1B3A', fill: '#8E1B3A', rule: '100% used' },
+      paused: { label: 'Paused', color: '#52606D', fill: '#84919F', rule: 'throttling paused by an admin' }
+    };
+    const NOW = 19 * 60 + 54;
+    const clock = (m) => { const x = ((Math.round(m) % 1440) + 1440) % 1440; return String(Math.floor(x / 60)).padStart(2, '0') + ':' + String(x % 60).padStart(2, '0'); };
+    const mode = this.mode();
+    const isDown = mode === 'down';
+    const isEmpty = mode === 'empty';
+    const ago = (s) => (s < 5 ? 'just now' : s < 60 ? Math.round(s) + ' s ago' : s < 3600 ? Math.round(s / 60) + ' min ago' : Math.floor(s / 3600) + ' h ' + Math.round((s % 3600) / 60) + ' min ago');
+    const open = (id) => () => this.setState({ selected: id, adjust: null });
+    const view = (u) => {
+      const st = this.statusOf(u);
+      const s = S[st];
+      return Object.assign({}, u, {
+        status: st, label: s.label, color: s.color, fill: s.fill, icon: I[st],
+        usedPct: Math.max(0, Math.min(100, Math.round(((u.total - u.rem) / u.total) * 100))),
+        last: ago(u.lastSec), reset: clock(NOW + u.resetMin), resetIn: 'in ' + u.resetMin + ' min',
+        custom: u.total !== 100, open: open(u.id)
+      });
+    };
+    const all = isEmpty ? [] : this.state.users.map(view);
+    const byId = {};
+    all.forEach((u) => { byId[u.id] = u; });
+
+    const q = (this.state.q || '').trim().toLowerCase();
+    const sinceMidnight = (NOW) * 60;
+    const maxAge = { '5m': 300, '1h': 3600, today: sinceMidnight, any: Infinity }[this.state.active];
+    const match = (u) => (this.state.filter === 'all' || u.status === this.state.filter) && (!q || u.id.indexOf(q) !== -1) && u.lastSec <= maxAge;
+    const ordered = this.state.order.map((id) => byId[id]).filter((u) => u && match(u));
+    const per = parseInt(this.state.perPage, 10);
+    const pages = Math.max(1, Math.ceil(ordered.length / per));
+    const page = Math.min(this.state.page, pages - 1);
+    const pageRows = ordered.slice(page * per, page * per + per);
+    const fresh = this.computeOrder(this.state.users, this.state.sortKey, this.state.sortDir);
+    const freshVisible = fresh.filter((id) => byId[id] && match(byId[id])).slice(page * per, page * per + per).join();
+    const stale = !isEmpty && !isDown && freshVisible !== pageRows.map((u) => u.id).join();
+    const checked = this.state.checked;
+    const rows = pageRows.map((u) => {
+      const sel = u.id === this.state.selected;
+      const flash = u.id === this.state.flashId ? (this.state.flashN % 2 ? ' rw-flash-a' : ' rw-flash-b') : '';
+      return Object.assign(u, {
+        cls: 'rw-row' + flash,
+        rowStyle: sel ? 'background: #E8EFFC; box-shadow: inset 3px 0 0 #1F5BD8' : '',
+        current: sel ? 'true' : 'false',
+        checked: !!checked[u.id],
+        checkLabel: 'Select ' + u.id,
+        stop: (e) => e.stopPropagation(),
+        toggle: (e) => { e.stopPropagation(); const c = Object.assign({}, this.state.checked); if (c[u.id]) delete c[u.id]; else c[u.id] = true; this.setState({ checked: c }); }
+      });
+    });
+    const checkedIds = Object.keys(checked).filter((id) => byId[id]);
+    const allChecked = pageRows.length > 0 && pageRows.every((u) => checked[u.id]);
+
+    const setSort = (key, dir) => this.setState({ sortKey: key, sortDir: dir, order: this.computeOrder(this.state.users, key, dir), page: 0 });
+    const colDefs = [['id', 'User'], ['rem', 'Remaining / total'], ['reset', 'Resets'], ['status', 'Status'], ['last', 'Last request']];
+    const cols = colDefs.map(([k, label]) => {
+      const on = k === this.state.sortKey;
+      return {
+        label,
+        ariaSort: on ? (this.state.sortDir === 'asc' ? 'ascending' : 'descending') : 'none',
+        arrowOpacity: on ? 1 : 0.3,
+        rot: on && this.state.sortDir === 'asc' ? 180 : 0,
+        onSort: () => setSort(k, on && this.state.sortDir === 'asc' ? 'desc' : 'asc')
+      };
+    });
+
+    const counts = { all: all.length, ok: 0, warning: 0, exceeded: 0, paused: 0 };
+    all.forEach((u) => { counts[u.status] += 1; });
+    const chipDefs = [['all', 'All'], ['ok', 'OK'], ['warning', 'Warning'], ['exceeded', 'Exceeded'], ['paused', 'Paused']];
+    const chips = chipDefs.map(([id, label]) => {
+      const on = this.state.filter === id;
+      const base = 'display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 18px; font: 500 0.8125rem IBM Plex Sans, system-ui, sans-serif; cursor: pointer; ';
+      return {
+        label, count: counts[id], pressed: on, hasIcon: id !== 'all', icon: I[id] || '',
+        iconColor: on ? '#FFFFFF' : (S[id] ? S[id].color : '#0F1A24'),
+        style: base + (on ? 'background: #1F5BD8; color: #FFFFFF; border: 1px solid #1F5BD8' : 'background: #FFFFFF; color: #0F1A24; border: 1px solid #84919F'),
+        pick: () => this.setState({ filter: id, page: 0 })
+      };
+    });
+    const hasFilters = this.state.filter !== 'all' || !!q || this.state.active !== 'any';
+    const breakdown = ['ok', 'warning', 'exceeded', 'paused'].filter((k) => k !== 'paused' || counts.paused > 0).map((k) => ({
+      label: S[k].label, rule: S[k].rule, count: counts[k], fill: S[k].fill, color: S[k].color, icon: I[k],
+      flex: counts[k] + ' 1 0', minW: counts[k] > 0 ? '6px' : '0'
+    }));
+
+    const madeOf = (u) => u.total - Math.max(0, u.rem);
+    const topUsers = all.slice().sort((a, b) => madeOf(b) - madeOf(a) || a.id.localeCompare(b.id)).slice(0, 5);
+    const topMax = topUsers.length ? Math.max(1, madeOf(topUsers[0])) : 1;
+    const top = topUsers.map((u, i) => ({
+      rank: i + 1, id: u.id, open: u.open,
+      usedLabel: madeOf(u) + (madeOf(u) === 1 ? ' request' : ' requests'),
+      leftLabel: Math.max(0, u.rem) + ' of ' + u.total + ' left',
+      pct: Math.round((madeOf(u) / topMax) * 100)
+    }));
+
+    const selU = !isDown ? byId[this.state.selected] : null;
+    let d = { id: '', recent: [], hist: [], paused: false, notPaused: true };
+    if (selU) {
+      const dayMode = this.state.range === 'day';
+      const n = dayMode ? 24 : 12;
+      const hist = [];
+      let sumOk = 0;
+      let sumRef = 0;
+      const raw = [];
+      for (let i = 0; i < n; i++) {
+        const v = ((selU.h * (i + 3) * 37) % 97) / 97;
+        const okN = Math.round((dayMode ? 40 : 8) * (0.2 + v));
+        const refN = selU.status === 'exceeded' && i >= n - 2 ? Math.round(okN * 0.6) : (v > 0.9 ? 1 : 0);
+        raw.push([okN, refN]);
+        sumOk += okN;
+        sumRef += refN;
+      }
+      const maxV = Math.max.apply(null, raw.map((x) => x[0] + x[1])) || 1;
+      raw.forEach((x) => hist.push({ okH: Math.round((x[0] / maxV) * 100), refusedH: Math.round((x[1] / maxV) * 100) }));
+      const recent = [0, 1, 2, 3, 4].map((i) => {
+        const refusedReq = selU.status === 'exceeded' && i < 2;
+        return { when: ago(selU.lastSec + i * 37), code: refusedReq ? '429' : '200', color: refusedReq ? '#8E1B3A' : '#0E7C66', icon: refusedReq ? I.exceeded : I.ok };
+      });
+      const paused = selU.pausedFor !== null;
+      d = Object.assign({}, selU, {
+        recent, hist,
+        histStart: dayMode ? clock(NOW - 1440) + ' yesterday' : clock(NOW - 60),
+        histLabel: (dayMode ? 'Requests per hour over the past day: ' : 'Requests per 5 minutes over the past hour: ') + sumOk + ' accepted, ' + sumRef + ' refused.',
+        histSummary: sumOk + ' accepted and ' + sumRef + ' refused ' + (dayMode ? 'in the past day' : 'in the past hour') + '.',
+        lastReset: clock(NOW + selU.resetMin - 60),
+        paused, notPaused: !paused,
+        throttleText: paused ? 'Paused until ' + clock(NOW + selU.pausedFor) : 'On',
+        addColor: paused ? '#84919F' : '#0F1A24',
+        addCursor: paused ? 'not-allowed' : 'pointer'
+      });
+    }
+    const ranges = [['hour', 'Past hour'], ['day', 'Past day']].map(([id, label]) => {
+      const on = this.state.range === id;
+      return {
+        label, pressed: on,
+        style: 'height: 32px; padding: 0 12px; border: 0; background: ' + (on ? '#E8EFFC' : '#FFFFFF') + '; color: ' + (on ? '#1F5BD8' : '#0F1A24') + '; font: 600 0.8125rem IBM Plex Sans, system-ui, sans-serif; cursor: pointer',
+        pick: () => this.setState({ range: id })
+      };
+    });
+
+    const sid = this.state.selected;
+    const used = selU ? selU.total - selU.rem : 0;
+    const adjustStr = this.state.adjust === null ? String(selU ? selU.total : '') : this.state.adjust;
+    const n = parseInt(adjustStr, 10);
+    const invalid = adjustStr !== '' && !(n >= 1 && n <= 100000 && String(n) === adjustStr.trim());
+    let limitHelp = 'Default is 100. A custom limit lasts until an admin changes it.';
+    let limitHelpColor = '#52606D';
+    if (invalid) { limitHelp = 'Enter a whole number from 1 to 100,000.'; limitHelpColor = '#8E1B3A'; }
+    else if (selU && n < used && n !== selU.total) { limitHelp = sid + ' has already made ' + used + ' requests this hour. A limit of ' + n + ' marks them Exceeded until ' + clock(NOW + selU.resetMin) + '.'; limitHelpColor = '#9A5B00'; }
+
+    const cards = isDown ? [
+      { label: 'Total users', value: '—', caption: 'Waiting for the API', icon: I.users, color: '#52606D', tint: '#EDF1F5' },
+      { label: 'Near their limit', value: '—', caption: 'Waiting for the API', icon: I.warning, color: '#9A5B00', tint: '#FEF4DC' },
+      { label: 'Refused today', value: '—', caption: 'Waiting for the API', icon: I.exceeded, color: '#8E1B3A', tint: '#F7E4E9' },
+      { label: 'API health', value: 'Down', caption: 'No response for 2 min', icon: I.down, color: '#8E1B3A', tint: '#F7E4E9' }
+    ] : [
+      { label: 'Total users', value: String(all.length), caption: isEmpty ? 'No requests yet' : all.filter((u) => u.lastSec <= 3600).length + ' active in the last hour', icon: I.users, color: '#52606D', tint: '#EDF1F5' },
+      { label: 'Near their limit', value: all.length ? (Math.round((counts.warning / all.length) * 1000) / 10) + '%' : '0%', caption: counts.warning + ' in Warning (90%+ used); the ' + counts.exceeded + ' Exceeded are not included', icon: I.warning, color: '#9A5B00', tint: '#FEF4DC' },
+      { label: 'Refused today', value: isEmpty ? '0' : this.state.refused.toLocaleString('en-US'), caption: 'Requests over the limit since midnight', icon: I.exceeded, color: '#8E1B3A', tint: '#F7E4E9' },
+      { label: 'API health', value: 'OK', caption: mode === 'offline' ? 'API reachable; live feed reconnecting' : 'Rate-limit store reachable', icon: I.ok, color: '#0E7C66', tint: '#E3F2EE' }
+    ];
+    const toast = this.state.toast;
+    const first = ordered.length ? page * per + 1 : 0;
+    const lastN = Math.min(ordered.length, page * per + per);
+    return {
+      cards,
+      connLabel: mode === 'live' ? 'Live · API OK' : mode === 'offline' ? 'Reconnecting · API OK' : isDown ? 'API unreachable' : 'Live · API OK',
+      liveDot: mode === 'live' || isEmpty ? '#3FC1A1' : isDown ? '#F28BA6' : '#AFC0D3',
+      liveDotClass: mode === 'live' ? 'rw-live' : '',
+      isOffline: mode === 'offline',
+      isDown, isEmptyState: isEmpty, showTable: !isDown && !isEmpty,
+      q: this.state.q, active: this.state.active, perPage: this.state.perPage, pauseFor: this.state.pauseFor,
+      onSearch: (e) => this.setState({ q: e.target.value, page: 0 }),
+      onActive: (e) => this.setState({ active: e.target.value, page: 0 }),
+      onPerPage: (e) => this.setState({ perPage: e.target.value, page: 0 }),
+      onClear: () => this.setState({ filter: 'all', q: '', active: 'any', page: 0 }),
+      onTableEnter: () => this.setState({ hover: true }),
+      onTableLeave: () => this.setState({ hover: false, order: this.computeOrder(this.state.users, this.state.sortKey, this.state.sortDir) }),
+      sortCaption: 'Sorted by ' + colDefs.find((c) => c[0] === this.state.sortKey)[1] + ', ' + (this.state.sortDir === 'asc' ? 'ascending' : 'descending') + '.',
+      chips, cols, rows, top, hasFilters, stale, breakdown,
+      breakdownLabel: breakdown.map((b) => b.count + ' ' + b.label).join(', '),
+      noMatches: rows.length === 0,
+      countLabel: first + '–' + lastN + ' of ' + ordered.length + (hasFilters ? ' matching' : ''),
+      prevDisabled: page === 0, nextDisabled: page >= pages - 1,
+      prevColor: page === 0 ? '#B8C1CB' : '#5F6B78', nextColor: page >= pages - 1 ? '#B8C1CB' : '#5F6B78',
+      onPrev: () => this.setState({ page: Math.max(0, page - 1) }),
+      onNext: () => this.setState({ page: Math.min(pages - 1, page + 1) }),
+      allChecked,
+      onCheckAll: () => { const c = Object.assign({}, this.state.checked); pageRows.forEach((u) => { if (allChecked) delete c[u.id]; else c[u.id] = true; }); this.setState({ checked: c }); },
+      hasChecked: checkedIds.length > 0,
+      noChecked: checkedIds.length === 0,
+      checkedLabel: checkedIds.length + (checkedIds.length === 1 ? ' user selected' : ' users selected'),
+      onBulkReset: () => { this.change(checkedIds, (u) => ({ rem: u.total }), 'Reset limits for ' + checkedIds.length + (checkedIds.length === 1 ? ' user.' : ' users.')); this.setState({ checked: {} }); },
+      onClearChecked: () => this.setState({ checked: {} }),
+      hasSel: !!selU,
+      d, ranges,
+      onDrawerKey: (e) => { if (e.key === 'Escape') this.setState({ selected: null }); },
+      onClose: () => this.setState({ selected: null }),
+      adjustVal: adjustStr,
+      limitInvalid: invalid ? 'true' : 'false',
+      limitBorder: invalid ? '#8E1B3A' : '#84919F',
+      limitHelp, limitHelpColor,
+      onAdjust: (e) => this.setState({ adjust: e.target.value }),
+      onPauseFor: (e) => this.setState({ pauseFor: e.target.value }),
+      onReset: () => this.change([sid], (u) => ({ rem: u.total }), 'Limit reset for ' + sid + '.'),
+      onAdd: () => { if (selU && selU.pausedFor === null) this.change([sid], (u) => ({ rem: Math.max(0, u.rem) + 10 }), 'Added 10 requests to ' + sid + ' until the next reset.'); },
+      onPause: () => {
+        const p = this.state.pauseFor;
+        const mins = p === 'reset' ? selU.resetMin : parseInt(p, 10);
+        this.change([sid], () => ({ pausedFor: mins }), 'Throttling paused for ' + sid + ' until ' + clock(NOW + mins) + '.');
+      },
+      onResume: () => this.change([sid], () => ({ pausedFor: null }), 'Throttling resumed for ' + sid + '.'),
+      onSaveLimit: () => {
+        if (invalid || !selU) return;
+        this.change([sid], (u) => ({ total: n, rem: Math.max(0, n - (u.total - u.rem)) }), 'Hourly limit for ' + sid + ' set to ' + n.toLocaleString('en-US') + '.');
+        this.setState({ adjust: null });
+      },
+      hasToast: !!toast,
+      toastText: toast ? toast.text : '',
+      toastUndo: !!(toast && toast.snapshot),
+      onUndo: () => { if (toast && toast.snapshot) this.setState({ users: toast.snapshot, toast: { text: 'Change undone.', until: Date.now() + 4000, snapshot: null }, announce: 'Change undone.' }); },
+      retryLabel: this.state.retrying ? 'Retrying…' : 'Retry now',
+      retryMsg: this.state.retryMsg,
+      onRetry: () => {
+        this.setState({ retrying: 1, retryMsg: '' });
+        setTimeout(() => this.setState({ retrying: 0, retryMsg: 'Still no response from the API. Next automatic retry in 10 seconds.' }), 1200);
+      },
+      announce: this.state.announce
+    };
+  }
+}
+</script>
+</body>
+</html>

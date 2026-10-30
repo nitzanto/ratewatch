@@ -16,6 +16,8 @@ Every user of the protected service can make up to **100 requests per hour**. Th
 - As a user, I can see on every successful request how many requests I have left this hour.
 - As a user, when I've used my allowance, I get a clear message saying I've hit the limit and when I can try again.
 
+The [cookie clicker](../cookie-clicker/) is the way to see this from a user's side: every click spends one request.
+
 ## Rules
 
 - The allowance is **100 requests per user per hour**.

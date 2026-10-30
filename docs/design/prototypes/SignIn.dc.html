@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in to ratewatch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#1F5BD8}a:hover{color:#0B1F33}
+::selection{background:#CFE0FB;color:#0F1A24}
+.si-input:hover{border-color:#0F1A24}
+.si-input:focus{border-color:#1F5BD8;box-shadow:inset 0 0 0 1px #1F5BD8;outline:none}
+.si-primary:hover{background:#1849B0}
+.si-btn:hover{background:rgba(15,26,36,0.05)}
+.si-primary:focus-visible,.si-btn:focus-visible,.si-input:focus-visible,.si-link:focus-visible,.si-check:focus-visible{outline:2px solid #1F5BD8;outline-offset:2px}
+.si-check{width:18px;height:18px;accent-color:#1F5BD8;margin:0}
+@keyframes si-wave{0%,60%,100%{transform:rotate(0deg)}10%{transform:rotate(-22deg)}20%{transform:rotate(8deg)}30%{transform:rotate(-22deg)}40%{transform:rotate(8deg)}50%{transform:rotate(-6deg)}}
+@keyframes si-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes si-blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(0.1)}}
+.si-arm{transform-origin:176px 118px;animation:si-wave 2.6s cubic-bezier(0.4,0,0.2,1) infinite}
+.si-bob{animation:si-bob 3.2s cubic-bezier(0.4,0,0.2,1) infinite}
+.si-eye{transform-box:fill-box;transform-origin:center;animation:si-blink 4.8s linear infinite}
+@media (prefers-reduced-motion: reduce){.si-arm,.si-bob,.si-eye{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; font-size: 0.875rem; line-height: 1.43; background: #FFFFFF">
+
+<section aria-label="Welcome" style="flex: 1 1 480px; min-height: 360px; box-sizing: border-box; background: #0B1F33; color: #FFFFFF; padding: 40px 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 32px">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg viewBox="0 0 200 200" width="32" height="32" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse><ellipse cx="40" cy="122" rx="7" ry="8"></ellipse><ellipse cx="162" cy="128" rx="9" ry="8"></ellipse><ellipse cx="120" cy="164" rx="8" ry="7"></ellipse></g><g fill="none" stroke="#3A2414" stroke-width="10" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg>
+<span style="font-size: 1.25rem; font-weight: 600">ratewatch</span>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 28px">
+<div style="position: relative; width: 320px; height: 300px; max-width: 100%; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; left: 50%; top: 50%; width: 280px; height: 280px; margin: -140px 0 0 -140px; border-radius: 50%; background: rgba(255,255,255,0.06)"></span>
+<svg class="si-bob" viewBox="0 0 240 210" width="300" height="262" role="img" aria-label="Crumb the cookie waving hello" style="position: relative">
+<g class="si-arm">
+<path d="M176 118 L206 70" fill="none" stroke="#B9773A" stroke-width="16" stroke-linecap="round"></path>
+<circle cx="208" cy="64" r="13" fill="#E2A75B" stroke="#B9773A" stroke-width="4"></circle>
+</g>
+<path d="M30 150 L14 176" fill="none" stroke="#B9773A" stroke-width="16" stroke-linecap="round"></path>
+<circle cx="12" cy="180" r="12" fill="#E2A75B" stroke="#B9773A" stroke-width="4"></circle>
+<circle cx="110" cy="112" r="86" fill="#B9773A"></circle>
+<circle cx="110" cy="106" r="86" fill="#E2A75B"></circle>
+<path d="M54 72 A64 64 0 0 1 102 42" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path>
+<g fill="#5B3A1F"><ellipse cx="66" cy="72" rx="9" ry="8"></ellipse><ellipse cx="156" cy="66" rx="8" ry="7"></ellipse><ellipse cx="50" cy="128" rx="7" ry="8"></ellipse><ellipse cx="172" cy="134" rx="9" ry="8"></ellipse><ellipse cx="130" cy="170" rx="8" ry="7"></ellipse></g>
+<ellipse cx="70" cy="128" rx="12" ry="7" fill="#E57360" opacity="0.7"></ellipse><ellipse cx="150" cy="128" rx="12" ry="7" fill="#E57360" opacity="0.7"></ellipse>
+<g class="si-eye"><circle cx="88" cy="104" r="8" fill="#3A2414"></circle><circle cx="90.5" cy="101" r="3" fill="#FFFFFF"></circle></g>
+<g class="si-eye"><circle cx="132" cy="104" r="8" fill="#3A2414"></circle><circle cx="134.5" cy="101" r="3" fill="#FFFFFF"></circle></g>
+<path d="M88 126 Q110 152 132 126" fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"></path>
+</svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; text-align: center; max-width: 420px">
+<h2 style="margin: 0; font-size: 1.75rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em">Crumb says hi.</h2>
+<p style="margin: 0; font-size: 1rem; line-height: 1.5; color: #AFC0D3">Admins land on the live rate-limit dashboard. Everyone else gets the cookie clicker and 100 requests an hour.</p>
+</div>
+</div>
+
+<p style="margin: 0; font-size: 0.75rem; color: #AFC0D3">Rate limits are per user, never per device or network.</p>
+</section>
+
+<main style="flex: 1 1 420px; box-sizing: border-box; padding: 40px 24px; display: flex; align-items: center; justify-content: center; background: #FFFFFF">
+<div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 24px">
+
+<sc-if value="{{ notDone }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 2rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em">Sign in</h1>
+<p style="margin: 0; font-size: 1rem; color: #52606D">Use your work email and password.</p>
+</div>
+
+<sc-if value="{{ hasFormError }}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 6px; background: #F7E4E9">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="#8E1B3A" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path></svg>
+<span>{{ formError }}</span>
+</div>
+</sc-if>
+
+<form noValidate onSubmit="{{ onSubmit }}" style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="si-email" style="font-weight: 600">Email</label>
+<input id="si-email" class="si-input" type="email" autoComplete="username" placeholder="name@company.com" value="{{ email }}" onChange="{{ onEmail }}" aria-invalid="{{ emailInvalid }}" aria-describedby="si-email-msg" style="height: 44px; box-sizing: border-box; border: 1px solid {{ emailBorder }}; border-radius: 6px; padding: 0 12px; font: 400 1rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; background: #FFFFFF">
+<span id="si-email-msg" style="min-height: 18px; font-size: 0.8125rem; color: #8E1B3A">{{ emailError }}</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<label for="si-password" style="font-weight: 600">Password</label>
+<a class="si-link" href="#forgot" style="font-size: 0.8125rem; font-weight: 500">Forgot password?</a>
+</div>
+<div style="position: relative; display: flex; align-items: center">
+<input id="si-password" class="si-input" type="{{ pwType }}" autoComplete="current-password" value="{{ password }}" onChange="{{ onPassword }}" aria-invalid="{{ pwInvalid }}" aria-describedby="si-pw-msg" style="flex-grow: 1; height: 44px; box-sizing: border-box; border: 1px solid {{ pwBorder }}; border-radius: 6px; padding: 0 52px 0 12px; font: 400 1rem 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; background: #FFFFFF">
+<button class="si-btn" type="button" aria-label="Show password" aria-pressed="{{ showPw }}" onClick="{{ onTogglePw }}" style="position: absolute; right: 4px; width: 40px; height: 36px; border: 0; border-radius: 4px; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer">
+<svg viewBox="0 0 24 24" width="20" height="20" fill="#5F6B78" aria-hidden="true"><path d="{{ eyeIcon }}"></path></svg>
+</button>
+</div>
+<span id="si-pw-msg" style="min-height: 18px; font-size: 0.8125rem; color: #8E1B3A">{{ pwError }}</span>
+</div>
+
+<label style="display: flex; align-items: center; gap: 10px; cursor: pointer">
+<input class="si-check" type="checkbox" checked="{{ keep }}" onChange="{{ onKeep }}">
+<span>Keep me signed in on this device</span>
+</label>
+
+<button class="si-primary" type="submit" aria-disabled="{{ busy }}" style="height: 48px; border: 0; border-radius: 6px; background: #1F5BD8; color: #FFFFFF; font: 600 1rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">{{ submitLabel }}</button>
+</form>
+
+<div style="display: flex; align-items: center; gap: 12px; color: #52606D">
+<span style="flex-grow: 1; height: 1px; background: #E2E7ED"></span>
+<span>or</span>
+<span style="flex-grow: 1; height: 1px; background: #E2E7ED"></span>
+</div>
+<a class="si-btn" href="Clicker.dc.html" style="height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid #84919F; border-radius: 6px; color: #0F1A24; text-decoration: none; font-weight: 600; font-size: 1rem">Try the cookie clicker as a guest</a>
+<p style="margin: 0; font-size: 0.8125rem; color: #52606D">In this prototype, any email containing “admin” signs in as an admin.</p>
+</sc-if>
+
+<sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: inline-flex; width: 48px; height: 48px; border-radius: 50%; align-items: center; justify-content: center; background: #E3F2EE"><svg viewBox="0 0 24 24" width="28" height="28" fill="#0E7C66" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg></div>
+<h1 style="margin: 0; font-size: 2rem; font-weight: 600; line-height: 1.2">You're signed in</h1>
+<p style="margin: 0; font-size: 1rem; color: #52606D">{{ doneText }}</p>
+<a class="si-primary" href="{{ nextHref }}" style="height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #1F5BD8; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 1rem">{{ nextLabel }}</a>
+<button class="si-btn" type="button" onClick="{{ onSignOut }}" style="align-self: flex-start; height: 36px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: #1F5BD8; font: 600 0.875rem 'IBM Plex Sans', system-ui, sans-serif; cursor: pointer">Not you? Sign in again</button>
+</div>
+</sc-if>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { email: '', password: '', showPw: false, keep: true, touched: false, busy: false, done: false, formError: '' };
+  }
+  renderVals() {
+    const st = this.state;
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(st.email.trim());
+    const emailError = !st.touched ? '' : st.email.trim() === '' ? 'Enter your email.' : !emailOk ? 'Enter an email like name@company.com.' : '';
+    const pwError = !st.touched ? '' : st.password === '' ? 'Enter your password.' : '';
+    const isAdmin = st.email.toLowerCase().indexOf('admin') !== -1;
+    const eye = 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z';
+    const eyeOff = 'M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z';
+    return {
+      email: st.email, password: st.password, keep: st.keep, busy: st.busy,
+      showPw: st.showPw, pwType: st.showPw ? 'text' : 'password', eyeIcon: st.showPw ? eyeOff : eye,
+      emailError, pwError,
+      emailInvalid: emailError ? 'true' : 'false', pwInvalid: pwError ? 'true' : 'false',
+      emailBorder: emailError ? '#8E1B3A' : '#84919F', pwBorder: pwError ? '#8E1B3A' : '#84919F',
+      hasFormError: !!st.formError, formError: st.formError,
+      submitLabel: st.busy ? 'Signing in…' : 'Sign in',
+      done: st.done, notDone: !st.done,
+      doneText: isAdmin ? 'Signed in as ' + st.email.trim() + ', an admin. The dashboard shows every user against their limit, live.' : 'Signed in as ' + st.email.trim() + '. You have 100 requests this hour to spend on the cookie clicker.',
+      nextHref: isAdmin ? 'Main.dc.html' : 'Clicker.dc.html',
+      nextLabel: isAdmin ? 'Go to the dashboard' : 'Go to the cookie clicker',
+      onEmail: (e) => this.setState({ email: e.target.value, formError: '' }),
+      onPassword: (e) => this.setState({ password: e.target.value, formError: '' }),
+      onTogglePw: () => this.setState({ showPw: !st.showPw }),
+      onKeep: () => this.setState({ keep: !st.keep }),
+      onSignOut: () => this.setState({ done: false, password: '', touched: false, formError: '' }),
+      onSubmit: (e) => {
+        e.preventDefault();
+        if (st.busy) return;
+        if (!emailOk || st.password === '') { this.setState({ touched: true }); return; }
+        if (st.password.length < 4) { this.setState({ touched: true, formError: "That email and password don't match. Check both and try again." }); return; }
+        this.setState({ touched: true, busy: true, formError: '' });
+        setTimeout(() => this.setState({ busy: false, done: true }), 900);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
