@@ -13,14 +13,17 @@ The source is split by **layer**, not by feature, and every layer holds one work
 
 ```text
 apps/web/src/
-├── main.tsx                  # entry: providers and the mock-mode worker
+├── main.tsx                  # entry: fonts, providers, the browser router and the mock-mode worker
 ├── app/
-│   ├── app.tsx               # the root component (the health page today)
+│   ├── routes.tsx            # the route table, every page inside the shell
+│   ├── route-paths.ts        # ROUTES: every page's URL, defined once
+│   ├── app-shell.tsx         # the root layout: app bar, tabs, API status pill
 │   ├── app.spec.tsx
 │   └── providers.tsx         # query client, theme, CssBaseline
+├── pages/                    # one component per route, e.g. dashboard-page.tsx
 ├── components/
 │   ├── business/             # tied to domain logic, e.g. health-status.tsx
-│   └── ui/                   # presentational only, no domain coupling
+│   └── ui/                   # presentational only, no domain coupling, e.g. crumb.tsx
 ├── hooks/
 │   ├── api/                  # one-line query and mutation hooks, e.g. use-health.ts
 │   └── ui/                   # hooks with no server state
@@ -28,7 +31,7 @@ apps/web/src/
 ├── libs/
 │   ├── api/                  # API client and one module per resource
 │   ├── errors/               # ApiError, RateLimitedError
-│   ├── theme/                # MUI theme and the status palette
+│   ├── theme/                # the design system: palette, typography, sizes, components/
 │   ├── test-utils/           # the app render helper (tests only)
 │   ├── utils/                # shared helpers
 │   └── observability/        # error tracking
@@ -39,9 +42,27 @@ apps/web/src/
 └── test-setup.ts             # starts the MSW server for every test file
 ```
 
-Some layers exist only on this page so far: `components/ui`, `hooks/ui`, `contexts`, `libs/utils` and `libs/observability`. A folder is created with its first real file, never as an empty placeholder.
+Some layers exist only on this page so far: `hooks/ui`, `contexts`, `libs/utils` and `libs/observability`. A folder is created with its first real file, never as an empty placeholder.
 
 Import across layers with the `@/` alias for `src/` (`import { api } from '@/libs/api/api-client'`). TypeScript resolves it from `tsconfig.app.json` and `tsconfig.spec.json`, and Vite and Vitest from `vite.config.mts`.
+
+## Routing
+
+Pages are routed by **React Router** in data mode. Why is in [Routing](../../adrs/routing/).
+
+```mermaid
+flowchart TD
+  shell["AppShell (root layout)<br/>app bar, tabs, API status"] --> dashboard["/<br/>DashboardPage"]
+  shell --> play["/play<br/>PlayPage"]
+  shell --> notFound["anything else<br/>NotFoundPage"]
+```
+
+- **One route table**, `app/routes.tsx`. The app shell is a pathless layout route, so every page, the not-found page included, renders inside it. `main.tsx` builds the browser router from the table; tests build a memory router from the same table.
+- **URLs are constants.** `ROUTES` in `app/route-paths.ts` holds every page's URL. The route table, the app bar's tabs and every link read it, so changing a URL is a one-line change and a typo doesn't compile.
+- **Tabs are links.** The app bar's tabs are `NavLink`s, so the current page gets `aria-current="page"` and its underline from that attribute.
+- **Deep links work in production.** nginx answers any path that isn't a file or `/api` with `index.html`, and the router takes it from there.
+
+To add a page: add its URL to `ROUTES`, its component to `pages/`, and a route to the table; add a tab in `app-shell.tsx` if it belongs in the app bar.
 
 ## Talking to the API
 
@@ -70,7 +91,21 @@ Components never call `useEffect`, and lint fails if they do. Most effects are a
 
 ## Styling
 
-Components use MUI and style with the `sx` prop and theme tokens, never separate CSS files. The theme is in `libs/theme/theme.ts`. Besides MUI's defaults, its palette has `palette.status.ok`, `.warning` and `.exceeded`, one colour for each rate-limit status, so every screen shows a status the same way.
+Components use MUI and style with the `sx` prop and theme tokens, never separate CSS files. The theme in `libs/theme/` carries the design system from the [Design](../../design/) page, one concern per file:
+
+| File                   | Holds                                                                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `palette.ts`           | Every colour. The rate-limit statuses use MUI's standard slots: `success` is OK, `warning` is Warning, `error` is Exceeded. Custom keys: `shell`, `crumb`, `paused`, `liveFlash`, `dataBar`. |
+| `typography.ts`        | IBM Plex Sans (self-hosted with `@fontsource/ibm-plex-sans`), semibold headings, sentence-case buttons.                                                                                      |
+| `sizes.ts`             | Fixed sizes such as the app bar height, the content width and Crumb's sizes. Spacing uses the theme's 8px grid.                                                                              |
+| `components/<name>.ts` | One file per MUI component: its default props, style overrides and custom variants, such as the app bar's `shellTab` button and `shell` chip.                                                |
+| `theme.ts`             | Assembles them with `createTheme`.                                                                                                                                                           |
+
+**No hardcoded colours.** Lint fails on a hex, `rgb()` or `hsl()` value anywhere in the app except `libs/theme/`. Use a token (`sx={{ color: 'text.secondary' }}`, or `useTheme().palette` where a raw value is needed, as in Crumb's SVG). If a colour is missing, add it to the design system and the palette first.
+
+**Customise a component in the theme, not at the call site.** When a component needs a look of its own that others could reuse, add a variant or override in `libs/theme/components/<name>.ts`, so every page gets it by name (`<Button variant="shellTab">`) instead of copying `sx`.
+
+**Crumb**, the cookie mascot (`components/ui/crumb.tsx`), is one inline SVG with a `mood` prop: the five OK stages, Warning, Exceeded, and the still brand `mark` in the app bar. His motion is CSS keyframes, with no animation library, and it stops when the user prefers reduced motion. With an `onClick` he is a real button, named by his mood.
 
 ## API mocking
 
@@ -93,7 +128,7 @@ Because MSW intercepts at the network level, the app runs its real client in bot
 
 ## Testing
 
-Component tests use Vitest, Testing Library and MSW, through one helper: `renderApp()` in `libs/test-utils/render-app.tsx` mounts the real app with its real providers and a fresh query cache. A test renders the app, then asserts what the user sees and can do (roles, accessible names, text), never hooks, query keys or client internals:
+Component tests use Vitest, Testing Library and MSW, through one helper: `renderApp(url)` in `libs/test-utils/render-app.tsx` mounts the real app at that URL (`/` by default), with its real routes, providers and a fresh query cache. A test renders the app, then asserts what the user sees and can do (roles, accessible names, text), never hooks, query keys or client internals:
 
 ```tsx
 it('shows an error when the API is unreachable', async () => {
@@ -114,6 +149,5 @@ The dashboard is also covered end to end by the `web` Playwright suite, which us
 These are open and will be decided with the first feature that needs them; each gets an ADR and a row in the [decision log](../../adrs/architecture-decisions/#decision-log).
 
 - **Client state:** whether anything beyond server state and URL state needs a store.
-- **Routing:** a router library, decided with the second page.
 
-Decided: folder layout ([Folder layout](../../adrs/folder-layout/)) and server state ([Server state](../../adrs/server-state/)).
+Decided: folder layout ([Folder layout](../../adrs/folder-layout/)), server state ([Server state](../../adrs/server-state/)) and routing ([Routing](../../adrs/routing/)).

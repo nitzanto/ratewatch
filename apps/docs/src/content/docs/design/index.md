@@ -26,6 +26,8 @@ A deep navy shell, a cool grey page, white surfaces and one cobalt accent. Navy 
 
 The three statuses differ in lightness as well as hue, so they stay distinct for people with colour blindness, and every status always comes with an icon and a word. All text meets WCAG AA contrast (4.5:1).
 
+Every colour, Crumb's included, lives in the dashboard's theme (`apps/web/src/libs/theme/palette.ts`). Code never hardcodes one, and lint enforces it: a new colour is added to the design system first.
+
 ## Typography
 
 One typeface, **IBM Plex Sans**, in regular, medium and semibold. Headings are semibold. Numbers in tables, counters and timers use fixed-width digits so columns line up and countdowns don't jitter. Buttons and tabs use sentence case.
@@ -35,7 +37,8 @@ One typeface, **IBM Plex Sans**, in regular, medium and semibold. Headings are s
 - **App shell:** a 64px navy bar with the Crumb logo, the Dashboard and Cookie clicker tabs, and one connection pill ("Live · API OK", "Reconnecting", "API unreachable").
 - **Dashboard:** four summary cards, then the users table beside the status breakdown and top users. Opening a user slides a drawer in from the right with their history and the admin controls.
 - **Cookie clicker:** one centred card with Crumb, the requests-left count, a usage bar and a message area of fixed height.
-- **Sign in:** navy welcome panel with Crumb waving on the left, the form on the right. On phones the halves stack.
+- **Sign in:** navy welcome panel with Crumb waving on the left, the form on the right.
+- **Desktop only:** every screen is designed for desktop browser windows 1280px and wider. There are no phone or tablet layouts.
 
 ## Behaviour rules
 

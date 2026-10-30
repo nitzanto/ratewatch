@@ -1,13 +1,11 @@
 import { HealthStatus } from '@/components/business/health-status';
-import { Container, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
-const App = () => (
-  <Container sx={{ py: 4 }}>
+export const DashboardPage = () => (
+  <>
     <Typography variant="h4" component="h1" gutterBottom>
-      ratewatch
+      Dashboard
     </Typography>
     <HealthStatus />
-  </Container>
+  </>
 );
-
-export default App;

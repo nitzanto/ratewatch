@@ -4,7 +4,7 @@
 
 ## Platform
 
-web
+web, desktop only (browser windows 1280px and wider; no phone or tablet layouts)
 
 ## Users
 
@@ -30,7 +30,7 @@ The limit is visible from both sides: admins see every user against their allowa
 
 - Allowance: 100 requests per user per hour unless an admin sets a custom limit.
 - Status: OK under 90% used, Warning at 90% or more, Exceeded at 100%. Paused: throttling suspended by an admin.
-- Stack: React 19 + Vite, MUI, TanStack Query, React Router (planned), Socket.IO for realtime (proposed).
+- Stack: React 19 + Vite, MUI, TanStack Query, React Router, Socket.IO for realtime (proposed).
 - Undecided: fixed clock hour versus rolling hour; fail-open versus fail-closed when the store is down; real login versus demo sign-in (#35); how long a pause lasts by default.
 
 ## Brand Commitments

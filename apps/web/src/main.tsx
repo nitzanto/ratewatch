@@ -1,7 +1,12 @@
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
 import { StrictMode } from 'react';
 import * as ReactDOM from 'react-dom/client';
-import App from './app/app';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import { AppProviders, createQueryClient } from './app/providers';
+import { routes } from './app/routes';
 
 // Dynamic imports keep MSW out of the production bundle.
 if (import.meta.env.DEV && import.meta.env.VITE_MOCKS === 'true') {
@@ -17,7 +22,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <StrictMode>
     <AppProviders queryClient={createQueryClient()}>
-      <App />
+      <RouterProvider router={createBrowserRouter(routes)} />
     </AppProviders>
   </StrictMode>,
 );
