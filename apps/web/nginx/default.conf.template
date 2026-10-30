@@ -1,0 +1,54 @@
+# Rendered by the nginx image's entrypoint: only environment variables that are set (here API_URL) are substituted.
+
+# Vite hashes asset file names, so a changed file gets a new URL and can be cached for good.
+# index.html must always be revalidated. API responses keep their own headers (empty adds none).
+map $uri $cache_control {
+    ~^/assets/            "public, max-age=31536000, immutable";
+    ~^/(api|socket\.io)/  "";
+    default               "no-cache";
+}
+
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    server_tokens off;
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Set here only: a location with its own add_header would drop all of these.
+    # No `always` on Cache-Control, so error responses (a missing asset mid-deploy) are never cached.
+    add_header Cache-Control $cache_control;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Content-Security-Policy "frame-ancestors 'none'" always;
+
+    # Same origin: the browser never calls the API directly, so there's no CORS.
+    location /api/ {
+        proxy_pass ${API_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /socket.io/ {
+        proxy_pass ${API_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 1h;
+    }
+
+    location /assets/ {
+        try_files $uri =404;
+    }
+
+    # Everything else is the single-page app.
+    location / {
+        try_files $uri /index.html;
+    }
+}

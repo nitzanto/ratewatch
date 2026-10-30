@@ -65,3 +65,27 @@ jobs:
           name: playwright-report
           path: apps/e2e/test-output/playwright/report
           retention-days: 7
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      # Runs when an app is affected, or when a root Docker file changes: those belong to no Nx project.
+      - id: affected
+        run: |
+          apps=$(pnpm nx show projects --affected -p api web --json)
+          if [ "$apps" != '[]' ] || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- compose.yaml compose.prod.yaml .dockerignore; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Builds the production images and runs them as compose.prod.yaml does: one origin through nginx.
+      # shortcut: no cross-run layer cache (the Actions cache already hit its egress limit); add one if builds get slow.
+      - if: ${{ steps.affected.outputs.run }}
+        run: docker compose -f compose.yaml -f compose.prod.yaml up --build --wait
+      - if: ${{ steps.affected.outputs.run }}
+        run: curl --fail --silent --show-error --retry 5 --retry-all-errors http://localhost:8080/api/health
+      - if: ${{ failure() }}
+        run: docker compose -f compose.yaml -f compose.prod.yaml logs

@@ -13,9 +13,10 @@ export default defineConfig(() => ({
   },
   server: {
     port: 4200,
-    host: 'localhost',
+    // In a container Vite must listen on every interface (the dev image sets 0.0.0.0).
+    host: process.env.WEB_HOST ?? 'localhost',
     // Same origin as production, where nginx forwards /api to the API.
-    proxy: { '/api': 'http://localhost:3000' },
+    proxy: { '/api': process.env.API_URL ?? 'http://localhost:3000' },
   },
   preview: {
     port: 4300,
