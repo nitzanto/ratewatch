@@ -1,0 +1,34 @@
+# Build context for every image (built from the repo root). Compose Watch skips these paths too.
+# Stages pick what they need from the rest; production stages copy only build output.
+
+# Generated or host-specific: always rebuilt inside the container, for Linux.
+**/node_modules
+**/dist
+**/out-tsc
+**/test-output
+**/coverage
+**/.astro
+.nx
+
+# Not needed by any image.
+.git
+.github
+.husky
+.claude
+.scratch
+.serena
+.playwright-cli
+docs
+**/*.md
+**/Dockerfile
+compose*.yaml
+
+# The docs site no image runs. Its package.json stays, so the lockfile still matches the workspace.
+# apps/e2e stays: the root tsconfig references it, and Nx refuses to run on a workspace out of sync.
+apps/docs/*
+!apps/docs/package.json
+
+# Local secrets and overrides.
+.env
+.env.*
+!.env.example

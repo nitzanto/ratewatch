@@ -29,7 +29,7 @@ flowchart LR
 
 ## Parts
 
-**Web app (`apps/web`).** A React single-page app built with Vite and styled with MUI. It calls the API with relative `/api/...` URLs: in development Vite proxies them to the API, and in production a reverse proxy will serve both on one origin, so the browser never needs CORS. Every response is parsed with its contract before the UI uses it.
+**Web app (`apps/web`).** A React single-page app built with Vite and styled with MUI. It calls the API with relative `/api/...` URLs: in development Vite proxies them to the API, and in production nginx serves the built files and forwards `/api` and `/socket.io` to the API, so the browser sees one origin and never needs CORS. See [Same origin through nginx](../../adrs/same-origin/). Every response is parsed with its contract before the UI uses it.
 
 **API (`apps/api`).** A NestJS service under the `/api` prefix. Today it exposes a health endpoint; rate limiting arrives as an interceptor with the rate-limiting feature.
 
@@ -49,6 +49,22 @@ Everything lives in one repository: the apps, the contracts library, the end-to-
 
 A change to a shared shape, and the updates to both apps that consume it, land in one pull request. Why Nx and the options we weighed are in [Monorepo](../../adrs/monorepo/).
 
+## Containers
+
+Each app has one Dockerfile with two targets. `dev` runs the app's dev server with hot reload, and is what `docker compose up --watch` starts. `prod`, the default, holds only what runs in production: the API's bundle and production dependencies on a slim Node image, and the dashboard's static files on nginx. Both run as non-root users. See [Local environment](../../adrs/local-environment/) and [Running locally](../../guides/running-locally/).
+
+```mermaid
+flowchart LR
+  browser([Browser]) -- ":8080" --> nginx
+  subgraph web["web container (nginx)"]
+    nginx[static files]
+  end
+  subgraph api["api container (Node)"]
+    nest["NestJS :3000"]
+  end
+  nginx -- "/api, /socket.io" --> nest
+```
+
 ## Not here yet
 
-The rate-limit store, the rate-limiting interceptor, realtime updates, authentication and deployment each arrive with the feature that needs them, along with their ADRs and an update to this page. See the [decision log](../../adrs/architecture-decisions/#decision-log) for what's proposed.
+The rate-limit store, the rate-limiting interceptor, realtime updates, authentication and Kubernetes deployment each arrive with the feature that needs them, along with their ADRs and an update to this page. See the [decision log](../../adrs/architecture-decisions/#decision-log) for what's proposed.

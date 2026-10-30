@@ -7,7 +7,7 @@ sidebar:
 
 **Status:** Accepted · **Issue:** [#5](https://github.com/nitzanto/ratewatch/issues/5)
 
-**GitHub Actions** checks every pull request and every push to `main`, running only on the projects a change affects. `quality` (lint, typecheck, formatting), `test`, `build` and `e2e` are separate required checks. `main` takes squash merges only, so each pull request's title becomes its commit, and a separate check makes sure that title is a [Conventional Commit](https://www.conventionalcommits.org/).
+**GitHub Actions** checks every pull request and every push to `main`, running only on the projects a change affects. `quality` (lint, typecheck, formatting), `test`, `build` and `e2e` are separate required checks, and `docker` builds the production images and checks the production-like stack answers through nginx. `main` takes squash merges only, so each pull request's title becomes its commit, and a separate check makes sure that title is a [Conventional Commit](https://www.conventionalcommits.org/).
 
 **Options considered**
 

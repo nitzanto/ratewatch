@@ -1,0 +1,83 @@
+# Compose Watch copies edits into the containers (no source bind mounts, so it behaves the same
+# on Docker Desktop, Colima, OrbStack or Linux). Any other change to the app, the contracts or a
+# root workspace file (lockfile, package.json, tsconfig, nx.json) rebuilds the image instead.
+name: ratewatch
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    ports:
+      - 127.0.0.1:3000:3000
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/api/src
+          target: /app/apps/api/src
+        - action: sync
+          path: ./libs/contracts/src
+          target: /app/libs/contracts/src
+        - action: rebuild
+          path: ./apps/api
+          ignore: [src/]
+        - action: rebuild
+          path: ./libs/contracts
+          ignore: [src/]
+        - action: rebuild
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./nx.json
+        - action: rebuild
+          path: ./tsconfig.base.json
+        - action: rebuild
+          path: ./tsconfig.json
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    environment:
+      API_URL: http://api:3000
+    ports:
+      - 127.0.0.1:4200:4200
+    depends_on:
+      - api
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web/src
+          target: /app/apps/web/src
+        - action: sync
+          path: ./apps/web/public
+          target: /app/apps/web/public
+        - action: sync
+          path: ./apps/web/index.html
+          target: /app/apps/web/index.html
+        - action: sync
+          path: ./libs/contracts/src
+          target: /app/libs/contracts/src
+        - action: rebuild
+          path: ./apps/web
+          ignore: [src/]
+        - action: rebuild
+          path: ./libs/contracts
+          ignore: [src/]
+        - action: rebuild
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./nx.json
+        - action: rebuild
+          path: ./tsconfig.base.json
+        - action: rebuild
+          path: ./tsconfig.json

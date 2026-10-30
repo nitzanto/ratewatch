@@ -36,19 +36,21 @@ Ranked. When two attributes conflict, the higher one wins unless an ADR argues o
 
 Every decision is listed here, with a link to its ADR.
 
-| Area             | Decision                                                 | Why, in one line                                                           | Details                                              |
-| ---------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Repository       | Nx + pnpm monorepo                                       | A change to a shared shape and both its consumers land in one pull request | [Monorepo](../monorepo/)                             |
-| Backend          | NestJS 11 on Express                                     | NestJS is required; 11 is the newest the build tooling supports            | [Backend framework](../backend-framework/)           |
-| Frontend         | React 19 + Vite                                          | Largest ecosystem for data-heavy admin UIs, with a fast dev loop           | [Frontend framework](../frontend-framework/)         |
-| UI               | MUI, with MUI X Data Grid for the live table             | One maintained source for the grid, forms and theme                        | [UI library](../ui-library/)                         |
-| API contracts    | Shared Zod schemas in `libs/contracts`                   | One definition gives both types and runtime validation                     | [API contracts](../api-contracts/)                   |
-| Rate-limit store | **Proposed:** Redis. Algorithm and approach pending      | An in-memory store shared by every API instance, with atomic operations    | ADR with the rate-limiting feature                   |
-| Realtime         | **Proposed:** Socket.IO. Approach pending                | Reconnect, rooms and multi-instance fan-out built in                       | ADR with the live dashboard                          |
-| Auth             | **Pending**                                              | Decided with the authentication feature                                    | ADR with the auth feature                            |
-| Unit tests       | Vitest in every project                                  | One runner and one config style across the repo                            | [Unit tests](../unit-tests/)                         |
-| API mocking      | Mock Service Worker 3, shared by dev and component tests | Frontend work without a running API; tests exercise the real `fetch` path  | [API mocking](../api-mocking/)                       |
-| End-to-end tests | One Playwright suite for API and web                     | Core flows cross both apps, so one suite drives and checks both            | [End-to-end tests](../end-to-end-tests/)             |
-| CI               | GitHub Actions on affected projects; squash merge only   | Every pull request is checked before merge, on what it could break         | [Continuous integration](../continuous-integration/) |
-| Documentation    | This wiki, in the repo, on GitHub Pages                  | Reviewed in the same pull request as the code it describes                 | [Engineering wiki](../engineering-wiki/)             |
-| Agent skills     | Forked into the repo and owned there                     | The workflow is reviewed like code and the same for everyone               | [Agent skills](../agent-skills/)                     |
+| Area              | Decision                                                       | Why, in one line                                                           | Details                                              |
+| ----------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Repository        | Nx + pnpm monorepo                                             | A change to a shared shape and both its consumers land in one pull request | [Monorepo](../monorepo/)                             |
+| Backend           | NestJS 11 on Express                                           | NestJS is required; 11 is the newest the build tooling supports            | [Backend framework](../backend-framework/)           |
+| Frontend          | React 19 + Vite                                                | Largest ecosystem for data-heavy admin UIs, with a fast dev loop           | [Frontend framework](../frontend-framework/)         |
+| UI                | MUI, with MUI X Data Grid for the live table                   | One maintained source for the grid, forms and theme                        | [UI library](../ui-library/)                         |
+| API contracts     | Shared Zod schemas in `libs/contracts`                         | One definition gives both types and runtime validation                     | [API contracts](../api-contracts/)                   |
+| Rate-limit store  | **Proposed:** Redis. Algorithm and approach pending            | An in-memory store shared by every API instance, with atomic operations    | ADR with the rate-limiting feature                   |
+| Realtime          | **Proposed:** Socket.IO. Approach pending                      | Reconnect, rooms and multi-instance fan-out built in                       | ADR with the live dashboard                          |
+| Auth              | **Pending**                                                    | Decided with the authentication feature                                    | ADR with the auth feature                            |
+| Unit tests        | Vitest in every project                                        | One runner and one config style across the repo                            | [Unit tests](../unit-tests/)                         |
+| API mocking       | Mock Service Worker 3, shared by dev and component tests       | Frontend work without a running API; tests exercise the real `fetch` path  | [API mocking](../api-mocking/)                       |
+| End-to-end tests  | One Playwright suite for API and web                           | Core flows cross both apps, so one suite drives and checks both            | [End-to-end tests](../end-to-end-tests/)             |
+| CI                | GitHub Actions on affected projects; squash merge only         | Every pull request is checked before merge, on what it could break         | [Continuous integration](../continuous-integration/) |
+| Documentation     | This wiki, in the repo, on GitHub Pages                        | Reviewed in the same pull request as the code it describes                 | [Engineering wiki](../engineering-wiki/)             |
+| Agent skills      | Forked into the repo and owned there                           | The workflow is reviewed like code and the same for everyone               | [Agent skills](../agent-skills/)                     |
+| Same origin       | nginx serves the dashboard and proxies `/api` and `/socket.io` | No CORS, and one image per app for every environment                       | [Same origin through nginx](../same-origin/)         |
+| Local environment | Docker Compose with Compose Watch; native pnpm optional        | Only Docker needed, with hot reload the same on every Docker engine        | [Local environment](../local-environment/)           |

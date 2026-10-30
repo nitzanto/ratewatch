@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      target: prod
+    # Only reachable through nginx, as in production.
+    ports: !reset []
+    develop: !reset {}
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  web:
+    build:
+      target: prod
+    ports: !override
+      - 127.0.0.1:8080:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    develop: !reset {}
+    read_only: true
+    # nginx renders its config into conf.d at start and keeps its pid and temp files in /tmp.
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
