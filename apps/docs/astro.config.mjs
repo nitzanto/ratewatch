@@ -28,6 +28,7 @@ export default defineConfig({
           label: 'Feature specs',
           items: [{ autogenerate: { directory: 'features' } }],
         },
+        { label: 'Design', link: '/design/' },
         {
           label: 'Architecture',
           items: [{ autogenerate: { directory: 'architecture' } }],

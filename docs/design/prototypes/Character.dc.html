@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crumb character sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5BD8}::selection{background:#CFE0FB;color:#0F1A24}a:hover{color:#0B1F33}
+@keyframes cs-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes cs-jitter{0%,100%{transform:rotate(0deg)}20%{transform:rotate(-3deg)}40%{transform:rotate(3deg)}60%{transform:rotate(-2deg)}80%{transform:rotate(2deg)}}
+@keyframes cs-slump{0%,100%{transform:translateY(4px) rotate(-5deg)}50%{transform:translateY(8px) rotate(-7deg)}}
+@keyframes cs-squish{0%,55%,100%{transform:scale(1)}65%{transform:scale(0.9,0.84)}80%{transform:scale(1.04,1.02)}}
+.cs-ok{animation:cs-bob 3s cubic-bezier(0.4,0,0.2,1) infinite;transform-origin:50% 90%}
+.cs-warn{animation:cs-jitter 1.2s cubic-bezier(0.4,0,0.6,1) infinite;transform-origin:50% 90%}
+.cs-out{animation:cs-slump 4s cubic-bezier(0.4,0,0.2,1) infinite;transform-origin:50% 90%}
+.cs-squish{animation:cs-squish 1.6s cubic-bezier(0.4,0,0.2,1) infinite;transform-origin:50% 90%}
+@media (prefers-reduced-motion: reduce){.cs-ok,.cs-warn,.cs-out,.cs-squish{animation:none}}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1310px; box-sizing: border-box; padding: 56px 64px; background: #F4F6F9; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #0F1A24; font-size: 0.875rem; line-height: 1.43; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 4px; max-width: 760px">
+<h1 style="font-family: 'IBM Plex Sans', system-ui, sans-serif; margin: 0; font-size: 3rem; font-weight: 600; line-height: 1.167; letter-spacing: -0.015em">Crumb, the ratewatch cookie</h1>
+<p style="margin: 0; font-size: 1rem; line-height: 1.5; color: #52606D">Crumb's mood follows rate-limit status, so a user can tell where they stand at a glance. Crumb is the brand mark in the app bar and the button on the clicker page.</p>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+
+<div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 16px">
+<div style="height: 232px; border-radius: 4px; background: rgba(14,124,102,0.08); display: flex; align-items: center; justify-content: center">
+<svg class="cs-ok" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="Crumb, OK mood: smiling with closed happy eyes">
+<circle cx="100" cy="106" r="86" fill="#B9773A"></circle>
+<circle cx="100" cy="100" r="86" fill="#E2A75B"></circle>
+<path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path>
+<g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="8" ry="7"></ellipse><ellipse cx="146" cy="60" rx="7" ry="6"></ellipse><ellipse cx="40" cy="122" rx="6" ry="7"></ellipse><ellipse cx="162" cy="128" rx="8" ry="7"></ellipse><ellipse cx="120" cy="164" rx="7" ry="6"></ellipse><ellipse cx="72" cy="160" rx="6" ry="5"></ellipse><ellipse cx="108" cy="50" rx="5" ry="4"></ellipse></g>
+<ellipse cx="60" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><ellipse cx="140" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse>
+<g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g>
+</svg>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 16px; border: 1px solid #0E7C66; font-size: 0.8125rem"><svg viewBox="0 0 24 24" width="18" height="18" fill="#0E7C66" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path></svg>OK</span>
+<span style="color: #52606D">Under 90% used</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 72px 1fr; gap: 6px 12px">
+<dt style="color: #52606D">Face</dt><dd style="margin: 0">Five stages, one per 20 requests (below); starts with closed happy eyes</dd>
+<dt style="color: #52606D">Idle</dt><dd style="margin: 0">Slow bob, 8 px, 3 s loop, ease in-out</dd>
+<dt style="color: #52606D">Says</dt><dd style="margin: 0">Plenty left, keep clicking</dd>
+</dl>
+</div>
+
+<div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 16px">
+<div style="height: 232px; border-radius: 4px; background: rgba(245,184,61,0.22); display: flex; align-items: center; justify-content: center">
+<svg class="cs-warn" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="Crumb, Warning mood: wide eyes, worried brows, a bead of sweat">
+<circle cx="100" cy="106" r="86" fill="#B9773A"></circle>
+<circle cx="100" cy="100" r="86" fill="#E2A75B"></circle>
+<path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path>
+<g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse></g>
+<circle cx="78" cy="102" r="10" fill="#3A2414"></circle><circle cx="122" cy="102" r="10" fill="#3A2414"></circle>
+<circle cx="81" cy="98" r="3.5" fill="#ffffff"></circle><circle cx="125" cy="98" r="3.5" fill="#ffffff"></circle>
+<g fill="none" stroke="#3A2414" stroke-width="6" stroke-linecap="round"><path d="M64 84 L88 76"></path><path d="M136 84 L112 76"></path><path d="M80 132 Q90 124 100 132 Q110 140 120 132"></path></g>
+<path d="M158 64 Q169 82 158 90 Q147 82 158 64 Z" fill="#8EC5EA"></path>
+</svg>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 16px; border: 1px solid #9A5B00; font-size: 0.8125rem"><svg viewBox="0 0 24 24" width="18" height="18" fill="#9A5B00" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path></svg>Warning</span>
+<span style="color: #52606D">90% or more used</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 72px 1fr; gap: 6px 12px">
+<dt style="color: #52606D">Face</dt><dd style="margin: 0">Wide eyes, worried brows, wobbly mouth, sweat drop, one chip left</dd>
+<dt style="color: #52606D">Idle</dt><dd style="margin: 0">Nervous jitter, ±3°, in short bursts every 4 s</dd>
+<dt style="color: #52606D">Says</dt><dd style="margin: 0">Ten or fewer left, slow down</dd>
+</dl>
+</div>
+
+<div style="background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 16px">
+<div style="height: 232px; border-radius: 4px; background: rgba(142,27,58,0.08); display: flex; align-items: center; justify-content: center">
+<svg class="cs-out" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="Crumb, Exceeded mood: a bite taken out, crossed-out eyes, crumbs falling">
+<defs><mask id="ck-bite-sheet"><rect width="200" height="200" fill="#ffffff"></rect><circle cx="178" cy="42" r="26" fill="#000000"></circle><circle cx="150" cy="20" r="18" fill="#000000"></circle><circle cx="192" cy="78" r="18" fill="#000000"></circle></mask></defs>
+<g mask="url(#ck-bite-sheet)">
+<circle cx="100" cy="106" r="86" fill="#B9773A"></circle>
+<circle cx="100" cy="100" r="86" fill="#D9A15A"></circle>
+</g>
+<g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 92 L86 110 M86 92 L68 110"></path><path d="M114 92 L132 110 M132 92 L114 110"></path></g>
+<ellipse cx="100" cy="136" rx="9" ry="8" fill="#3A2414"></ellipse>
+<g fill="#C98A45"><rect x="166" y="96" width="9" height="9" rx="2"></rect><rect x="180" y="114" width="6" height="6" rx="1.5"></rect><rect x="160" y="122" width="5" height="5" rx="1"></rect></g>
+</svg>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 16px; border: 1px solid #8E1B3A; font-size: 0.8125rem"><svg viewBox="0 0 24 24" width="18" height="18" fill="#8E1B3A" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"></path></svg>Exceeded</span>
+<span style="color: #52606D">100% used</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 72px 1fr; gap: 6px 12px">
+<dt style="color: #52606D">Face</dt><dd style="margin: 0">Bite taken out, no chips, crossed-out eyes, open mouth, crumbs</dd>
+<dt style="color: #52606D">Idle</dt><dd style="margin: 0">Slow slump and tilt, 4 s loop</dd>
+<dt style="color: #52606D">Says</dt><dd style="margin: 0">Out of requests, wait for the countdown</dd>
+<dt style="color: #52606D">Wait</dt><dd style="margin: 0">A teal ring fills while the bite grows back; eyes rest at halfway; a hop and “Welcome back” on reset</dd>
+</dl>
+</div>
+</div>
+
+<section aria-labelledby="stages-title" style="background: #FFFFFF; border-radius: 8px; padding: 20px 24px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px">
+<h2 id="stages-title" style="margin: 0; font-size: 1.25rem; font-weight: 600">Progress stages within OK</h2>
+<span style="color: #52606D">Crumb drops one chocolate chip every 20 requests, so his chips double as a rough gauge of what is left. A short note explains each drop.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center"><svg viewBox="0 0 200 200" width="104" height="104" role="img" aria-label="Crumb, Fresh stage"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse><ellipse cx="40" cy="122" rx="7" ry="8"></ellipse><ellipse cx="162" cy="128" rx="9" ry="8"></ellipse><ellipse cx="120" cy="164" rx="8" ry="7"></ellipse></g><ellipse cx="60" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><ellipse cx="140" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg><strong style="font-weight: 600">Fresh</strong><span style="font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums">0–19 used · 5 chips</span><span style="color: #52606D">Closed happy eyes, soft smile</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center"><svg viewBox="0 0 200 200" width="104" height="104" role="img" aria-label="Crumb, Warming up stage"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse><ellipse cx="40" cy="122" rx="7" ry="8"></ellipse><ellipse cx="162" cy="128" rx="9" ry="8"></ellipse></g><ellipse cx="60" cy="122" rx="12" ry="7" fill="#E57360" opacity="0.7"></ellipse><ellipse cx="140" cy="122" rx="12" ry="7" fill="#E57360" opacity="0.7"></ellipse><circle cx="78" cy="98" r="8" fill="#3A2414"></circle><circle cx="122" cy="98" r="8" fill="#3A2414"></circle><circle cx="80.5" cy="95" r="3" fill="#FFFFFF"></circle><circle cx="124.5" cy="95" r="3" fill="#FFFFFF"></circle><path d="M78 120 Q100 146 122 120" fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"></path></svg><strong style="font-weight: 600">Warming up</strong><span style="font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums">20–39 used · 4 chips</span><span style="color: #52606D">Eyes open, bigger grin, rosier cheeks</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center"><svg viewBox="0 0 200 200" width="104" height="104" role="img" aria-label="Crumb, Excited stage"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse><ellipse cx="40" cy="122" rx="7" ry="8"></ellipse></g><ellipse cx="58" cy="118" rx="12" ry="7" fill="#E57360" opacity="0.7"></ellipse><ellipse cx="142" cy="118" rx="12" ry="7" fill="#E57360" opacity="0.7"></ellipse><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M66 100 Q78 84 90 100"></path><path d="M110 100 Q122 84 134 100"></path></g><path d="M78 118 Q100 154 122 118 Z" fill="#3A2414" stroke="#3A2414" stroke-width="4" stroke-linejoin="round"></path><ellipse cx="100" cy="134" rx="9" ry="5" fill="#E57360"></ellipse></svg><strong style="font-weight: 600">Excited</strong><span style="font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums">40–59 used · 3 chips</span><span style="color: #52606D">Squinting joy, open-mouth laugh</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center"><svg viewBox="0 0 200 200" width="104" height="104" role="img" aria-label="Crumb, Focused stage"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse></g><circle cx="78" cy="100" r="7" fill="#3A2414"></circle><circle cx="122" cy="100" r="7" fill="#3A2414"></circle><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M64 82 L88 89"></path><path d="M136 82 L112 89"></path><path d="M86 126 Q102 136 116 122"></path></g></svg><strong style="font-weight: 600">Focused</strong><span style="font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums">60–79 used · 2 chips</span><span style="color: #52606D">Determined brows, confident smirk</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center"><svg viewBox="0 0 200 200" width="104" height="104" role="img" aria-label="Crumb, Tired stage"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse></g><path d="M68 100 A10 10 0 0 0 88 100 Z" fill="#3A2414"></path><path d="M112 100 A10 10 0 0 0 132 100 Z" fill="#3A2414"></path><g fill="none" stroke="#3A2414" stroke-width="6" stroke-linecap="round"><path d="M64 99 L92 99"></path><path d="M108 99 L136 99"></path><path d="M90 131 Q100 127 110 131"></path></g></svg><strong style="font-weight: 600">Tired</strong><span style="font-size: 0.75rem; color: #52606D; font-variant-numeric: tabular-nums">80–89 used · 1 chip</span><span style="color: #52606D">Heavy lids, slower bob; Warning comes next</span></div>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px">
+
+<div style="background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 12px">
+<h2 style="font-family: 'IBM Plex Sans', system-ui, sans-serif; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5">Sizes</h2>
+<div style="display: flex; align-items: flex-end; gap: 20px; height: 96px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<svg viewBox="0 0 200 200" width="36" height="36" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="8" ry="7"></ellipse><ellipse cx="146" cy="60" rx="7" ry="6"></ellipse><ellipse cx="40" cy="122" rx="6" ry="7"></ellipse><ellipse cx="162" cy="128" rx="8" ry="7"></ellipse><ellipse cx="120" cy="164" rx="7" ry="6"></ellipse></g><g fill="none" stroke="#3A2414" stroke-width="9" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg>
+<span style="font-size: 0.75rem; color: #52606D">36 · app bar</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<svg viewBox="0 0 200 200" width="72" height="72" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="8" ry="7"></ellipse><ellipse cx="146" cy="60" rx="7" ry="6"></ellipse><ellipse cx="40" cy="122" rx="6" ry="7"></ellipse><ellipse cx="162" cy="128" rx="8" ry="7"></ellipse><ellipse cx="120" cy="164" rx="7" ry="6"></ellipse><ellipse cx="72" cy="160" rx="6" ry="5"></ellipse></g><ellipse cx="60" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><ellipse cx="140" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg>
+<span style="font-size: 0.75rem; color: #52606D">72 · empty states</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+<svg viewBox="0 0 200 200" width="72" height="72" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><path d="M44 66 A64 64 0 0 1 92 36" fill="none" stroke="#F1C88A" stroke-width="8" stroke-linecap="round"></path><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse><ellipse cx="40" cy="122" rx="7" ry="8"></ellipse><ellipse cx="162" cy="128" rx="9" ry="8"></ellipse><ellipse cx="120" cy="164" rx="8" ry="7"></ellipse></g><ellipse cx="60" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><ellipse cx="140" cy="122" rx="11" ry="6" fill="#E57360" opacity="0.55"></ellipse><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg>
+<span style="font-size: 0.75rem; color: #52606D">248 · clicker (shown smaller)</span>
+</div>
+</div>
+<p style="margin: 0; color: #52606D">Strokes thicken below 48 px so the face still reads.</p>
+</div>
+
+<div style="background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 12px">
+<h2 style="font-family: 'IBM Plex Sans', system-ui, sans-serif; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5">Press</h2>
+<div style="height: 96px; display: flex; align-items: center; justify-content: center">
+<svg class="cs-squish" viewBox="0 0 200 200" width="88" height="88" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="8" ry="7"></ellipse><ellipse cx="146" cy="60" rx="7" ry="6"></ellipse><ellipse cx="40" cy="122" rx="6" ry="7"></ellipse><ellipse cx="162" cy="128" rx="8" ry="7"></ellipse><ellipse cx="120" cy="164" rx="7" ry="6"></ellipse><ellipse cx="72" cy="160" rx="6" ry="5"></ellipse></g><g fill="none" stroke="#3A2414" stroke-width="7" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg>
+</div>
+<p style="margin: 0; color: #52606D">Squash to 90 × 84%, overshoot, settle: 250 ms. A “−1” floats up. The request fires on click, not when the animation ends.</p>
+</div>
+
+<div style="background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 12px">
+<h2 style="font-family: 'IBM Plex Sans', system-ui, sans-serif; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5">Reduced motion</h2>
+<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px">
+<li>No idle loop, squish or floating “−1”</li>
+<li>Mood still changes: the face carries the status</li>
+<li>Requests left is still announced to screen readers</li>
+<li>Ring and bite update in steps, no hop on reset</li>
+<li>Clicking works exactly the same</li>
+</ul>
+</div>
+
+<div style="background: #ffffff; border-radius: 8px; padding: 16px; border: 1px solid #E2E7ED; display: flex; flex-direction: column; gap: 12px">
+<h2 style="font-family: 'IBM Plex Sans', system-ui, sans-serif; margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5">Cookie colours</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 24px; height: 24px; border-radius: 4px; background: #E2A75B"></span><span>Dough <span style="color: #52606D">#E2A75B</span></span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 24px; height: 24px; border-radius: 4px; background: #B9773A"></span><span>Crust <span style="color: #52606D">#B9773A</span></span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 24px; height: 24px; border-radius: 4px; background: #5B3A1F"></span><span>Chips <span style="color: #52606D">#5B3A1F</span></span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 24px; height: 24px; border-radius: 4px; background: #3A2414"></span><span>Face <span style="color: #52606D">#3A2414</span></span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 24px; height: 24px; border-radius: 4px; background: #E57360"></span><span>Cheeks <span style="color: #52606D">#E57360</span></span></div>
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 24px; height: 24px; border-radius: 4px; background: #4FC3F7"></span><span>Sweat <span style="color: #52606D">#4FC3F7</span></span></div>
+</div>
+<p style="margin: 0; color: #52606D">Status sits beside Crumb, never on him: OK teal #0E7C66, Warning amber #F5B83D (icons #9A5B00), Exceeded crimson #8E1B3A, apart in lightness. Navy shell #0B1F33 sets off his dough.</p>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1310}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

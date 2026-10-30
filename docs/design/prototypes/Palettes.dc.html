@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Enterprise palette options</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5BD8}a:hover{color:#0B1F33}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; padding: 48px 56px; background: #F4F5F7; font-family: Figtree, system-ui, sans-serif; color: #16181D; font-size: 0.875rem; line-height: 1.45; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 900px">
+<h1 style="margin: 0; font-size: 2rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em">Enterprise palette options</h1>
+<p style="margin: 0; font-size: 1rem; color: #5A5F69">Each option keeps the same rules: a coloured shell, a cool neutral ground, one accent used only for actions and selection, and one status trio set apart by lightness. Crumb keeps his own warm colours in every option.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+<sc-for list="{{ options }}" as="o" hint-placeholder-count="3">
+<section style="background: #FFFFFF; border: 1px solid #DCDFE4; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 style="margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3">{{ o.name }}</h2>
+<sc-if value="{{ o.pick }}" hint-placeholder-val="{{ false }}">
+<span style="display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 13px; background: #16181D; color: #FFFFFF; font-size: 0.75rem; font-weight: 600">Impeccable pick</span>
+</sc-if>
+</div>
+<p style="margin: 0; color: #5A5F69; min-height: 60px">{{ o.thesis }}</p>
+
+<div style="border-radius: 6px; overflow: hidden; border: 1px solid {{ o.line }}">
+<div style="background: {{ o.shell }}; color: #FFFFFF; height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px">
+<svg viewBox="0 0 200 200" width="24" height="24" aria-hidden="true"><circle cx="100" cy="106" r="86" fill="#B9773A"></circle><circle cx="100" cy="100" r="86" fill="#E2A75B"></circle><g fill="#5B3A1F"><ellipse cx="56" cy="66" rx="9" ry="8"></ellipse><ellipse cx="146" cy="60" rx="8" ry="7"></ellipse><ellipse cx="40" cy="122" rx="7" ry="8"></ellipse><ellipse cx="162" cy="128" rx="9" ry="8"></ellipse><ellipse cx="120" cy="164" rx="8" ry="7"></ellipse></g><g fill="none" stroke="#3A2414" stroke-width="10" stroke-linecap="round"><path d="M68 100 Q78 88 88 100"></path><path d="M112 100 Q122 88 132 100"></path><path d="M82 122 Q100 142 118 122"></path></g></svg>
+<strong style="font-weight: 600; font-size: 0.9375rem; margin-right: 8px">ratewatch</strong>
+<span style="display: flex; align-items: center; align-self: stretch; padding: 0 8px; border-bottom: 2px solid #FFFFFF; font-weight: 600">Dashboard</span>
+<span style="display: flex; align-items: center; align-self: stretch; padding: 0 8px; color: {{ o.shellMuted }}">Cookie clicker</span>
+</div>
+<div style="background: {{ o.ground }}; padding: 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 6px; background: {{ o.accent }}; color: #FFFFFF; font-weight: 600">Reset limit</span>
+<span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 15px; background: {{ o.accentTint }}; color: {{ o.accent }}; border: 1px solid {{ o.accent }}; font-weight: 600">Exceeded · 7</span>
+<span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 15px; background: #FFFFFF; color: {{ o.ink }}; border: 1px solid {{ o.border }}">Warning · 37</span>
+</div>
+<div style="background: #FFFFFF; border: 1px solid {{ o.line }}; border-radius: 6px">
+<sc-for list="{{ o.rows }}" as="r" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid {{ o.line }}">
+<span style="width: 92px; font-weight: 600; color: {{ o.ink }}; font-variant-numeric: tabular-nums">{{ r.id }}</span>
+<span style="flex-grow: 1; display: block; height: 6px; border-radius: 3px; background: {{ o.line }}; overflow: hidden"><span style="display: block; height: 6px; width: {{ r.used }}%; background: {{ r.fill }}"></span></span>
+<span style="display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px 0 5px; border-radius: 12px; border: 1px solid {{ r.color }}; color: {{ o.ink }}; font-size: 0.75rem; white-space: nowrap">
+<svg viewBox="0 0 24 24" width="15" height="15" fill="{{ r.color }}" aria-hidden="true"><path d="{{ r.icon }}"></path></svg>{{ r.label }}
+</span>
+</div>
+</sc-for>
+<p style="margin: 0; padding: 8px 12px; font-size: 0.75rem; color: {{ o.sec }}">Secondary text · resets at 21:00</p>
+</div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px">
+<sc-for list="{{ o.swatches }}" as="s" hint-placeholder-count="8">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; background: {{ s.hex }}; border: 1px solid rgba(22,24,29,0.12)"></span>
+<span style="display: flex; flex-direction: column; line-height: 1.25"><span style="font-weight: 600">{{ s.role }}</span><span style="font-size: 0.75rem; color: #5A5F69; font-variant-numeric: tabular-nums">{{ s.hex }}</span></span>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const I = {
+      ok: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
+      warning: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z',
+      exceeded: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z'
+    };
+    const rows = (ok) => [
+      { id: 'user_7f3a21', used: 100, fill: '#8E1B3A', color: '#8E1B3A', icon: I.exceeded, label: 'Exceeded' },
+      { id: 'user_4b8812', used: 94, fill: '#F5B83D', color: '#9A5B00', icon: I.warning, label: 'Warning' },
+      { id: 'user_e2f560', used: 77, fill: ok, color: ok, icon: I.ok, label: 'OK' }
+    ];
+    const sw = (o, ok) => [
+      { role: 'Shell', hex: o.shell }, { role: 'Ground', hex: o.ground },
+      { role: 'Ink', hex: o.ink }, { role: 'Secondary text', hex: o.sec },
+      { role: 'Accent', hex: o.accent }, { role: 'OK', hex: ok },
+      { role: 'Warning', hex: '#F5B83D' }, { role: 'Exceeded', hex: '#8E1B3A' }
+    ];
+    const harbor = { name: 'Harbor', pick: true,
+      thesis: 'Deep navy shell, cobalt actions. The most familiar enterprise read, and navy is the complement of Crumb’s dough, so he pops in the app bar.',
+      shell: '#0B1F33', shellMuted: '#AFC0D3', ground: '#F4F6F9', ink: '#0F1A24', sec: '#52606D', border: '#84919F', line: '#E2E7ED', accent: '#1F5BD8', accentTint: '#E8EFFC' };
+    const graphite = { name: 'Graphite & Indigo', pick: false,
+      thesis: 'Near-black graphite shell, indigo actions. Sharper and more developer-tool; reads modern and precise, a little cooler toward the cookie.',
+      shell: '#17191E', shellMuted: '#A6ABB5', ground: '#F5F5F7', ink: '#16181D', sec: '#5A5F69', border: '#8D929B', line: '#E4E5E9', accent: '#4B4FD6', accentTint: '#EDEDFC' };
+    const petrol = { name: 'Petrol', pick: false,
+      thesis: 'Deep petrol-blue shell, teal actions. Calm and distinctive without leaving enterprise; OK moves to green so it never matches the accent.',
+      shell: '#0E2F38', shellMuted: '#A9C3C8', ground: '#F3F6F6', ink: '#102227', sec: '#4F6166', border: '#869599', line: '#E0E7E8', accent: '#0E6F84', accentTint: '#E3F1F4' };
+    return {
+      options: [
+        Object.assign(harbor, { rows: rows('#0E7C66'), swatches: sw(harbor, '#0E7C66') }),
+        Object.assign(graphite, { rows: rows('#0E7C66'), swatches: sw(graphite, '#0E7C66') }),
+        Object.assign(petrol, { rows: rows('#2F7A3E'), swatches: sw(petrol, '#2F7A3E') })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
