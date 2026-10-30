@@ -20,7 +20,8 @@
 - [ ] Formatted: `pnpm nx format:check`
 - [ ] New behaviour has tests, or none is needed
 - [ ] Ran the change locally and checked it does what the issue asks
-- [ ] Significant decisions have an ADR; new domain terms are in `GLOSSARY.md`
+- [ ] Significant decisions have a repo ADR and a wiki ADR page with a decision-log row; new domain terms are in `GLOSSARY.md`
+- [ ] Wiki pages (`apps/docs`) describing changed behaviour or decisions are updated
 - [ ] Self-reviewed the diff: no debug code, secrets or unrelated changes
 
 ## Evidence

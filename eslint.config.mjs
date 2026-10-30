@@ -11,6 +11,7 @@ export default [
       '**/vitest.config.*.timestamp*',
       '**/vite.config.*.timestamp*',
       '**/test-output',
+      '**/.astro',
     ],
   },
   {

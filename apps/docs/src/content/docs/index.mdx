@@ -1,0 +1,22 @@
+---
+title: ratewatch engineering wiki
+description: What ratewatch does, how it's built, and why.
+---
+
+ratewatch is a distributed per-user rate limiter with a real-time admin dashboard. This wiki is where the team explains what it does, how it's built and why: the product features, the architecture, the decisions behind it, and how to run and change it.
+
+## Where to look
+
+| Section           | What it holds                                                                   | For        |
+| ----------------- | ------------------------------------------------------------------------------- | ---------- |
+| **Feature specs** | What each feature does for its users, in plain language.                        | Everyone   |
+| **Architecture**  | The high-level design, and how the backend and frontend are built inside.       | Developers |
+| **ADRs**          | The architecture principles, the decision log, and one ADR per decision.        | Developers |
+| **Design docs**   | Low-level designs (LLDs) for individual features, written before building them. | Developers |
+| **Guides**        | How to run, test and work on ratewatch day to day.                              | Developers |
+
+New here? Read the [feature specs](features/) for what ratewatch does, then [Architecture decisions and principles](adrs/architecture-decisions/) and the [high-level design](architecture/hld/) for how.
+
+## Changing the wiki
+
+The wiki lives in the repo under `apps/docs`, so a page changes in the same pull request as the code it describes and is reviewed with it. Every page has an **Edit page** link at the bottom. Pages are Markdown; diagrams are [Mermaid](https://mermaid.js.org/) code blocks. Run the site locally with `pnpm nx dev docs`.
