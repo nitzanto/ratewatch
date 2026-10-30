@@ -28,7 +28,7 @@ The API and dashboard exchange request bodies, responses and, soon, realtime eve
 flowchart LR
   schema["healthResponseSchema<br/>(libs/contracts)"]
   schema -- "createZodDto + global pipe" --> api["API validates requests<br/>and responses"]
-  schema -- "schema.parse(await res.json())" --> web["Web app parses<br/>every response"]
+  schema -- "api.get(path, schema)" --> web["Web app parses<br/>every response"]
   schema -- "z.infer" --> types["HealthResponse type<br/>for both"]
 ```
 
@@ -38,4 +38,4 @@ flowchart LR
 
 **Revisit when:** external consumers need an OpenAPI document; generate it from the schemas.
 
-**In the code:** the schemas are in `libs/contracts/src/lib/`, and a lint rule stops the library importing from either app. The API validates through `nestjs-zod` (see the [request pipeline](../../architecture/backend/#request-pipeline)); the web app parses every response, as in `apps/web/src/app/app.tsx`.
+**In the code:** the schemas are in `libs/contracts/src/lib/`, and a lint rule stops the library importing from either app. The API validates through `nestjs-zod` (see the [request pipeline](../../architecture/backend/#request-pipeline)); the web app parses every response in its API client, `apps/web/src/libs/api/api-client.ts`.
