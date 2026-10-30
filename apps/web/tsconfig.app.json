@@ -14,12 +14,14 @@
     ],
     "rootDir": "src",
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "paths": { "@/*": ["./src/*"] }
   },
   "exclude": [
     "out-tsc",
     "dist",
     "src/test-setup.ts",
+    "src/libs/test-utils/**/*",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.tsx",

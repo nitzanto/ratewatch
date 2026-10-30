@@ -10,6 +10,8 @@ export default defineConfig(() => ({
   resolve: {
     // Resolve workspace libs (e.g. @ratewatch/contracts) from source, so they need no prior build.
     conditions: ['@ratewatch/source', ...defaultClientConditions],
+    // Mirrors the `@/*` paths in tsconfig.app.json and tsconfig.spec.json.
+    alias: { '@': `${import.meta.dirname}/src` },
   },
   server: {
     port: 4200,

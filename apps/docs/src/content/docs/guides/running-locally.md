@@ -53,7 +53,7 @@ Every task runs through Nx (`pnpm nx <target> <project>`), so caching and task d
 | `pnpm nx serve web -c mock`            | The dashboard against mocked API responses: no API needed          |
 | `pnpm nx dev docs`                     | This wiki on http://localhost:4321/ratewatch/                      |
 
-**Mock mode** answers API requests in the browser from the handlers in `apps/web/src/mocks/handlers.ts`. Use it to build UI before its endpoint exists: add a handler for the new endpoint, then build against it. See [API mocking](../../architecture/frontend/#api-mocking).
+**Mock mode** answers API requests in the browser from the handlers in `apps/web/src/mocks/handlers/`. Use it to build UI before its endpoint exists: add a fixture and a handler for the new endpoint, then build against it. See [API mocking](../../architecture/frontend/#api-mocking).
 
 ## Test
 
