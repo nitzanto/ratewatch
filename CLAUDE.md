@@ -23,17 +23,19 @@ Built production-grade: every significant decision needs an ADR with its trade-o
 
 ## Documentation
 
-Each decision is written once, in one place. Never duplicate an ADR into the docs site by hand.
+Documentation has two layers, each written for its reader:
 
-| Content                                                     | Source of truth               | Audience                                        |
-| ----------------------------------------------------------- | ----------------------------- | ----------------------------------------------- |
-| ADRs (`docs/adr/<area>/`), `GLOSSARY.md`                    | Repo root                     | Agents and humans. Keep them short and precise. |
-| HLD, architecture walkthroughs, runbooks, how-to-run guides | `apps/docs` (Astro Starlight) | Humans. Narrative pages with diagrams.          |
-| `CLAUDE.md`, `docs/agents/`                                 | Repo root                     | Agents only.                                    |
+| Content                                                             | Where                                                                             | Audience                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------- |
+| Repo ADRs (`docs/adr/<area>/`), `GLOSSARY.md`                       | Repo root                                                                         | Agents. Short and precise.            |
+| Wiki: feature specs, architecture, ADRs, design docs (LLDs), guides | `apps/docs` (Astro Starlight, published to https://nitzanto.github.io/ratewatch/) | Developers. Long-form, with diagrams. |
+| `CLAUDE.md`, `docs/agents/`                                         | Repo root                                                                         | Agents only.                          |
 
-- The Starlight site renders the root ADRs and glossary through a build step that copies them in. Edit only the root files.
-- Diagrams are Mermaid, so they render both on GitHub and in the docs site.
-- **Why:** agents maintain ADRs through the skills (`/grill-with-docs`, `/domain-modeling`), and humans get a Notion-style site without a second copy that drifts.
+- A significant decision gets a repo ADR (through `/domain-modeling`) and a row in the wiki's decision log (`apps/docs/src/content/docs/adrs/architecture-decisions.md`). It also gets its own wiki ADR page, linked from that row: the short template for a stack or tooling decision (framework, library, test runner, CI, repo layout), the full one for a runtime design decision (rate-limit store or algorithm, realtime delivery, auth, failure modes). Both templates are in `adrs/writing-an-adr.md`. When a decision changes, update all of them in the same PR, along with any wiki page that describes the changed behaviour.
+- Feature specs (`apps/docs/src/content/docs/features/`) are product-level and non-technical; keep a feature's status current when it ships.
+- Wiki pages stand on their own: they explain their subject fully and point to code (modules, config, commands) where it helps. They never cite repo ADRs, `CLAUDE.md` or `docs/agents/`.
+- Diagrams are Mermaid, so they render both on GitHub and in the wiki.
+- **Why:** agents need short, precise records, and developers need the full story. The wiki replaces an external Notion or Confluence, so it's reviewed in the same PR as the code it describes.
 
 ## Agent skills
 

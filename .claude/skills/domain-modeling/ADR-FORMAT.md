@@ -30,7 +30,7 @@ status: accepted
 That's it. An ADR can be a single paragraph. The value is in recording *that* a decision was made and *why*, not in filling out sections.
 
 - **`area`** must match the folder.
-- **`issue`** is required: the full URL of the GitHub issue the decision was made for. Use the full URL, because GitHub doesn't link a bare `#n` inside repo files and neither does the docs site. If no issue exists yet, ask the user which one it belongs to, or create one first.
+- **`issue`** is required: the full URL of the GitHub issue the decision was made for. Use the full URL, because GitHub doesn't link a bare `#n` inside repo files. If no issue exists yet, ask the user which one it belongs to, or create one first.
 - **`status`**: `proposed | accepted | deprecated | superseded by ADR-NNNN`.
 
 ## Link back from the issue
