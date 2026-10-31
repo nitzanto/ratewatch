@@ -141,6 +141,27 @@ describe('realtime', () => {
     expect(updates.flatMap(({ requests }) => requests)).toHaveLength(10);
   }, 10_000);
 
+  it('sends rate:update for every followed user who changed in the same second', async () => {
+    const users = await Promise.all(
+      Array.from({ length: 5 }, () => signedInUser(baseUrl)),
+    );
+    const socket = await adminSocket();
+    await subscribe(
+      socket,
+      users.map(({ userId }) => userId),
+    );
+    const updated = new Set<string>();
+    socket.on(realtimeEvents.update, (event: RateUpdateEvent) =>
+      updated.add(event.row.userId),
+    );
+
+    await Promise.all(users.map(({ cookie }) => postClick(baseUrl, cookie)));
+
+    await vi.waitFor(() => expect(updated.size).toBe(users.length), {
+      timeout: 3000,
+    });
+  });
+
   it('sends rate:update to an admin on another API instance', async () => {
     const other = await startApp([], new Redis(container.getConnectionUrl()));
     try {

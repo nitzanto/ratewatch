@@ -52,7 +52,7 @@ flowchart LR
   a([Admin, rows on screen:<br/>user:a, user:b, ...]):::person
   p1 -- "rate:update to room user:a" --> bus
   bus -- "only instances with members in user:a" --> s2
-  s2 -- "volatile emit" --> a
+  s2 -- "emit" --> a
 
   classDef person fill:#fde68a,stroke:#b45309,color:#1f2937
   classDef api fill:#bbf7d0,stroke:#15803d,color:#1f2937
@@ -60,7 +60,7 @@ flowchart LR
 ```
 
 - **Rooms:** one per user row on screen (at most 100) plus the open user, and `admins` for summary numbers and `rate:limit_exceeded`. The web app tells the server which rows it shows; the server replies with their current numbers, so nothing is missed between the page load and the subscription.
-- **`rate:update`:** at most once per second per user from each instance, with the latest numbers. Sent volatile: if the admin's connection isn't ready, it's dropped, because a newer one follows.
+- **`rate:update`:** at most once per second per user from each instance, with the latest numbers and the requests since the last one. Sent as a plain emit, not volatile: each second's updates go out back to back, and Socket.IO drops a volatile event while the one before it is still being written, so an admin following several active users would lose all but one of them every second.
 - **`rate:limit_exceeded`:** sent at once, exactly once per user per window.
 - **Handshake:** the signed session cookie is checked; anyone but the Admin is refused.
 
@@ -72,6 +72,7 @@ flowchart LR
 - Bad, because the web app connects over WebSocket only (HTTP long-polling would need sticky sessions at the load balancer), so a network that blocks WebSockets gets no live updates.
 - Bad, because the sharded adapter publishes a room's event even when no admin is in it: until the API publishes only for followed users, Redis pub/sub traffic grows with active users, though what reaches admins doesn't. The load test measures it.
 - Bad, because two instances can each send an update for the same user in the same second; the web app keeps the newer one.
+- Bad, because a slow admin's connection queues updates instead of dropping them; the queue stays small, at most one update per followed user per second.
 
 ### Confirmation
 
