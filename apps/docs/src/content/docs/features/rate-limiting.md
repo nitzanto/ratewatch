@@ -32,7 +32,7 @@ The [cookie clicker](../cookie-clicker/) is the way to see this from a user's si
 - Different limits per endpoint or per plan.
 - Billing or paid upgrades for more requests.
 
-## Open questions
+## Decided
 
-- Does "every hour" mean a fixed hour on the clock, or a rolling hour from each user's first request?
-- If the counting service is down, do we let requests through or refuse them?
+- **"Every hour"** is one hour that starts with each user's first request: the count resets one hour after that request, not on the clock hour.
+- **If the counting service is down,** requests go through, and the page says the limit is unavailable instead of showing a count. See [Failure mode](../../adrs/failure-mode/).
