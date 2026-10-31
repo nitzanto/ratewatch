@@ -27,6 +27,8 @@ declare module '@mui/material/styles' {
     paused: string;
     liveFlash: string;
     dataBar: string;
+    border: string;
+    neutralFill: string;
   }
   interface PaletteOptions {
     shell?: ShellPalette;
@@ -34,6 +36,8 @@ declare module '@mui/material/styles' {
     paused?: string;
     liveFlash?: string;
     dataBar?: string;
+    border?: string;
+    neutralFill?: string;
   }
 }
 
@@ -81,4 +85,8 @@ export const palette: PaletteOptions = {
   paused: '#52606D',
   liveFlash: '#DCE6F2',
   dataBar: '#8A9BB0',
+  // Card and ring outlines; `divider` is the lighter rule inside a surface.
+  border: '#E2E7ED',
+  // Neutral notes and the halo behind Crumb.
+  neutralFill: '#EDF1F5',
 };

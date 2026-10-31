@@ -34,9 +34,9 @@ One typeface, **IBM Plex Sans**, in regular, medium and semibold. Headings are s
 
 ## Layout
 
-- **App shell:** a 64px navy bar with the Crumb logo, the Dashboard and Cookie clicker tabs, and one connection pill ("Live · API OK", "Reconnecting", "API unreachable").
+- **App shell:** a 64px navy bar with the Crumb logo, the Dashboard and Cookie Clicker tabs, and one connection pill ("Live · API OK", "Reconnecting", "API unreachable").
 - **Dashboard:** four summary cards, then the users table beside the status breakdown and top users. Opening a user slides a drawer in from the right with their history and the admin controls.
-- **Cookie clicker:** one centred card with Crumb, the requests-left count, a usage bar and a message area of fixed height.
+- **Cookie Clicker:** one centred card with Crumb, the requests-left count, a usage bar and a message area of fixed height.
 - **Sign in:** navy welcome panel with Crumb waving on the left, the form on the right.
 - **Desktop only:** every screen is designed for desktop browser windows 1280px and wider. There are no phone or tablet layouts.
 

@@ -2,7 +2,7 @@ import { Box, ButtonBase } from '@mui/material';
 import { keyframes, useTheme, type Palette } from '@mui/material/styles';
 import { useId, type ReactNode } from 'react';
 
-/** OK has five stages (one per 20 requests used), then Warning (90% used) and Exceeded (100%). `mark` is the still brand mark. */
+/** OK has five stages (one per 20 requests used), then Warning (90% used) and Exceeded (100%), which rests halfway through the wait. `mark` is the still brand mark. */
 export type CrumbMood =
   | 'fresh'
   | 'warming-up'
@@ -11,6 +11,8 @@ export type CrumbMood =
   | 'tired'
   | 'warning'
   | 'exceeded'
+  | 'resting'
+  | 'unsure'
   | 'mark';
 
 type Colors = Palette['crumb'] & { white: string };
@@ -217,6 +219,37 @@ const moods: Record<
       </>
     ),
   },
+  resting: {
+    label: 'Crumb, Exceeded: resting while his bite grows back',
+    chips: 0,
+    animation: `${slump} 4s ${calm}`,
+    face: (c) => (
+      <>
+        <Cheeks c={c} y={120} opacity={0.4} big={false} />
+        <Strokes
+          c={c}
+          width={7}
+          d={[
+            'M68 102 Q78 108 88 102',
+            'M112 102 Q122 108 132 102',
+            'M90 132 Q100 136 110 132',
+          ]}
+        />
+      </>
+    ),
+  },
+  // No chips: they're the gauge of what's left, and the limit couldn't be checked.
+  unsure: {
+    label: 'Crumb, limit unavailable',
+    chips: 0,
+    animation: okBob,
+    face: (c) => (
+      <>
+        <Eyes c={c} y={100} r={7} />
+        <Strokes c={c} width={7} d={['M86 128 L114 128']} />
+      </>
+    ),
+  },
   mark: {
     label: '',
     chips: 5,
@@ -238,15 +271,25 @@ type CrumbProps = {
   size: number;
   /** Makes Crumb a real button, named by his mood. */
   onClick?: () => void;
+  /** Pauses the button, for example while the user waits out their limit. */
+  disabled?: boolean;
+  /** How much of the bite is still missing when Exceeded or resting, from 1 (just bitten) to 0 (whole again). */
+  bite?: number;
 };
 
 /** Crumb the cookie, whose face and chips track the user's allowance. Still when the user prefers reduced motion. */
-export const Crumb = ({ mood, size, onClick }: CrumbProps) => {
+export const Crumb = ({
+  mood,
+  size,
+  onClick,
+  disabled,
+  bite = 1,
+}: CrumbProps) => {
   const { crumb, common } = useTheme().palette;
   const c = { ...crumb, white: common.white };
   const biteId = useId();
   const { label, chips: chipCount, animation, face } = moods[mood];
-  const bitten = mood === 'exceeded';
+  const bitten = mood === 'exceeded' || mood === 'resting';
 
   const svg = (
     <Box
@@ -262,7 +305,12 @@ export const Crumb = ({ mood, size, onClick }: CrumbProps) => {
         overflow: 'visible',
         transformOrigin: '50% 90%',
         animation,
-        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+        // The bite grows back smoothly between the clock's one-second ticks.
+        '& mask circle': { transition: 'r 1s linear' },
+        '@media (prefers-reduced-motion: reduce)': {
+          animation: 'none',
+          '& mask circle': { transition: 'none' },
+        },
       }}
     >
       {bitten && (
@@ -270,9 +318,11 @@ export const Crumb = ({ mood, size, onClick }: CrumbProps) => {
         <defs>
           <mask id={biteId}>
             <rect width={200} height={200} fill={common.white} />
-            <circle cx={178} cy={42} r={26} fill={common.black} />
-            <circle cx={150} cy={20} r={18} fill={common.black} />
-            <circle cx={192} cy={78} r={18} fill={common.black} />
+            <g fill={common.black}>
+              <circle cx={178} cy={42} r={26 * bite} />
+              <circle cx={150} cy={20} r={18 * bite} />
+              <circle cx={192} cy={78} r={18 * bite} />
+            </g>
           </mask>
         </defs>
       )}
@@ -308,6 +358,7 @@ export const Crumb = ({ mood, size, onClick }: CrumbProps) => {
   return (
     <ButtonBase
       onClick={onClick}
+      disabled={disabled}
       sx={{
         borderRadius: '50%',
         '&.Mui-focusVisible': {

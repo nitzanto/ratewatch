@@ -13,7 +13,7 @@ export class HomePage {
     await this.page.goto('/');
   }
 
-  tab(name: 'Dashboard' | 'Cookie clicker') {
+  tab(name: 'Dashboard' | 'Cookie Clicker') {
     return this.page
       .getByRole('navigation', { name: 'Main' })
       .getByRole('link', { name });

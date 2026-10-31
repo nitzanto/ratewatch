@@ -1,4 +1,4 @@
-import { healthResponseSchema } from './health.js';
+import { healthResponseSchema } from './health.schema.js';
 
 describe('healthResponseSchema', () => {
   it('accepts a healthy response', () => {

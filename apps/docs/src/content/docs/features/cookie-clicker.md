@@ -1,11 +1,11 @@
 ---
-title: Cookie clicker
+title: Cookie Clicker
 description: A playful page where every click spends one request, so anyone can see the rate limit from a user's side.
 sidebar:
   order: 7
 ---
 
-**Status:** Planned
+**Status:** Shipped (mock mode). The clicks run against a mock API until the real rate limiting arrives.
 
 ## Summary
 
@@ -28,7 +28,8 @@ The cookie clicker lets anyone experience [rate limiting](../rate-limiting/) fro
 - Crumb's mood follows the user's status: OK under 90% used, Warning at 90% or more, Exceeded at 100%.
 - While OK, Crumb has five stages, one per 20 requests used: Fresh, Warming up, Excited, Focused and Tired. Each stage change shows a short note.
 - When the user has no requests left, the next click is refused and clicking pauses until the time in the refusal. During the wait, a ring fills and Crumb's bite grows back.
-- The count shown always comes from the server's response, never from the page's own tally.
+- The count shown always comes from the server's response, never from the page's own tally. When the server can't say, the page says "Limit unavailable" and Crumb shows no chips, rather than an old number.
+- Leaving the page during a wait doesn't end it: clicking is still paused on return.
 - Animations never delay a request, and the cookie stays usable with animations turned off.
 
 ## Out of scope

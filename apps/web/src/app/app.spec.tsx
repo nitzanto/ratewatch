@@ -52,9 +52,9 @@ describe('Routing', () => {
   it('moves between the dashboard and the cookie clicker', async () => {
     renderApp('/play');
 
-    expect(await pageTitle('Cookie clicker')).toBeTruthy();
+    expect(await pageTitle('Cookie Clicker')).toBeTruthy();
     expect(
-      appBar().getByRole('link', { name: 'Cookie clicker', current: 'page' }),
+      appBar().getByRole('link', { name: 'Cookie Clicker', current: 'page' }),
     ).toBeTruthy();
 
     fireEvent.click(appBar().getByRole('link', { name: 'Dashboard' }));

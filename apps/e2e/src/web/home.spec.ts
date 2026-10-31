@@ -14,10 +14,10 @@ test('the tabs move between the dashboard and the cookie clicker', async ({
 }) => {
   await homePage.goto();
 
-  await homePage.tab('Cookie clicker').click();
+  await homePage.tab('Cookie Clicker').click();
   await expect(page).toHaveURL('/play');
   await expect(playPage.heading).toBeVisible();
-  await expect(homePage.tab('Cookie clicker')).toHaveAttribute(
+  await expect(homePage.tab('Cookie Clicker')).toHaveAttribute(
     'aria-current',
     'page',
   );
