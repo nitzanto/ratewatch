@@ -82,8 +82,8 @@ export const statusQueries = {
  * Writes one user's record, only when its numbers are newer: a later window, or the same window with at least as
  * many requests used, so two instances flushing the same user in either order never bring older numbers back.
  * A window that opened before `lastResetAt` is ignored. The window's fields expire with the window.
- * KEYS: the record. ARGV: user ID, request time, limit, used, reset time, window length, same-window tolerance,
- * record TTL in seconds. Returns the record after the write, as HGETALL does.
+ * KEYS: the record, the limiter's custom limit. ARGV: user ID, request time, limit, used, reset time, window length,
+ * same-window tolerance, record TTL in seconds, default limit. Returns the record after the write, as HGETALL does.
  */
 export const recordUserScript = `
 local at, limit, used, resetAt = tonumber(ARGV[2]), tonumber(ARGV[3]), tonumber(ARGV[4]), tonumber(ARGV[5])
@@ -105,7 +105,8 @@ elseif resetAt < windowEnd - tolerance or used < storedUsed then
 end
 
 local lastRequest = math.max(at, tonumber(redis.call('HGET', KEYS[1], 'lastRequest') or '0'))
-redis.call('HSET', KEYS[1], 'id', ARGV[1], 'lastRequest', lastRequest, 'limit', limit, 'used', used,
+redis.call('HSET', KEYS[1], 'id', ARGV[1], 'lastRequest', lastRequest,
+  'baseLimit', tonumber(redis.call('GET', KEYS[2]) or ARGV[9]), 'limit', limit, 'used', used,
   'left', math.max(limit - used, 0), 'ratio', used / limit, 'resetAt', windowEnd, 'windowEnd', windowEnd)
 redis.call('HPEXPIREAT', KEYS[1], windowEnd, 'FIELDS', 5, 'limit', 'used', 'left', 'ratio', 'resetAt')
 redis.call('EXPIRE', KEYS[1], ARGV[8])

@@ -17,7 +17,10 @@ import {
 import type Redis from 'ioredis';
 import type { ChainableCommander } from 'ioredis';
 import { redisClient } from '../../redis/constants/redis.constants';
-import { windowMs } from '../../rate-limit/constants/rate-limit.constants';
+import {
+  rateLimitKeys,
+  windowMs,
+} from '../../rate-limit/constants/rate-limit.constants';
 import {
   dashboardCommandTimeoutMs,
   historyKey,
@@ -34,7 +37,7 @@ import {
 import type { Activity } from '../interfaces/activity.interface';
 
 type RecordPipeline = ChainableCommander & {
-  recordUser(key: string, ...args: (string | number)[]): RecordPipeline;
+  recordUser(...args: (string | number)[]): RecordPipeline;
 };
 
 /** A hash as Redis sends it in RESP2: field, value, field, value… */
@@ -63,6 +66,8 @@ export const toRow = (fields: Record<string, string>, now: number): UserRow => {
   return {
     userId: fields.id,
     limit,
+    baseLimit,
+    used: open ? Number(fields.used) : 0,
     requestsLeft: open ? Number(fields.left) : limit,
     resetAt: open ? new Date(resetAt).toISOString() : null,
     status,
@@ -94,7 +99,7 @@ export class UsersService {
     });
     this.redis.on('error', () => undefined);
     this.redis.defineCommand('recordUser', {
-      numberOfKeys: 1,
+      numberOfKeys: 2,
       lua: recordUserScript,
     });
   }
@@ -128,6 +133,7 @@ export class UsersService {
       starts.push(pipeline.length);
       pipeline.recordUser(
         userKey(userId),
+        rateLimitKeys(userId)[1],
         userId,
         at,
         limit,
@@ -136,6 +142,7 @@ export class UsersService {
         windowMs,
         sameWindowToleranceMs,
         userRecordTtlSeconds,
+        defaultHourlyLimit,
       );
       for (const [field, count] of counts)
         pipeline.hincrby(historyKey(userId), field, count);

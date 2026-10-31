@@ -79,6 +79,8 @@ export const createApiClient = ({
     get: call<Pick<CallOptions, 'responseHeaders'>>('GET'),
     post: call<CallOptions>('POST'),
     patch: call<CallOptions>('PATCH'),
+    put: call<CallOptions>('PUT'),
+    delete: call<Pick<CallOptions, 'responseHeaders'>>('DELETE'),
   };
 };
 

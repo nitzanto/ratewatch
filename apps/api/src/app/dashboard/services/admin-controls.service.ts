@@ -8,6 +8,8 @@ import {
   type AdminChange,
   defaultHourlyLimit,
   maxLimit,
+  type Pause,
+  pauseMs,
 } from '@ratewatch/contracts';
 import type Redis from 'ioredis';
 import type { ChainableCommander } from 'ioredis';
@@ -15,7 +17,10 @@ import { rateLimitKeys } from '../../rate-limit/constants/rate-limit.constants';
 import { redisClient } from '../../redis/constants/redis.constants';
 import {
   addExtraRequestsScript,
+  pauseScript,
   resetLimitScript,
+  setLimitScript,
+  unlockScript,
 } from '../constants/admin-controls.constants';
 import { userKey } from '../constants/dashboard.constants';
 import { RealtimeGateway } from '../gateways/realtime.gateway';
@@ -24,9 +29,18 @@ import { toFields, toRow } from './users.service';
 /** A change script's reply: the user's record after the change, empty without one. */
 type ChangeReply = string[];
 
-type ControlsRedis = Redis & {
-  addExtraRequests(...args: (string | number)[]): Promise<unknown>;
+/** The single-user change scripts, each run as a command of that name. */
+const changeScripts = {
+  addExtraRequests: addExtraRequestsScript,
+  setLimit: setLimitScript,
+  pause: pauseScript,
+  unlock: unlockScript,
 };
+
+type ChangeCommand = keyof typeof changeScripts;
+
+type ControlsRedis = Redis &
+  Record<ChangeCommand, (...args: (string | number)[]) => Promise<unknown>>;
 
 type ControlsPipeline = ChainableCommander & {
   resetLimit(...args: (string | number)[]): ControlsPipeline;
@@ -52,10 +66,8 @@ export class AdminControlsService {
       numberOfKeys: 4,
       lua: resetLimitScript,
     });
-    redis.defineCommand('addExtraRequests', {
-      numberOfKeys: 4,
-      lua: addExtraRequestsScript,
-    });
+    for (const [name, lua] of Object.entries(changeScripts))
+      redis.defineCommand(name, { numberOfKeys: 4, lua });
     this.redis = redis as ControlsRedis;
   }
 
@@ -73,22 +85,49 @@ export class AdminControlsService {
   }
 
   /** Adds `amount` requests to the user's current window; 409 without one, 422 when the limit would pass 1,000. */
-  async addExtraRequests(userId: string, amount: number): Promise<AdminChange> {
+  addExtraRequests(userId: string, amount: number) {
+    return this.change('addExtraRequests', userId, amount, maxLimit);
+  }
+
+  /** Sets the user's limit in every window; 100 clears their custom limit. 422 when it and the window's extra requests would pass 1,000. */
+  setLimit(userId: string, limit: number) {
+    return this.change('setLimit', userId, limit, maxLimit);
+  }
+
+  /** Pauses the user's limit; 409 to pause until the reset without an open window. */
+  pause(userId: string, { duration }: Pause) {
+    return this.change(
+      'pause',
+      userId,
+      // The script reads the window's time left itself.
+      duration === 'untilReset' ? 'untilReset' : pauseMs[duration],
+      Date.now(),
+    );
+  }
+
+  /** Ends the user's pause now. */
+  unlock(userId: string) {
+    return this.change('unlock', userId);
+  }
+
+  /** Runs one user's change script with `args` then the default limit, and answers its row. */
+  private async change(
+    command: ChangeCommand,
+    userId: string,
+    ...args: (string | number)[]
+  ): Promise<AdminChange> {
     let reply: ChangeReply;
     try {
-      reply = (await this.redis.addExtraRequests(
+      reply = (await this.redis[command](
         ...keysOf(userId),
-        amount,
-        maxLimit,
+        ...args,
         defaultHourlyLimit,
       )) as ChangeReply;
     } catch (error) {
       // Redis puts `ERR ` before a script's own error.
       const message = error instanceof Error ? error.message : '';
       if (message.includes('NO_WINDOW'))
-        throw new ConflictException(
-          `${userId} has no open window to add requests to`,
-        );
+        throw new ConflictException(`${userId} has no open window`);
       if (message.includes('OVER_MAX_LIMIT'))
         throw new UnprocessableEntityException(
           `A limit can't go above ${maxLimit}`,

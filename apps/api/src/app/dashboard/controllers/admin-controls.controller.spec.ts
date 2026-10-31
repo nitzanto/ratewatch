@@ -34,14 +34,16 @@ describe('admin controls', () => {
     await container?.stop();
   });
 
-  const post = (path: string, body?: unknown, cookie = admin) =>
+  const send = (method: string, path: string, body?: unknown, cookie = admin) =>
     fetch(`${baseUrl}/admin/${path}`, {
-      method: 'POST',
+      method,
       headers: { cookie, 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  const change = async (path: string, body?: unknown) => {
-    const res = await post(path, body);
+  const post = (path: string, body?: unknown, cookie = admin) =>
+    send('POST', path, body, cookie);
+  const change = async (path: string, body?: unknown, method = 'POST') => {
+    const res = await send(method, path, body);
     expect(res.status).toBe(200);
     return adminChangeSchema.parse(await res.json());
   };
@@ -185,6 +187,151 @@ describe('admin controls', () => {
     }, 10_000);
   });
 
+  describe('custom limit', () => {
+    const setLimit = (userId: string, limit: number) =>
+      change(`users/${userId}/limit`, { limit }, 'PUT');
+
+    it('applies from the next request, and in every window after', async () => {
+      const { userId, cookie } = await userWithClicks(5);
+
+      const { rows } = await setLimit(userId, 250);
+
+      expect(rows).toEqual([
+        expect.objectContaining({
+          userId,
+          limit: 250,
+          baseLimit: 250,
+          requestsLeft: 245,
+        }),
+      ]);
+      expect(await requestsLeftAfterClick(cookie)).toBe('244');
+      await change(`users/${userId}/reset`);
+      expect(await requestsLeftAfterClick(cookie)).toBe('249');
+    }, 15_000);
+
+    it('keeps extra requests on top, and shows Exceeded below what the user used', async () => {
+      const { userId, cookie } = await userWithClicks(20);
+      await change(`users/${userId}/extra-requests`, { amount: 10 });
+
+      const { rows } = await setLimit(userId, 15);
+
+      expect(rows[0]).toMatchObject({
+        limit: 25,
+        baseLimit: 15,
+        requestsLeft: 5,
+      });
+      expect((await setLimit(userId, 5)).rows[0]).toMatchObject({
+        limit: 15,
+        requestsLeft: 0,
+        status: 'exceeded',
+      });
+      expect((await postClick(baseUrl, cookie)).status).toBe(429);
+    }, 15_000);
+
+    it('answers 422 when the limit and the extra requests would pass 1,000', async () => {
+      const { userId } = await userWithClicks(1);
+      await change(`users/${userId}/extra-requests`, { amount: 10 });
+
+      expect(
+        (await send('PUT', `users/${userId}/limit`, { limit: 991 })).status,
+      ).toBe(422);
+      expect((await setLimit(userId, 990)).rows[0]).toMatchObject({
+        limit: 1000,
+        baseLimit: 990,
+      });
+    }, 10_000);
+
+    it('goes back to 100 when set to 100', async () => {
+      const { userId, cookie } = await userWithClicks(1);
+      await setLimit(userId, 3);
+
+      const { rows } = await setLimit(userId, 100);
+
+      expect(rows[0]).toMatchObject({ limit: 100, baseLimit: 100 });
+      expect(await requestsLeftAfterClick(cookie)).toBe('98');
+    }, 15_000);
+
+    it.each([0, 1001, 2.5, '250'])(
+      'answers 400 to a limit of %j',
+      async (limit) => {
+        const { userId } = await signedInUser(baseUrl);
+
+        expect(
+          (await send('PUT', `users/${userId}/limit`, { limit })).status,
+        ).toBe(400);
+      },
+    );
+  });
+
+  describe('pause and unlock', () => {
+    const pause = (userId: string, body: unknown) =>
+      send('PUT', `users/${userId}/pause`, body);
+    const paused = (userId: string, body: unknown) =>
+      change(`users/${userId}/pause`, body, 'PUT');
+
+    it("counts a paused user's requests but refuses none, until an unlock", async () => {
+      const { userId, cookie } = await userWithClicks(100);
+      const before = Date.now();
+
+      const { rows } = await paused(userId, { duration: '15m' });
+
+      expect(rows[0]).toMatchObject({ status: 'paused', requestsLeft: 0 });
+      const pausedUntil = Date.parse(rows[0].pausedUntil ?? '');
+      expect(pausedUntil).toBeGreaterThanOrEqual(before + 15 * 60_000);
+      expect(pausedUntil).toBeLessThanOrEqual(Date.now() + 15 * 60_000);
+      const passed = await postClick(baseUrl, cookie);
+      expect(passed.status).toBe(200);
+      expect(passed.headers.get('x-count')).toBe('0');
+
+      const unlocked = await change(
+        `users/${userId}/pause`,
+        undefined,
+        'DELETE',
+      );
+
+      expect(unlocked.rows[0]).toMatchObject({
+        status: 'exceeded',
+        pausedUntil: null,
+      });
+      expect((await postClick(baseUrl, cookie)).status).toBe(429);
+    }, 15_000);
+
+    it('pauses for an hour, or until the window ends', async () => {
+      const { userId } = await userWithClicks(1);
+      const { row } = await detailOf(userId);
+
+      const hour = await paused(userId, { duration: '1h' });
+      const untilReset = await paused(userId, { duration: 'untilReset' });
+
+      expect(
+        Date.parse(hour.rows[0].pausedUntil ?? '') - Date.now(),
+      ).toBeGreaterThan(59 * 60_000);
+      expect(
+        Math.abs(
+          Date.parse(untilReset.rows[0].pausedUntil ?? '') -
+            Date.parse(row.resetAt ?? ''),
+        ),
+      ).toBeLessThan(5000);
+    }, 10_000);
+
+    it('answers 409 to pause until the reset without an open window', async () => {
+      const { userId } = await signedInUser(baseUrl);
+
+      expect((await pause(userId, { duration: 'untilReset' })).status).toBe(
+        409,
+      );
+    });
+
+    it.each([{ duration: '2h' }, { until: new Date().toISOString() }])(
+      'answers 400 to %j',
+      async (body) => {
+        const { userId } = await signedInUser(baseUrl);
+
+        expect((await pause(userId, body)).status).toBe(400);
+      },
+    );
+  });
+
   it('sends each changed row to the admins following the user', async () => {
     const sendChange = vi.spyOn(app.get(RealtimeGateway), 'sendChange');
     const { userId } = await userWithClicks(2);
@@ -200,11 +347,14 @@ describe('admin controls', () => {
   it('answers 403 to a User', async () => {
     const { userId, cookie } = await signedInUser(baseUrl);
 
-    for (const [path, body] of [
-      [`users/${userId}/reset`, undefined],
-      ['users/reset', { userIds: [userId] }],
-      [`users/${userId}/extra-requests`, { amount: 10 }],
+    for (const [method, path, body] of [
+      ['POST', `users/${userId}/reset`, undefined],
+      ['POST', 'users/reset', { userIds: [userId] }],
+      ['POST', `users/${userId}/extra-requests`, { amount: 10 }],
+      ['PUT', `users/${userId}/limit`, { limit: 250 }],
+      ['PUT', `users/${userId}/pause`, { duration: '15m' }],
+      ['DELETE', `users/${userId}/pause`, undefined],
     ] as const)
-      expect((await post(path, body, cookie)).status).toBe(403);
+      expect((await send(method, path, body, cookie)).status).toBe(403);
   });
 });

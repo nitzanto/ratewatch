@@ -37,6 +37,8 @@ export const userRow = (
   return {
     userId,
     limit,
+    baseLimit: limit,
+    used,
     requestsLeft: Math.max(limit - used, 0),
     resetAt: new Date(now + 40 * minuteMs - idleMs).toISOString(),
     status: statusFor(used, limit),
@@ -46,45 +48,42 @@ export const userRow = (
   };
 };
 
-/** The row after one more allowed request at `at`: a window opens if none is, and the status follows the share used. */
-export const afterRequest = (row: UserRow, at: string): UserRow => {
-  const requestsLeft = Math.max(row.requestsLeft - 1, 0);
-  return {
-    ...row,
-    requestsLeft,
-    resetAt:
-      row.resetAt ?? new Date(Date.parse(at) + 60 * minuteMs).toISOString(),
-    status:
-      row.status === 'paused'
-        ? 'paused'
-        : statusFor(row.limit - requestsLeft, row.limit),
-    lastRequestAt: at,
-  };
-};
-
-/** The row after an admin's reset: no window, the plain limit (`baseLimit`, without extra requests) all left. */
-export const afterReset = (row: UserRow, baseLimit: number): UserRow => ({
+/** The row with `used` of `limit`, its requests left and its status following them, as the API derives them. */
+const withUsage = (row: UserRow, used: number, limit: number): UserRow => ({
   ...row,
-  limit: baseLimit,
-  requestsLeft: baseLimit,
-  resetAt: null,
-  status: row.status === 'paused' ? 'paused' : 'ok',
+  limit,
+  used,
+  requestsLeft: Math.max(limit - used, 0),
+  status: row.pausedUntil ? 'paused' : statusFor(used, limit),
 });
 
-/** The row after an admin adds extra requests to its open window. */
-export const afterExtraRequests = (row: UserRow): UserRow => {
-  const limit = row.limit + extraRequestsAmount;
-  const requestsLeft = row.requestsLeft + extraRequestsAmount;
-  return {
-    ...row,
-    limit,
-    requestsLeft,
-    status:
-      row.status === 'paused'
-        ? 'paused'
-        : statusFor(limit - requestsLeft, limit),
-  };
-};
+/** The row after one more allowed request at `at`: a window opens if none is, and the status follows the share used. */
+export const afterRequest = (row: UserRow, at: string): UserRow => ({
+  ...withUsage(row, row.used + 1, row.limit),
+  resetAt:
+    row.resetAt ?? new Date(Date.parse(at) + 60 * minuteMs).toISOString(),
+  lastRequestAt: at,
+});
+
+/** The row after an admin's reset: no window, the plain limit (`baseLimit`, without extra requests) all left. */
+export const afterReset = (row: UserRow): UserRow => ({
+  ...withUsage(row, 0, row.baseLimit),
+  resetAt: null,
+});
+
+/** The row after an admin sets its limit in every window; extra requests in the open window stay on top. */
+export const afterLimit = (row: UserRow, baseLimit: number): UserRow => ({
+  ...withUsage(row, row.used, baseLimit + row.limit - row.baseLimit),
+  baseLimit,
+});
+
+/** The row after an admin pauses it until `pausedUntil`, or unlocks it with `null`. */
+export const afterPause = (row: UserRow, pausedUntil: string | null) =>
+  withUsage({ ...row, pausedUntil }, row.used, row.limit);
+
+/** The row after an admin adds extra requests to its open window; they're on top of `baseLimit`, for this window only. */
+export const afterExtraRequests = (row: UserRow) =>
+  withUsage(row, row.used, row.limit + extraRequestsAmount);
 
 /** The users the dashboard opens on in mock mode: every status, a custom limit and an ended window. */
 export const mockUsers = (): UserRow[] => [
@@ -98,10 +97,7 @@ export const mockUsers = (): UserRow[] => [
     pausedUntil: new Date(Date.now() + 15 * minuteMs).toISOString(),
   }),
   userRow('user-5e7b8812', 230, 9 * minuteMs, { limit: 250 }),
-  userRow('user-72f4c6a9', 0, 70 * minuteMs, {
-    requestsLeft: defaultHourlyLimit,
-    resetAt: null,
-  }),
+  userRow('user-72f4c6a9', 0, 70 * minuteMs, { resetAt: null }),
 ];
 
 /** `q` is the whole ID, or a prefix once it's 2 characters; case-insensitive, like the API's search. */

@@ -2,6 +2,7 @@ import { StatusChip } from '@/components/business/status-chip';
 import { sortValueOf } from '@/libs/api/admin-users-queries';
 import { sizes } from '@/libs/theme/sizes';
 import {
+  defaultHourlyLimit,
   usersQuerySchema,
   type UserRow,
   type UsersQuery,
@@ -105,21 +106,31 @@ const columns = columnHelper.columns([
     id: 'id',
     header: 'User',
     ...sortsLikeTheApi,
-    cell: ({ getValue, table }) => (
-      <Link
-        component="button"
-        variant="body2"
-        aria-haspopup="dialog"
-        underline="hover"
-        sx={{ color: 'text.primary', fontWeight: 600 }}
-        onClick={(event) => {
-          // The row opens the user too; once is enough.
-          event.stopPropagation();
-          table.options.meta?.onOpen(getValue());
-        }}
-      >
-        {getValue()}
-      </Link>
+    cell: ({ getValue, row, table }) => (
+      <>
+        <Link
+          component="button"
+          variant="body2"
+          aria-haspopup="dialog"
+          underline="hover"
+          sx={{ color: 'text.primary', fontWeight: 600 }}
+          onClick={(event) => {
+            // The row opens the user too; once is enough.
+            event.stopPropagation();
+            table.options.meta?.onOpen(getValue());
+          }}
+        >
+          {getValue()}
+        </Link>
+        {row.original.baseLimit !== defaultHourlyLimit && (
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', color: 'text.secondary' }}
+          >
+            Custom limit
+          </Typography>
+        )}
+      </>
     ),
   }),
   columnHelper.accessor((row) => sortValueOf(row, 'left'), {

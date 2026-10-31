@@ -17,6 +17,10 @@ export const formatTimeAgo = (ms: number) => {
   return `${Math.floor(minutes / 60)} h ago`;
 };
 
+/** A clock time to the minute, in the user's locale (`18:01`). */
+export const formatHourMinute = (date: Date) =>
+  date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 /** A clock time to the second, in the user's locale (`18:01:30`). */
 export const formatClockTime = (date: Date) =>
   date.toLocaleTimeString([], {

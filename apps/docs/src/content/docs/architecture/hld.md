@@ -210,12 +210,10 @@ sequenceDiagram
   participant P as Dashboard publisher
   participant S as Realtime gateway
   actor B as Other admins
-  A->>H: POST /api/admin/users/:id/pause (1 hour)
-  H->>R: set the pause key (expires in 1 hour)
-  H-->>A: 200
-  H-)P: user changed
-  P->>R: update the user record (next batch)
-  P->>S: rate:update (status Paused)
+  A->>H: PUT /api/admin/users/:id/pause (1 hour)
+  H->>R: one script: set the pause key (expires in 1 hour), update the user record
+  H-->>A: 200, the new row (status Paused)
+  H->>S: rate:update (status Paused)
   S-)B: rate:update, through the Redis adapter to every API instance
 ```
 
@@ -278,15 +276,15 @@ The API sends live updates with `@nestjs/websockets` and Socket.IO. The Socket.I
 
 ### Admin controls
 
-Admin endpoints accept the Admin role only. Each one changes the user's keys and their record in Redis in one script, and sends the new row to the admins following that user. Reset limit and extra requests are built; custom limit, pause and unlock are planned.
+Admin endpoints accept the Admin role only. Each one changes the user's keys and their record in Redis in one script, and sends the new row to the admins following that user. All five are built.
 
-| Control        | Change in Redis                                            |
-| -------------- | ---------------------------------------------------------- |
-| Reset limit    | Deletes the window. The next request opens a new one.      |
-| Custom limit   | Sets the custom limit key.                                 |
-| Extra requests | Adds to the window. They end with the window.              |
-| Pause          | Sets the pause key, which expires at the end of the pause. |
-| Unlock         | Deletes the pause key.                                     |
+| Control        | Change in Redis                                               |
+| -------------- | ------------------------------------------------------------- |
+| Reset limit    | Deletes the window. The next request opens a new one.         |
+| Custom limit   | Sets the custom limit key; setting it back to 100 deletes it. |
+| Extra requests | Adds to the window. They end with the window.                 |
+| Pause          | Sets the pause key, which expires at the end of the pause.    |
+| Unlock         | Deletes the pause key.                                        |
 
 ## Step 4: Scale the design
 

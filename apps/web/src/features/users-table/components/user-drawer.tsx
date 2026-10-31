@@ -3,7 +3,7 @@ import { useAdminUser } from '@/hooks/api/use-admin-user';
 import { CloseIcon } from '@/libs/theme/icons';
 import { sizes } from '@/libs/theme/sizes';
 import { ExceededIcon, OkIcon } from '@/libs/theme/status-icons';
-import { formatClockTime } from '@/libs/utils/format-time';
+import { formatClockTime, formatHourMinute } from '@/libs/utils/format-time';
 import type { UserDetail } from '@ratewatch/contracts';
 import {
   Alert,
@@ -76,7 +76,7 @@ const Details = ({
       </Stat>
       <Stat label="Throttling">
         {row.pausedUntil
-          ? `Paused until ${formatClockTime(new Date(row.pausedUntil))}`
+          ? `Paused until ${formatHourMinute(new Date(row.pausedUntil))}`
           : 'On'}
       </Stat>
     </Box>
