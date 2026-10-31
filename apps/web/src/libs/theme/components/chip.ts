@@ -7,6 +7,8 @@ declare module '@mui/material/Chip' {
     shell: true;
     /** A rate-limit status: outlined in the status colour (`success`, `warning`, `error`, or `default` for Paused), label in ink. */
     status: true;
+    /** A filter the admin toggles, such as a status with its count: `primary` when selected, else the status colour for its icon. */
+    filter: true;
   }
 }
 
@@ -51,6 +53,53 @@ export const MuiChip: Components<Theme>['MuiChip'] = {
       style: ({ theme }) => ({
         borderColor: theme.palette.paused,
         '& .MuiChip-icon': { color: theme.palette.paused },
+      }),
+    },
+    {
+      props: { variant: 'filter' },
+      style: ({ theme }) => ({
+        height: sizes.filterChipHeight,
+        borderRadius: sizes.filterChipHeight / 2,
+        backgroundColor: theme.palette.background.paper,
+        color: theme.palette.text.primary,
+        border: `1px solid ${theme.palette.borderControl}`,
+        fontSize: '0.8125rem',
+        fontWeight: 500,
+        fontVariantNumeric: 'tabular-nums',
+        '& .MuiChip-label': { paddingInline: 14 },
+        '& .MuiChip-icon': { fontSize: 18, marginLeft: 10, marginRight: -6 },
+        '&.MuiChip-clickable:hover, &.Mui-focusVisible': {
+          backgroundColor: theme.palette.neutralFill,
+        },
+      }),
+    },
+    ...statusColors.map((color) => ({
+      props: { variant: 'filter' as const, color },
+      style: ({ theme }: { theme: Theme }) => ({
+        '& .MuiChip-icon': {
+          color:
+            color === 'warning'
+              ? theme.palette.warning.dark
+              : theme.palette[color].main,
+        },
+      }),
+    })),
+    {
+      props: { variant: 'filter', color: 'default' },
+      style: ({ theme }) => ({
+        '& .MuiChip-icon': { color: theme.palette.paused },
+      }),
+    },
+    {
+      props: { variant: 'filter', color: 'primary' },
+      style: ({ theme }) => ({
+        backgroundColor: theme.palette.primary.main,
+        borderColor: theme.palette.primary.main,
+        color: theme.palette.primary.contrastText,
+        '& .MuiChip-icon': { color: theme.palette.primary.contrastText },
+        '&.MuiChip-clickable:hover, &.Mui-focusVisible': {
+          backgroundColor: theme.palette.primary.dark,
+        },
       }),
     },
   ],

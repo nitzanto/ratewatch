@@ -31,8 +31,8 @@ describe('GET /api/admin/users', () => {
     await container?.stop();
   });
 
-  const getUsers = (cookie: string) =>
-    fetch(`${baseUrl}/admin/users`, { headers: { cookie } });
+  const getUsers = (cookie: string, search = '') =>
+    fetch(`${baseUrl}/admin/users?${search}`, { headers: { cookie } });
 
   it("lists a user who clicked, with their requests left and last request, once the second's batch is written", async () => {
     const { userId, cookie } = await signedInUser(baseUrl);
@@ -103,6 +103,13 @@ describe('GET /api/admin/users', () => {
       { timeout: 4000, interval: 200 },
     );
   }, 10_000);
+
+  it('answers 400 to a sort, filter or page it does not offer', async () => {
+    const admin = await signedInCookie(baseUrl, 'admin');
+
+    for (const search of ['sort=limit', 'status=suspended', 'pageSize=1000'])
+      expect((await getUsers(admin, search)).status).toBe(400);
+  });
 
   it('answers 403 to a User', async () => {
     const res = await getUsers(await signedInCookie(baseUrl, 'user'));

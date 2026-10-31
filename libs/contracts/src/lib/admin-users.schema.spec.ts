@@ -1,4 +1,8 @@
-import { usersPageSchema, userRowSchema } from './admin-users.schema.js';
+import {
+  usersPageSchema,
+  usersQuerySchema,
+  userRowSchema,
+} from './admin-users.schema.js';
 
 const row = {
   userId: 'user-3f9a1c2e',
@@ -48,5 +52,36 @@ describe('usersPageSchema', () => {
     expect(usersPageSchema.safeParse({ rows: [], total: 0 }).success).toBe(
       false,
     );
+  });
+});
+
+describe('usersQuerySchema', () => {
+  it('fills the defaults: active in the last 24 hours, latest request first, the first 25', () => {
+    expect(usersQuerySchema.parse({})).toEqual({
+      activeWithin: '24h',
+      sort: 'lastRequest',
+      order: 'desc',
+      page: 0,
+      pageSize: 25,
+    });
+  });
+
+  it('reads numbers from a query string', () => {
+    expect(
+      usersQuerySchema.parse({ page: '2', pageSize: '100', q: ' user-3f ' }),
+    ).toMatchObject({ page: 2, pageSize: 100, q: 'user-3f' });
+  });
+
+  it.each([
+    { sort: 'limit' },
+    { order: 'up' },
+    { status: 'suspended' },
+    { activeWithin: '2h' },
+    { page: '-1' },
+    { page: '1.5' },
+    { pageSize: '30' },
+    { q: 'x'.repeat(101) },
+  ])('rejects %j', (bad) => {
+    expect(usersQuerySchema.safeParse(bad).success).toBe(false);
   });
 });

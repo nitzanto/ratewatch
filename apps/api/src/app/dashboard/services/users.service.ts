@@ -1,9 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  activeWithinMs,
   defaultHourlyLimit,
   sameWindowToleranceMs,
   type UserRow,
   type UsersPage,
+  type UsersQuery,
   type UserStatus,
   warningThreshold,
 } from '@ratewatch/contracts';
@@ -12,7 +14,6 @@ import type { ChainableCommander } from 'ioredis';
 import { redisClient } from '../../redis/constants/redis.constants';
 import { windowMs } from '../../rate-limit/constants/rate-limit.constants';
 import {
-  activeWithinMs,
   dashboardCommandTimeoutMs,
   queryDialect,
   recordChunkSize,
@@ -22,7 +23,6 @@ import {
   userRecordTtlSeconds,
   usersIndex,
   usersIndexSchema,
-  usersPageSize,
 } from '../constants/dashboard.constants';
 import type { Decision } from '../interfaces/decision.interface';
 
@@ -36,6 +36,13 @@ const toFields = (flat: string[]) => {
   for (let i = 0; i < flat.length; i += 2) fields[flat[i]] = flat[i + 1];
   return fields;
 };
+
+/**
+ * Users whose ID is `q`, or starts with it once it's 2 characters (the query engine's shortest prefix). Every
+ * character but letters, digits and `_` is escaped, so the admin's text is never read as query syntax.
+ */
+const idQuery = (q: string) =>
+  `@id:{${q.replace(/[^\p{L}\p{N}_]/gu, '\\$&')}${q.length >= 2 ? '*' : ''}}`;
 
 /**
  * The users' records in Redis: written from the limiter's decisions, read by the users table and the realtime acks.
@@ -96,11 +103,10 @@ export class UsersService {
     );
   }
 
-  /** The users table's first page: users active in the last 24 hours, latest request first, and each status's count. */
-  // shortcut: one fixed page and no search, filters or sorting; the query parameters arrive with #51.
-  async list(): Promise<UsersPage> {
+  /** One page of the users table, and each status's count under the same search and last-active filter. */
+  async list(query: UsersQuery): Promise<UsersPage> {
     try {
-      return await this.firstPage();
+      return await this.search(query);
     } catch (error) {
       // Redis lost the index (a flush, or a restart or failover without its data): create it again, once.
       if (!(
@@ -109,25 +115,33 @@ export class UsersService {
       ))
         throw error;
       this.indexReady = false;
-      return this.firstPage();
+      return this.search(query);
     }
   }
 
-  private async firstPage(): Promise<UsersPage> {
+  private async search({
+    q,
+    status,
+    activeWithin,
+    sort,
+    order,
+    page,
+    pageSize,
+  }: UsersQuery): Promise<UsersPage> {
     await this.ensureIndex();
     const now = Date.now();
-    const active = `@lastRequest:[${now - activeWithinMs} +inf]`;
+    const matching = `@lastRequest:[${now - activeWithinMs[activeWithin]} +inf]${q ? ` ${idQuery(q)}` : ''}`;
     const pipeline = this.redis.pipeline();
     pipeline.call(
       'FT.SEARCH',
       usersIndex,
-      active,
+      status ? `${matching} ${statusQueries[status]}` : matching,
       'SORTBY',
-      'lastRequest',
-      'DESC',
+      sort,
+      order.toUpperCase(),
       'LIMIT',
-      0,
-      usersPageSize,
+      page * pageSize,
+      pageSize,
       'DIALECT',
       queryDialect,
     );
@@ -136,14 +150,14 @@ export class UsersService {
       pipeline.call(
         'FT.SEARCH',
         usersIndex,
-        `${active} ${statusQueries[status]}`,
+        `${matching} ${statusQueries[status]}`,
         'LIMIT',
         0,
         0,
         'DIALECT',
         queryDialect,
       );
-    const [page, ...counts] = ((await pipeline.exec()) ?? []).map(
+    const [found, ...counts] = ((await pipeline.exec()) ?? []).map(
       ([error, reply]) => {
         if (error) throw error;
         return reply as (number | string | string[])[];
@@ -151,11 +165,11 @@ export class UsersService {
     );
     const rows: UserRow[] = [];
     // FT.SEARCH answers [total, key, fields, key, fields…].
-    for (let i = 2; i < page.length; i += 2)
-      rows.push(this.toRow(toFields(page[i] as string[]), now));
+    for (let i = 2; i < found.length; i += 2)
+      rows.push(this.toRow(toFields(found[i] as string[]), now));
     return {
       rows,
-      total: Number(page[0]),
+      total: Number(found[0]),
       counts: Object.fromEntries(
         statuses.map((status, i) => [status, Number(counts[i][0])]),
       ) as UsersPage['counts'],

@@ -28,6 +28,8 @@ declare module '@mui/material/styles' {
     liveFlash: string;
     dataBar: string;
     border: string;
+    borderControl: string;
+    surfaceSunken: string;
     neutralFill: string;
   }
   interface PaletteOptions {
@@ -37,6 +39,8 @@ declare module '@mui/material/styles' {
     liveFlash?: string;
     dataBar?: string;
     border?: string;
+    borderControl?: string;
+    surfaceSunken?: string;
     neutralFill?: string;
   }
 }
@@ -87,6 +91,10 @@ export const palette: PaletteOptions = {
   dataBar: '#8A9BB0',
   // Card and ring outlines; `divider` is the lighter rule inside a surface.
   border: '#E2E7ED',
+  // Outlines of controls: inputs and unselected filter chips.
+  borderControl: '#84919F',
+  // Table headers.
+  surfaceSunken: '#F8FAFC',
   // Neutral notes and the halo behind Crumb.
   neutralFill: '#EDF1F5',
 };

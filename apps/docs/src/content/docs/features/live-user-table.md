@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-**Status:** Shipped. Sorting by any column arrives with [Search and filters](../search-and-filters/), and opening a user with [User detail](../user-detail/).
+**Status:** Shipped. Opening a user arrives with [User detail](../user-detail/).
 
 ## Summary
 

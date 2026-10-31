@@ -5,7 +5,7 @@ import { MuiButton } from './components/button';
 import { MuiChip } from './components/chip';
 import { MuiLinearProgress } from './components/linear-progress';
 import { MuiPaper } from './components/paper';
-import { MuiTable } from './components/table';
+import { MuiTable, MuiTableCell } from './components/table';
 import { palette } from './palette';
 import { typography } from './typography';
 
@@ -22,6 +22,7 @@ export const theme = createTheme({
     MuiLinearProgress,
     MuiPaper,
     MuiTable,
+    MuiTableCell,
     MuiTypography: { defaultProps: { variantMapping: { countHero: 'span' } } },
   },
 });

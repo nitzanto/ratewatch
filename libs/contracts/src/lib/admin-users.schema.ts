@@ -28,3 +28,28 @@ export const usersPageSchema = z.object({
 });
 
 export type UsersPage = z.infer<typeof usersPageSchema>;
+
+/** The last-active filter's choices, and how far back each reaches. */
+export const activeWithinMs = {
+  '15m': 15 * 60_000,
+  '1h': 60 * 60_000,
+  '24h': 24 * 60 * 60_000,
+} as const;
+
+/** The users table's page sizes. */
+export const usersPageSizes = [25, 50, 100] as const;
+
+/** Query of `GET /admin/users`. `q` is a full user ID, or a prefix of at least 2 characters. */
+export const usersQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  status: userStatusSchema.optional(),
+  activeWithin: z.enum(['15m', '1h', '24h']).default('24h'),
+  sort: z
+    .enum(['id', 'left', 'resetAt', 'ratio', 'lastRequest'])
+    .default('lastRequest'),
+  order: z.enum(['asc', 'desc']).default('desc'),
+  page: z.coerce.number().int().nonnegative().default(0),
+  pageSize: z.coerce.number().pipe(z.literal(usersPageSizes)).default(25),
+});
+
+export type UsersQuery = z.infer<typeof usersQuerySchema>;

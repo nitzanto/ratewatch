@@ -1,9 +1,13 @@
+import { sortValueOf } from '@/libs/api/admin-users-queries';
 import {
+  activeWithinMs,
   defaultHourlyLimit,
+  usersQuerySchema,
   warningThreshold,
   type UserRow,
-  type UserStatus,
   type UsersPage,
+  type UsersQuery,
+  type UserStatus,
 } from '@ratewatch/contracts';
 
 const minuteMs = 60_000;
@@ -69,16 +73,53 @@ export const mockUsers = (): UserRow[] => [
   }),
 ];
 
-/** One page as `GET /admin/users` answers it: latest request first, with every status's count. */
-export const usersPage = (rows: UserRow[]): UsersPage => ({
-  rows: [...rows].sort((a, b) =>
-    b.lastRequestAt.localeCompare(a.lastRequestAt),
-  ),
-  total: rows.length,
-  counts: {
-    ok: rows.filter((row) => row.status === 'ok').length,
-    warning: rows.filter((row) => row.status === 'warning').length,
-    exceeded: rows.filter((row) => row.status === 'exceeded').length,
-    paused: rows.filter((row) => row.status === 'paused').length,
-  },
-});
+/** `q` is the whole ID, or a prefix once it's 2 characters; case-insensitive, like the API's search. */
+const matchesId = (userId: string, q: string) => {
+  const [id, search] = [userId.toLowerCase(), q.toLowerCase()];
+  return search.length >= 2 ? id.startsWith(search) : id === search;
+};
+
+/**
+ * One page as `GET /admin/users` answers it: searched, filtered, sorted and paged like the API, with each status's
+ * count under the search and last-active filter. Users without a value to sort by go last either way.
+ */
+export const usersPage = (
+  rows: UserRow[],
+  {
+    q,
+    status,
+    activeWithin,
+    sort,
+    order,
+    page,
+    pageSize,
+  }: UsersQuery = usersQuerySchema.parse({}),
+): UsersPage => {
+  const since = Date.now() - activeWithinMs[activeWithin];
+  const matching = rows.filter(
+    (row) =>
+      Date.parse(row.lastRequestAt) >= since &&
+      (!q || matchesId(row.userId, q)),
+  );
+  const direction = order === 'asc' ? 1 : -1;
+  const shown = matching
+    .filter((row) => !status || row.status === status)
+    .sort((a, b) => {
+      const [x, y] = [sortValueOf(a, sort), sortValueOf(b, sort)];
+      if (x === undefined || y === undefined)
+        return Number(x === undefined) - Number(y === undefined);
+      return x < y ? -direction : x > y ? direction : 0;
+    });
+  const count = (each: UserStatus) =>
+    matching.filter((row) => row.status === each).length;
+  return {
+    rows: shown.slice(page * pageSize, (page + 1) * pageSize),
+    total: shown.length,
+    counts: {
+      ok: count('ok'),
+      warning: count('warning'),
+      exceeded: count('exceeded'),
+      paused: count('paused'),
+    },
+  };
+};

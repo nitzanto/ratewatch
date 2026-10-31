@@ -1,5 +1,5 @@
 import { mockUsers, usersPage } from '@/mocks/data/users';
-import type { UserRow } from '@ratewatch/contracts';
+import { usersQuerySchema, type UserRow } from '@ratewatch/contracts';
 import { http, HttpResponse } from 'msw';
 
 let users = mockUsers();
@@ -14,7 +14,15 @@ export const setMockUsers = (rows: UserRow[]) => {
 
 export const resetUsers = () => setMockUsers(mockUsers());
 
-// shortcut: answers every user on one page and ignores the query parameters; search, filters and paging arrive with #51.
 export const adminUserHandlers = [
-  http.get('/api/admin/users', () => HttpResponse.json(usersPage(users))),
+  http.get('/api/admin/users', ({ request }) =>
+    HttpResponse.json(
+      usersPage(
+        users,
+        usersQuerySchema.parse(
+          Object.fromEntries(new URL(request.url).searchParams),
+        ),
+      ),
+    ),
+  ),
 ];

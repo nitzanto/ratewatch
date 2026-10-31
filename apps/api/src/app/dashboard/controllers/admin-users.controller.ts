@@ -1,8 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import type { UsersPage } from '@ratewatch/contracts';
 import { ZodSerializerDto } from 'nestjs-zod';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UsersPageDto } from '../dto/users-page.dto';
+import { UsersQueryDto } from '../dto/users-query.dto';
 import { UsersService } from '../services/users.service';
 
 @Controller('admin/users')
@@ -12,7 +13,7 @@ export class AdminUsersController {
 
   @Get()
   @ZodSerializerDto(UsersPageDto)
-  list(): Promise<UsersPage> {
-    return this.users.list();
+  list(@Query() query: UsersQueryDto): Promise<UsersPage> {
+    return this.users.list(query);
   }
 }
