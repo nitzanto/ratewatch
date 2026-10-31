@@ -4,7 +4,7 @@ import { useSession } from '@/hooks/api/use-session';
 import { useSignOut } from '@/hooks/api/use-sign-out';
 import { sizes } from '@/libs/theme/sizes';
 import { AppBar, Box, Button, Container, Typography } from '@mui/material';
-import { Link, Navigate, NavLink, Outlet } from 'react-router';
+import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import { ROUTES } from './route-paths';
 
 const tabs = [
@@ -16,15 +16,27 @@ const content = { maxWidth: sizes.contentMaxWidth };
 
 /**
  * The layout route of every signed-in page: the navy app bar with Crumb, the tabs, the API status and
- * who is signed in, above the current page. Without a session (including just after signing out) it
- * sends the visitor to sign-in.
+ * who is signed in, above the current page. Without a session it sends the visitor to sign-in, which
+ * returns them to this page afterwards, unless they just signed out: the next person starts clean.
  */
 export const AppShell = () => {
   const { data: session, isPending } = useSession();
   const signOut = useSignOut();
+  const location = useLocation();
 
   if (isPending) return null;
-  if (!session) return <Navigate to={ROUTES.signIn} replace />;
+  if (!session)
+    return (
+      <Navigate
+        to={ROUTES.signIn}
+        state={
+          signOut.isPending || signOut.isSuccess
+            ? undefined
+            : { from: location }
+        }
+        replace
+      />
+    );
 
   return (
     <>

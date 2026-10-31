@@ -5,18 +5,23 @@ import { useSession } from '@/hooks/api/use-session';
 import { useSignIn } from '@/hooks/api/use-sign-in';
 import { sizes } from '@/libs/theme/sizes';
 import { Alert, Box, Button, Typography } from '@mui/material';
-import { Navigate } from 'react-router';
+import { Navigate, type Path, useLocation } from 'react-router';
 
-/** A split page: the navy welcome panel with Crumb waving, and the two demo sign-in buttons. */
+/**
+ * A split page: the navy welcome panel with Crumb waving, and the two demo sign-in buttons. Once signed
+ * in, it returns to the page the app shell sent the visitor from, else to the role's landing page.
+ */
 export const SignInPage = () => {
   const { data: session, isPending } = useSession();
   const signIn = useSignIn();
+  // Router state, not a query parameter, so a link from another site can't choose where sign-in goes.
+  const from: Path | undefined = useLocation().state?.from;
 
   if (isPending) return null;
   if (session)
     return (
       <Navigate
-        to={session.role === 'admin' ? ROUTES.dashboard : ROUTES.play}
+        to={from ?? (session.role === 'admin' ? ROUTES.dashboard : ROUTES.play)}
         replace
       />
     );

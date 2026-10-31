@@ -19,5 +19,7 @@ ratewatch has no accounts: the sign-in page offers **Sign in as User** (a new ra
 
 - The 24 hours are fixed from sign-in and never extended: there's no server state, so signing out only clears the browser's cookie, and the expiry is what ends a copied cookie. It's longer than the one-hour window, so testing the limit never bumps anyone to sign-in.
 - The web app keeps the session as a TanStack Query entry restored from `GET /auth/me`, not in a React context: it's server state, and only signing in or out changes it. Signing in or out drops every other cached query, since it belonged to the last person.
+- A 401 mid-use signs the person out from the query client's cache-level `onError`, not the API client's: that can't reach the cache, and it also sees the expected 401 from `/auth/me`.
+- The page to return to after sign-in travels in router state, never a query parameter, so no link can choose where sign-in goes. Signing out doesn't pass it on.
 - Changing `SESSION_SECRET` signs everyone out.
 - Anyone can click **Sign in as Admin**: acceptable only because ratewatch isn't deployed publicly.
