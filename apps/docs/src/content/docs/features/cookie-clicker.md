@@ -5,7 +5,7 @@ sidebar:
   order: 7
 ---
 
-**Status:** Shipped (mock mode). The clicks run against a mock API until the real rate limiting arrives.
+**Status:** Shipped. Every click counts against the user's real limit; mock mode still runs it against a mock API.
 
 ## Summary
 

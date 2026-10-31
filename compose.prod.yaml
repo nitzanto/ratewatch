@@ -7,10 +7,28 @@ services:
     environment:
       # The image has no .env and refuses the dev secret: pass a real one from the shell.
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to a random value of 32+ characters}
+      REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD to a random value}@redis:6379
     develop: !reset {}
     read_only: true
     tmpfs:
       - /tmp
+
+  redis:
+    # Only the API reaches it, with a password, as in production.
+    ports: !reset []
+    command:
+      [
+        redis-server,
+        --maxmemory-policy,
+        noeviction,
+        --requirepass,
+        '${REDIS_PASSWORD:?set REDIS_PASSWORD to a random value}',
+      ]
+    healthcheck:
+      test:
+        [CMD-SHELL, 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
   web:
     build:

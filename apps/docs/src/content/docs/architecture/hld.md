@@ -66,7 +66,7 @@ flowchart TB
 
   subgraph api["API instances 1..n (stateless)"]
     guard{{"Session guard"}}:::api
-    limiter{{"Rate-limit interceptor"}}:::planned
+    limiter{{"Rate-limit interceptor"}}:::api
     handlers["Handlers<br/>click, auth, admin controls"]:::api
     publisher["Dashboard publisher<br/>one batch per second"]:::planned
     realtime["Realtime gateway<br/>Socket.IO"]:::planned
@@ -105,6 +105,31 @@ Dashed boxes are **Planned**.
 - **Redis** keeps all shared state: the counts, the dashboard data, and the messages between API instances.
 - **Contracts** (`libs/contracts`) are Zod schemas for every shape that the web app and the API exchange. Both apps validate with them. See [API contracts](../../adrs/api-contracts/).
 
+### Containers
+
+Each app runs in its own container, and Redis in a third. Compose runs them locally and in CI; the production-like run publishes only nginx, and Redis needs a password. See [Running locally](../../guides/running-locally/).
+
+```mermaid
+flowchart LR
+  browser([Browser]):::person -- ":8080" --> nginx
+  subgraph web["web container"]
+    nginx["nginx<br/>static files + proxy"]:::edge
+  end
+  subgraph api["api container"]
+    nest["NestJS :3000"]:::api
+  end
+  subgraph store["redis container"]
+    redis[("Redis 8.10<br/>noeviction")]:::store
+  end
+  nginx -- "/api, /socket.io" --> nest
+  nest -- "REDIS_URL" --> redis
+
+  classDef person fill:#fde68a,stroke:#b45309,color:#1f2937
+  classDef edge fill:#bfdbfe,stroke:#1d4ed8,color:#1f2937
+  classDef api fill:#bbf7d0,stroke:#15803d,color:#1f2937
+  classDef store fill:#fecaca,stroke:#b91c1c,color:#1f2937
+```
+
 ### Flows
 
 **An allowed request.** The user has requests left.
@@ -124,7 +149,7 @@ sequenceDiagram
   box rgba(254,202,202,0.35) Store
     participant R as Redis
   end
-  U->>N: POST /api/click (session cookie)
+  U->>N: POST /api/clicks (session cookie)
   N->>G: forward
   G->>G: check signature and expiry
   G->>L: user ID
@@ -202,7 +227,7 @@ A person signs in as a User (a new random user ID each time) or as the Admin, wi
 
 A global guard checks the signature and the end time on each request. It answers 401 when the session is not valid. Only sign-in, sign-out and health are public. Endpoints for one role answer 403 to other roles. The guard needs no store, so a request without a valid session costs no Redis call. See [Identity and roles](../../adrs/identity-and-roles/).
 
-### Rate-limit interceptor (Planned)
+### Rate-limit interceptor (built)
 
 The interceptor runs after the guard, so it knows the user ID. It skips public endpoints and all Admin requests.
 

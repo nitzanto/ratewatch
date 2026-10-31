@@ -17,6 +17,7 @@ docker compose up --watch
 | ------------- | ------------------------- |
 | The dashboard | http://localhost:4200     |
 | The API       | http://localhost:3000/api |
+| Redis         | localhost:6379            |
 
 The first run builds the images and takes a few minutes. Every later `up` builds them again, so a container never runs code from an older branch, but unchanged layers come from the cache, so that takes seconds.
 
@@ -27,10 +28,10 @@ Watch copies files rather than sharing a folder with the container, so it works 
 **Production-like run.** This builds the production images and serves everything on one origin through nginx, as in production:
 
 ```sh
-SESSION_SECRET=$(openssl rand -hex 32) docker compose -f compose.yaml -f compose.prod.yaml up --build
+SESSION_SECRET=$(openssl rand -hex 32) REDIS_PASSWORD=$(openssl rand -hex 32) docker compose -f compose.yaml -f compose.prod.yaml up --build
 ```
 
-Open http://localhost:8080. The API isn't published on its own port; nginx forwards `/api` to it. Both containers run as non-root users on a read-only filesystem. The production image refuses the development session secret, so the command passes a random one.
+Open http://localhost:8080. Neither the API nor Redis is published on its own port; nginx forwards `/api` to the API, and only the API reaches Redis, with a password. The app containers run as non-root users on a read-only filesystem. The production image refuses the development session secret, so the command passes a random one, and a random Redis password.
 
 Stop either with `Ctrl+C`, then `docker compose down`.
 
@@ -44,6 +45,12 @@ pnpm install
 ```
 
 Every task runs through Nx (`pnpm nx <target> <project>`), so caching and task dependencies apply.
+
+The API counts requests in Redis, so start Redis first, from Compose:
+
+```sh
+docker compose up -d redis
+```
 
 | Command                                | What it starts                                                     |
 | -------------------------------------- | ------------------------------------------------------------------ |
@@ -74,14 +81,14 @@ The API checks its variables when it starts and stops with a message naming any 
 
 Tests run natively.
 
-| Command                                      | What it runs                                                         |
-| -------------------------------------------- | -------------------------------------------------------------------- |
-| `pnpm nx run-many -t test`                   | Unit and component tests (Vitest) in every project                   |
-| `pnpm nx test web`                           | One project's tests                                                  |
-| `pnpm nx e2e ratewatch-e2e`                  | End-to-end tests: starts the API and dashboard, then runs Playwright |
-| `pnpm nx e2e ratewatch-e2e -- --project=api` | Only the API end-to-end suite                                        |
+| Command                                      | What it runs                                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm nx run-many -t test`                   | Unit and component tests (Vitest) in every project                                         |
+| `pnpm nx test web`                           | One project's tests                                                                        |
+| `pnpm nx e2e ratewatch-e2e`                  | End-to-end tests: starts the API and dashboard, then runs Playwright (needs Redis running) |
+| `pnpm nx e2e ratewatch-e2e -- --project=api` | Only the API end-to-end suite                                                              |
 
-The first end-to-end run needs a browser: `pnpm exec playwright install chromium`.
+The first end-to-end run needs a browser: `pnpm exec playwright install chromium`. The API's concurrency test starts its own Redis with Testcontainers, so `pnpm nx test api` needs Docker running.
 
 ## Before you open a pull request
 

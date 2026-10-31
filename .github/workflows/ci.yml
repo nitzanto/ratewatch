@@ -50,6 +50,14 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The API Nx serves for the suite counts clicks in Redis on localhost, as REDIS_URL in apps/api/.env says.
+    services:
+      redis:
+        image: redis:8.10-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,11 +82,14 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      # compose.prod.yaml needs a real session secret: a random one per run.
+      # compose.prod.yaml needs a real session secret and Redis password: random ones per run.
       - run: |
           secret=$(openssl rand -hex 32)
           echo "::add-mask::$secret"
           echo "SESSION_SECRET=$secret" >> "$GITHUB_ENV"
+          password=$(openssl rand -hex 32)
+          echo "::add-mask::$password"
+          echo "REDIS_PASSWORD=$password" >> "$GITHUB_ENV"
       # Runs when an app is affected, or when a root Docker file changes: those belong to no Nx project.
       - id: affected
         run: |

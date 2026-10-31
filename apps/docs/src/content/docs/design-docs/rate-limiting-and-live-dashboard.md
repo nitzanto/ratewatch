@@ -109,11 +109,11 @@ It returns `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal]`. 
 
 ### Responses
 
-| Outcome      | Response                                                                                                                                                                                                           |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Allowed      | The handler runs. `x-count: <requests left>` is set before it runs.                                                                                                                                                |
-| Refused      | `429`, body from the shared contract `rateLimitedResponseSchema`: `{ "message": "You've used all 100 requests for this hour.", "retryAt": "<ISO time>" }`, plus `Retry-After` in seconds. The handler doesn't run. |
-| Redis failed | The handler runs without `x-count`. See [Failing open](#failing-open).                                                                                                                                             |
+| Outcome      | Response                                                                                                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Allowed      | The handler runs. `x-count: <requests left>` is set before it runs.                                                                                                                                                 |
+| Refused      | `429`, body from the shared contract `rateLimitedResponseSchema`: `{ "message": "You've used all your requests for this hour.", "retryAt": "<ISO time>" }`, plus `Retry-After` in seconds. The handler doesn't run. |
+| Redis failed | The handler runs without `x-count`. See [Failing open](#failing-open).                                                                                                                                              |
 
 Every decision, allowed or refused, is handed to the dashboard publisher in memory (`DashboardPublisher.record(decision)`): no I/O on the request path.
 
@@ -134,7 +134,7 @@ sequenceDiagram
   box rgba(254,202,202,0.35) Redis
     participant R as Redis
   end
-  U->>G: POST /api/click (session cookie)
+  U->>G: POST /api/clicks (session cookie)
   G->>L: session (user ID, role user)
   L->>R: EVALSHA limit script (window, limit, pause)
   R-->>L: [1, 41, 2.1M ms, 100, 59, 0]
@@ -154,7 +154,7 @@ sequenceDiagram
   participant R as Redis
   participant P as DashboardPublisher
   participant S as Socket.IO (all instances)
-  U->>L: POST /api/click
+  U->>L: POST /api/clicks
   L->>R: EVALSHA limit script
   R-->>L: [0, 0, 1.2M ms, 100, 100, 1]
   rect rgba(254,202,202,0.4)
@@ -288,7 +288,7 @@ All under `/api/admin/users/:id`, Admin only. Each change takes effect at once, 
 
 ## Local environment and CI
 
-- **Compose:** a `redis` service on the `redis:8` image (pinned to a minor version), `--maxmemory-policy noeviction`, not published to the host. Production Compose adds a password, carried in `REDIS_URL`.
+- **Compose:** a `redis` service on `redis:8.10-alpine`, with `--maxmemory-policy noeviction`, published on `127.0.0.1:6379` so an API run with pnpm reaches it. Production Compose publishes no port and adds a password, carried in `REDIS_URL`.
 - **Never evict:** with `noeviction`, a full Redis refuses writes (the limiter fails open) instead of silently deleting a custom limit or a pause.
 - **CI:** the concurrency and dashboard integration tests start Redis with `@testcontainers/redis` on the same image. The end-to-end job adds a `redis` service container.
 - **Isolation:** every integration test signs in fresh random user IDs, so tests never share keys and nothing needs flushing.

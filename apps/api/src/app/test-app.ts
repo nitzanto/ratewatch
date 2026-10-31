@@ -3,15 +3,27 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { Role } from '@ratewatch/contracts';
 import cookieParser from 'cookie-parser';
+import type Redis from 'ioredis';
+import RedisMock from 'ioredis-mock';
 import { AppModule } from './app.module';
 import type { Env } from './env';
+import { redisClient } from './redis/constants/redis.constants';
 
-/** Starts the whole API on a free port with `main.ts`'s setup (keep the two in step), plus any test-only controllers. */
-export const startApp = async (controllers: Type[] = []) => {
+/**
+ * Starts the whole API on a free port with `main.ts`'s setup (keep the two in step), plus any test-only
+ * controllers. Redis is ioredis-mock unless a test passes a real client.
+ */
+export const startApp = async (
+  controllers: Type[] = [],
+  redis: Redis = new RedisMock(),
+) => {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
     controllers,
-  }).compile();
+  })
+    .overrideProvider(redisClient)
+    .useValue(redis)
+    .compile();
   const app: INestApplication = moduleRef.createNestApplication();
   app.setGlobalPrefix('api');
   app.use(
