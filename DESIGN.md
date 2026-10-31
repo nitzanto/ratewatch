@@ -143,10 +143,6 @@ components:
     textColor: '{colors.ink}'
     rounded: '{rounded.md}'
     height: '40px'
-  snackbar:
-    backgroundColor: '{colors.shell}'
-    textColor: '{colors.shell-text}'
-    rounded: '{rounded.md}'
   drawer:
     backgroundColor: '{colors.surface}'
     width: '460px'
@@ -171,7 +167,7 @@ Prototypes for every screen are in `docs/design/prototypes/`; Crumb's artwork is
 - **Shell** (`shell`, navy): app bar and the sign-in welcome panel. Text on it is white; secondary text is `shell-muted`. `shell-raised` fills hovered tabs and the status pill; the pill's dot is `shell-ok` or `shell-down`; focus rings on navy use `accent-on-dark`.
 - **Ground and surfaces**: the page is `ground`; cards, tables, drawers and forms are `surface` with a 1px `border`. Table headers use `surface-sunken`.
 - **Text**: `ink` for content, `ink-secondary` for supporting copy (6:1 on white), `icon` for glyphs. Never use translucent black for text.
-- **Accent** (`accent`, cobalt): primary buttons, selected filter chips, links, the selected row's inset bar and the keyboard focus ring. Nothing decorative is cobalt. On the navy snackbar, actions use `accent-on-dark`.
+- **Accent** (`accent`, cobalt): primary buttons, selected filter chips, links, the selected row's inset bar and the keyboard focus ring. Nothing decorative is cobalt.
 - **Status trio**, set apart by lightness so it survives colour-blindness (L\* about 46 / 79 / 31):
   - OK `status-ok` teal, under 90% used.
   - Warning `status-warning` amber for fills and bars; `status-warning-strong` for icons, chip borders and any text, because the light amber fails 3:1 on white.
@@ -198,7 +194,7 @@ One family: **IBM Plex Sans** (400, 500, 600, 700), self-hosted with `@fontsourc
 
 ## Elevation & Depth
 
-Flat by default: surfaces are separated by 1px borders, not shadows. Shadows are reserved for things that float over the page: the drawer (`-8px 0 24px rgba(15,26,36,0.16)`) and the snackbar (`0 6px 20px rgba(15,26,36,0.24)`). The drawer sits over a `rgba(11,31,51,0.32)` scrim.
+Flat by default: surfaces are separated by 1px borders, not shadows. Shadows are reserved for things that float over the page: the drawer (`-8px 0 24px rgba(15,26,36,0.16)`). The drawer sits over a `rgba(11,31,51,0.32)` scrim.
 
 ## Shapes
 
@@ -211,7 +207,7 @@ Radius 8px for cards and drawers, 6px for buttons, inputs, banners and toasts, p
 - **Users table**: checkbox, user (with "Custom limit" caption), remaining / total with a usage bar, resets (clock time plus "in N min"), status, last request. Every header is a sort button with `aria-sort`. Live updates change values in place; the table re-sorts only while the pointer is off it and no user is open. A changed row flashes `live-flash` and fades over 1.6s.
 - **Selection toolbar**: ticking rows swaps the filter row for a selection bar of the same 48px height ("3 users selected", Reset their limits, Clear selection), so the table never moves.
 - **User drawer**: 460px dialog from the right with stats, Past hour / Past day activity (accepted vs refused), recent requests and admin controls. Esc, the close button or the scrim closes it; focus moves to the close button on open.
-- **Admin controls**: Reset limit and Add 10 requests are secondary buttons; Pause asks for a duration (15 minutes, 1 hour, until the next reset) and shows "Paused until HH:MM"; Save limit is the one primary action and warns inline when the new limit is below what the user already used. Every change shows a snackbar with Undo for 10 seconds.
+- **Admin controls**: Reset limit and Add 10 requests are secondary buttons; Pause asks for a duration (15 minutes, 1 hour, until the next reset) and shows "Paused until HH:MM"; Save limit is the one primary action and warns inline when the new limit is below what the user already used.
 - **States**: connection lost (grey banner, timestamps frozen), API unreachable (crimson-tint panel with Retry), no users (empty state with Crumb and a link to the clicker).
 - **Crumb** (the mascot), as one component with a status prop, honouring `prefers-reduced-motion`:
   - OK has five stages, one per 20 requests used; he drops a chocolate chip at each, so his chips are a rough gauge of what's left: Fresh (5 chips), Warming up (4), Excited (3), Focused (2), Tired (1, slower bob).
@@ -228,7 +224,7 @@ Radius 8px for cards and drawers, 6px for buttons, inputs, banners and toasts, p
 - Do keep cobalt for actions, selection and focus only.
 - Do pair every status colour with an icon and a word.
 - Do update live data in place; never reorder or insert content above what the user is pointing at.
-- Do give every admin action an Undo or a confirmation, and show durations as clock times.
+- Do show durations as clock times.
 - Do label prototype numbers as sample data; never invent metrics.
 - Don't use MUI's default blue, Roboto, or uppercase buttons.
 - Don't use the light amber for text or icons on white.

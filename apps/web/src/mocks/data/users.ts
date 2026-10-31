@@ -3,6 +3,7 @@ import {
   activeWithinMs,
   activityRanges,
   defaultHourlyLimit,
+  extraRequestsAmount,
   recentRequestsKept,
   usersQuerySchema,
   warningThreshold,
@@ -58,6 +59,30 @@ export const afterRequest = (row: UserRow, at: string): UserRow => {
         ? 'paused'
         : statusFor(row.limit - requestsLeft, row.limit),
     lastRequestAt: at,
+  };
+};
+
+/** The row after an admin's reset: no window, the plain limit (`baseLimit`, without extra requests) all left. */
+export const afterReset = (row: UserRow, baseLimit: number): UserRow => ({
+  ...row,
+  limit: baseLimit,
+  requestsLeft: baseLimit,
+  resetAt: null,
+  status: row.status === 'paused' ? 'paused' : 'ok',
+});
+
+/** The row after an admin adds extra requests to its open window. */
+export const afterExtraRequests = (row: UserRow): UserRow => {
+  const limit = row.limit + extraRequestsAmount;
+  const requestsLeft = row.requestsLeft + extraRequestsAmount;
+  return {
+    ...row,
+    limit,
+    requestsLeft,
+    status:
+      row.status === 'paused'
+        ? 'paused'
+        : statusFor(limit - requestsLeft, limit),
   };
 };
 

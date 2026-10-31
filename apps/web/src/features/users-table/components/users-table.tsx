@@ -7,6 +7,7 @@ import {
   type UsersQuery,
 } from '@ratewatch/contracts';
 import {
+  Checkbox,
   Link,
   Table,
   TableBody,
@@ -37,11 +38,13 @@ const features = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
   sortFns: { basic: sortFn_basic },
-  // When the live connection was lost, so the time cells stop moving with the data; `null` while live. And how a
-  // user's ID opens them.
+  // When the live connection was lost, so the time cells stop moving with the data; `null` while live. How a
+  // user's ID opens them, and the ticked users.
   tableMeta: {} as {
     frozenAt: number | null;
     onOpen: (userId: string) => void;
+    selected: string[];
+    onSelect: (userIds: string[]) => void;
   },
 });
 
@@ -52,14 +55,52 @@ const sortsLikeTheApi = { sortFn: 'basic', sortUndefined: 'last' } as const;
 
 // Fixed shares of the table's width, so the columns don't shift as a filter or a live change alters the rows.
 const columnWidths: Record<string, string> = {
-  id: '20%',
-  left: '22%',
-  resetAt: '18%',
-  ratio: '18%',
-  lastRequest: '22%',
+  select: '6%',
+  id: '18%',
+  left: '21%',
+  resetAt: '17%',
+  ratio: '17%',
+  lastRequest: '21%',
 };
 
 const columns = columnHelper.columns([
+  // Ticks rows for the selection toolbar; the header ticks every row on screen, or none.
+  columnHelper.display({
+    id: 'select',
+    header: ({ table }) => {
+      const { selected = [], onSelect } = table.options.meta ?? {};
+      const userIds = table.getRowModel().rows.map((row) => row.id);
+      const ticked = userIds.filter((userId) => selected.includes(userId));
+      return (
+        <Checkbox
+          size="small"
+          checked={ticked.length > 0 && ticked.length === userIds.length}
+          indeterminate={ticked.length > 0 && ticked.length < userIds.length}
+          slotProps={{ input: { 'aria-label': 'Select every user shown' } }}
+          onChange={(event) => onSelect?.(event.target.checked ? userIds : [])}
+        />
+      );
+    },
+    cell: ({ row, table }) => {
+      const { selected = [], onSelect } = table.options.meta ?? {};
+      return (
+        <Checkbox
+          size="small"
+          checked={selected.includes(row.id)}
+          slotProps={{ input: { 'aria-label': `Select ${row.id}` } }}
+          // A tick never opens the user.
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) =>
+            onSelect?.(
+              event.target.checked
+                ? [...selected, row.id]
+                : selected.filter((userId) => userId !== row.id),
+            )
+          }
+        />
+      );
+    },
+  }),
   columnHelper.accessor('userId', {
     id: 'id',
     header: 'User',
@@ -130,8 +171,8 @@ const inOrder = (rows: UserRow[], order: string[]) => {
 };
 
 /**
- * Every user's state, in the API's order: a header sorts the API's page with `onSort`, and a row opens its user with
- * `onOpen`. Live changes re-sort the rows on screen the same way, only while the pointer is off the table and no user
+ * Every user's state, in the API's order: a header sorts the API's page with `onSort`, a row opens its user with
+ * `onOpen`, and its checkbox ticks it for the selection toolbar (`selected`, `onSelect`). Live changes re-sort the rows on screen the same way, only while the pointer is off the table and no user
  * is open.
  */
 export const UsersTable = ({
@@ -142,6 +183,8 @@ export const UsersTable = ({
   onSort,
   openUserId,
   onOpen,
+  selected,
+  onSelect,
 }: {
   rows: UserRow[];
   frozenAt: number | null;
@@ -150,6 +193,8 @@ export const UsersTable = ({
   onSort: (sort: UsersQuery['sort'], order: UsersQuery['order']) => void;
   openUserId: string | null;
   onOpen: (userId: string) => void;
+  selected: string[];
+  onSelect: (userIds: string[]) => void;
 }) => {
   // The row order on screen when the pointer came onto the table or a user opened, so a live change never moves a
   // row under the admin. It holds while either lasts.
@@ -185,6 +230,8 @@ export const UsersTable = ({
         freeze();
         onOpen(userId);
       },
+      selected,
+      onSelect,
     },
   });
 
@@ -219,15 +266,22 @@ export const UsersTable = ({
                   <TableCell
                     key={header.id}
                     sortDirection={sorted}
+                    padding={
+                      header.column.id === 'select' ? 'checkbox' : 'normal'
+                    }
                     sx={{ width: columnWidths[header.column.id] }}
                   >
-                    <TableSortLabel
-                      active={sorted !== false}
-                      direction={sorted || header.column.getFirstSortDir()}
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
+                    {header.column.getCanSort() ? (
+                      <TableSortLabel
+                        active={sorted !== false}
+                        direction={sorted || header.column.getFirstSortDir()}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        <table.FlexRender header={header} />
+                      </TableSortLabel>
+                    ) : (
                       <table.FlexRender header={header} />
-                    </TableSortLabel>
+                    )}
                   </TableCell>
                 );
               })}
@@ -242,11 +296,15 @@ export const UsersTable = ({
               selected={row.id === openUserId}
               onClick={() => table.options.meta?.onOpen(row.id)}
             >
-              {row.getAllCells().map((cell, index) => (
+              {row.getAllCells().map((cell) => (
                 <TableCell
                   key={cell.id}
+                  padding={cell.column.id === 'select' ? 'checkbox' : 'normal'}
                   // The user ID heads its row, so a screen reader names each cell by its user.
-                  {...(index === 0 && { component: 'th', scope: 'row' })}
+                  {...(cell.column.id === 'id' && {
+                    component: 'th',
+                    scope: 'row',
+                  })}
                 >
                   <table.FlexRender cell={cell} />
                 </TableCell>

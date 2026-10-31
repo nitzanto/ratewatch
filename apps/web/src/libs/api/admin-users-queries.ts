@@ -83,7 +83,6 @@ const windowEnd = (row: UserRow) => (row.resetAt ? Date.parse(row.resetAt) : 0);
  * least as many requests used. Reset times a few ms apart are the same window: `rate:limit_exceeded` carries one
  * instance's own, rows carry the record's.
  */
-// shortcut: an admin's Reset sends a row with no window (`resetAt: null`), which this drops as older; compare `lastResetAt` once admin controls (#54) send it.
 const isNotOlder = (next: UserRow, current: UserRow) => {
   const gap = windowEnd(next) - windowEnd(current);
   return Math.abs(gap) < sameWindowToleranceMs
@@ -93,15 +92,21 @@ const isNotOlder = (next: UserRow, current: UserRow) => {
 
 /**
  * Writes a live row over the same user's row in place, on every page that shows it, and moves the user between the
- * page's status counts; the table never re-sorts from here.
+ * page's status counts; the table never re-sorts from here. An admin's change (`byAdmin`) always wins, though a
+ * reset row looks older: it has no window.
  */
 // shortcut: only the users on screen send updates, so the counts miss status changes of users off the page until the next fetch; take the unfiltered view's counts from `rate:summary` once analytics (#57) sends it every second.
-export const applyUserRow = (client: QueryClient, next: UserRow) => {
+export const applyUserRow = (
+  client: QueryClient,
+  next: UserRow,
+  byAdmin = false,
+) => {
+  const keeps = (current: UserRow) => byAdmin || isNotOlder(next, current);
   client.setQueriesData<UsersPage>({ queryKey: adminUsersQueryKey }, (page) => {
     if (!page) return page;
     const counts = { ...page.counts };
     const rows = page.rows.map((row) => {
-      if (row.userId !== next.userId || !isNotOlder(next, row)) return row;
+      if (row.userId !== next.userId || !keeps(row)) return row;
       counts[row.status] -= 1;
       counts[next.status] += 1;
       return next;
@@ -109,7 +114,7 @@ export const applyUserRow = (client: QueryClient, next: UserRow) => {
     return { ...page, rows, counts };
   });
   client.setQueryData<UserDetail>([...adminUserKey, next.userId], (detail) =>
-    detail && isNotOlder(next, detail.row) ? { ...detail, row: next } : detail,
+    detail && keeps(detail.row) ? { ...detail, row: next } : detail,
   );
 };
 
@@ -121,9 +126,9 @@ export const applyUserRow = (client: QueryClient, next: UserRow) => {
  */
 export const applyRateUpdate = (
   client: QueryClient,
-  { row, requests }: RateUpdateEvent,
+  { row, requests, byAdmin }: RateUpdateEvent,
 ) => {
-  applyUserRow(client, row);
+  applyUserRow(client, row, byAdmin);
   client.setQueryData<UserDetail>([...adminUserKey, row.userId], (detail) => {
     if (!detail) return detail;
     const unmatched = [...detail.recent];
@@ -145,6 +150,17 @@ export const applyRateUpdate = (
   void client.invalidateQueries({
     queryKey: [...adminUserHistoryKey, row.userId],
   });
+};
+
+/**
+ * An admin's change, as its answer has it: each changed row everywhere, and the user's detail fetched again, since a
+ * reset moves their last reset time too.
+ */
+export const applyAdminChange = (client: QueryClient, rows: UserRow[]) => {
+  for (const row of rows) {
+    applyUserRow(client, row, true);
+    void client.invalidateQueries({ queryKey: [...adminUserKey, row.userId] });
+  }
 };
 
 /** Every users-table row in the cache, on any page. */

@@ -32,6 +32,8 @@ export const rateUpdateEventSchema = z.object({
   row: userRowSchema,
   /** The user's requests since the last update, newest first. */
   requests: z.array(recentRequestSchema),
+  /** An admin changed the user: the row replaces the one on screen though it may look older (a reset ends the window). */
+  byAdmin: z.boolean().optional(),
 });
 
 export type RateUpdateEvent = z.infer<typeof rateUpdateEventSchema>;

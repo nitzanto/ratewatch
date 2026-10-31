@@ -38,10 +38,37 @@ type RecordPipeline = ChainableCommander & {
 };
 
 /** A hash as Redis sends it in RESP2: field, value, field, value… */
-const toFields = (flat: string[]) => {
+export const toFields = (flat: string[]) => {
   const fields: Record<string, string> = {};
   for (let i = 0; i < flat.length; i += 2) fields[flat[i]] = flat[i + 1];
   return fields;
+};
+
+/** A record as a row. The window's fields expire with it, so a user whose window ended reads as a full limit, OK. */
+export const toRow = (fields: Record<string, string>, now: number): UserRow => {
+  const resetAt = Number(fields.resetAt);
+  const open = resetAt > now;
+  const baseLimit = Number(fields.baseLimit ?? defaultHourlyLimit);
+  const limit = open ? Number(fields.limit) : baseLimit;
+  const ratio = open ? Number(fields.ratio) : 0;
+  const pausedUntil = Number(fields.pausedUntil);
+  const paused = pausedUntil > now;
+  const status: UserStatus = paused
+    ? 'paused'
+    : ratio >= 1
+      ? 'exceeded'
+      : ratio >= warningThreshold
+        ? 'warning'
+        : 'ok';
+  return {
+    userId: fields.id,
+    limit,
+    requestsLeft: open ? Number(fields.left) : limit,
+    resetAt: open ? new Date(resetAt).toISOString() : null,
+    status,
+    lastRequestAt: new Date(Number(fields.lastRequest)).toISOString(),
+    pausedUntil: paused ? new Date(pausedUntil).toISOString() : null,
+  };
 };
 
 /**
@@ -134,7 +161,7 @@ export class UsersService {
     return starts.map((start, i) => {
       const own = results.slice(start, starts[i + 1]);
       const failed = own.find(([error]) => error)?.[0];
-      return failed ?? this.toRow(toFields(own[0][1] as string[]), now);
+      return failed ?? toRow(toFields(own[0][1] as string[]), now);
     });
   }
 
@@ -151,7 +178,7 @@ export class UsersService {
     const lastResetAt =
       windowEnd <= now ? windowEnd : Number(fields.lastResetAt ?? 0);
     return {
-      row: this.toRow(fields, now),
+      row: toRow(fields, now),
       lastResetAt: lastResetAt ? new Date(lastResetAt).toISOString() : null,
       recent: recent.map((json) => {
         const { at, allowed } = JSON.parse(
@@ -245,7 +272,7 @@ export class UsersService {
     const rows: UserRow[] = [];
     // FT.SEARCH answers [total, key, fields, key, fields…].
     for (let i = 2; i < found.length; i += 2)
-      rows.push(this.toRow(toFields(found[i] as string[]), now));
+      rows.push(toRow(toFields(found[i] as string[]), now));
     return {
       rows,
       total: Number(found[0]),
@@ -264,35 +291,8 @@ export class UsersService {
     return ((await pipeline.exec()) ?? []).flatMap(([error, fields]) => {
       if (error) throw error;
       const record = fields as Record<string, string>;
-      return record.id ? [this.toRow(record, now)] : [];
+      return record.id ? [toRow(record, now)] : [];
     });
-  }
-
-  /** A record as a row. The window's fields expire with it, so a user whose window ended reads as a full limit, OK. */
-  private toRow(fields: Record<string, string>, now: number): UserRow {
-    const resetAt = Number(fields.resetAt);
-    const open = resetAt > now;
-    const baseLimit = Number(fields.baseLimit ?? defaultHourlyLimit);
-    const limit = open ? Number(fields.limit) : baseLimit;
-    const ratio = open ? Number(fields.ratio) : 0;
-    const pausedUntil = Number(fields.pausedUntil);
-    const paused = pausedUntil > now;
-    const status: UserStatus = paused
-      ? 'paused'
-      : ratio >= 1
-        ? 'exceeded'
-        : ratio >= warningThreshold
-          ? 'warning'
-          : 'ok';
-    return {
-      userId: fields.id,
-      limit,
-      requestsLeft: open ? Number(fields.left) : limit,
-      resetAt: open ? new Date(resetAt).toISOString() : null,
-      status,
-      lastRequestAt: new Date(Number(fields.lastRequest)).toISOString(),
-      pausedUntil: paused ? new Date(pausedUntil).toISOString() : null,
-    };
   }
 
   /** Creates the index the first time it's needed; Redis may be down at startup, so it's tried again until it works. */

@@ -13,7 +13,7 @@ A deep navy shell, a cool grey page, white surfaces and one cobalt accent. Navy 
 
 | Role           | Colour    | Used for                                                                   |
 | -------------- | --------- | -------------------------------------------------------------------------- |
-| Shell          | `#0B1F33` | App bar, the sign-in welcome panel, snackbars                              |
+| Shell          | `#0B1F33` | App bar, the sign-in welcome panel                                         |
 | Page           | `#F4F6F9` | Page background                                                            |
 | Surface        | `#FFFFFF` | Cards, tables, drawers, forms (with a `#E2E7ED` border)                    |
 | Text           | `#0F1A24` | Content                                                                    |
@@ -43,7 +43,7 @@ One typeface, **IBM Plex Sans**, in regular, medium and semibold. Headings are s
 ## Behaviour rules
 
 - **Nothing moves under the pointer.** Live updates change numbers in place. The table re-sorts only when the pointer is off it and no user is open. Selecting rows swaps the filter row for a same-height selection bar. Messages on the clicker appear in a reserved slot.
-- **Every admin action can be undone** for 10 seconds from the snackbar. Pausing throttling always has an end time. Lowering a limit below what the user already used warns first.
+- **Admin actions are deliberate.** Each one changes the user at once, visibly, with no confirmation step. Pausing throttling always has an end time. Lowering a limit below what the user already used warns first.
 - **The limit is never a surprise.** The count updates after every click; a refusal says why and shows the time the user can try again.
 
 ## Crumb

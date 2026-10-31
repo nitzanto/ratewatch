@@ -1,3 +1,4 @@
+export * from './lib/admin-controls.schema.js';
 export * from './lib/admin-users.schema.js';
 export * from './lib/click.schema.js';
 export * from './lib/health.schema.js';

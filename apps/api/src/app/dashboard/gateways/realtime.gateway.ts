@@ -15,6 +15,7 @@ import {
   rateSubscribeSchema,
   type RateUpdateEvent,
   realtimeEvents,
+  type UserRow,
 } from '@ratewatch/contracts';
 import cookieParser from 'cookie-parser';
 import type { Request, Response } from 'express';
@@ -94,6 +95,15 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     this.server
       .to(userRoom(event.row.userId))
       .volatile.emit(realtimeEvents.update, event);
+  }
+
+  /** An admin's change to a user, not volatile: no update follows it a second later if the user is idle. */
+  sendChange(row: UserRow) {
+    this.server.to(userRoom(row.userId)).emit(realtimeEvents.update, {
+      row,
+      requests: [],
+      byAdmin: true,
+    } satisfies RateUpdateEvent);
   }
 
   sendLimitExceeded(event: RateLimitExceededEvent) {
