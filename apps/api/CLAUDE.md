@@ -1,4 +1,5 @@
 # apps/api
 
-- **A feature is a folder under `src/app/` with one subfolder per kind of file**, as `auth/` is: `controllers/`, `services/`, `guards/`, `decorators/`, `dto/`, `interfaces/`, `constants/`, `modules/`. Only create the kinds the feature has. Tests sit next to the file they test (`guards/session.guard.spec.ts`).
+- **A feature is a folder under `src/app/` with one subfolder per kind of file**, as `auth/` is: `controllers/`, `services/`, `guards/`, `decorators/`, `dto/`, `interfaces/`, `constants/`, `providers/` (custom providers and their factories, such as `redis/providers/redis-client.provider.ts`), `modules/`. Constants hold values only, never functions that build things. Only create the kinds the feature has. Tests sit next to the file they test (`guards/session.guard.spec.ts`).
+- **Shared test helpers live in `src/app/test-utils/`**: `startApp()` (the whole app on a free port, Redis swapped for ioredis-mock), `signedInCookie()`, `postClick()`, and a fake Redis for failure tests. Add a helper there once a second spec needs it.
 - **Root `package.json` lists the API's runtime dependencies on purpose.** Nx's webpack plugin leaves only root dependencies out of the bundle; without them `main.js` bundles all of `node_modules` (2.5 MB instead of 4 KB). Add a new runtime dependency to both `apps/api/package.json` and the root.

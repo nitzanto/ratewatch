@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
-import { rateLimitedResponseSchema } from '@ratewatch/contracts';
-import { cookieOf, signIn, startApp } from '../../test-app';
+import { rateLimitedResponseSchema, type Role } from '@ratewatch/contracts';
+import { postClick, signedInCookie, startApp } from '../../test-utils/test-app';
 
 describe('rate limit', () => {
   let app: INestApplication;
@@ -12,11 +12,8 @@ describe('rate limit', () => {
 
   afterEach(() => app.close());
 
-  const signedIn = async (role = 'user') =>
-    cookieOf(await signIn(baseUrl, role));
-
-  const click = (cookie: string) =>
-    fetch(`${baseUrl}/clicks`, { method: 'POST', headers: { cookie } });
+  const signedIn = (role: Role = 'user') => signedInCookie(baseUrl, role);
+  const click = (cookie: string) => postClick(baseUrl, cookie);
 
   it('counts each click and reports the requests left in x-count', async () => {
     const cookie = await signedIn();

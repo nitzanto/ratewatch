@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { sessionSchema } from '@ratewatch/contracts';
-import { cookieOf, signIn, startApp } from '../../test-app';
+import { cookieOf, signIn, startApp } from '../../test-utils/test-app';
 
 const dayMs = 24 * 60 * 60 * 1000;
 

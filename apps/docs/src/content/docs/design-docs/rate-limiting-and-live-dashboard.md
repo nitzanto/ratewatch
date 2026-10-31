@@ -175,7 +175,7 @@ The Redis client fails fast, so a Redis outage costs at most about 50 ms per req
 | `commandTimeout`       | `50` ms   | Bounds the wait for a reply; the load test sets the final value         |
 | `connectTimeout`       | `2000` ms | Reconnects in the background with the default backoff                   |
 
-On any error the interceptor lets the request through without `x-count`, and adds 1 to a failed-open counter. A logger writes one line at most every 10 seconds with the error and the count since the last line. `GET /api/health/ready` (public) answers 503 while the client's status isn't `ready`; `GET /api/health` stays the liveness check. The web app already shows "Limit unavailable" when `x-count` is missing.
+On any error the interceptor lets the request through without `x-count`, and writes one log line at most every 10 seconds, with the error. How many requests went through uncounted is the failed-open metric, added with observability. The Redis client also logs once when the connection fails and once when it's back, so an outage or a wrong `REDIS_URL` shows in the logs even with no traffic. `GET /api/health` never checks Redis, so Kubernetes keeps every instance in service during an outage. The web app already shows "Limit unavailable" when `x-count` is missing.
 
 While Redis is down the dashboard publisher keeps the latest numbers in memory (at most 100,000 users, oldest dropped first) and writes them when Redis is back. Events between instances stop, because the Socket.IO adapter uses Redis too; each instance still serves its own admins.
 

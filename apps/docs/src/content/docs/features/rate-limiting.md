@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-**Status:** Shipped. Letting requests through while the counting service is down is next; admins changing a user's limit arrives with [Admin controls](../admin-controls/).
+**Status:** Shipped. Admins changing a user's limit arrives with [Admin controls](../admin-controls/).
 
 ## Summary
 

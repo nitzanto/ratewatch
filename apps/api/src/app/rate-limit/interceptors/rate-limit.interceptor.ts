@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  Logger,
   type NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -19,6 +20,7 @@ import { isPublicKey } from '../../auth/decorators/public.decorator';
 import type { SessionRequest } from '../../auth/interfaces/session-request.interface';
 import { redisClient } from '../../redis/constants/redis.constants';
 import {
+  uncountedLogEveryMs,
   rateLimitKeys,
   rateLimitScript,
   windowMs,
@@ -40,10 +42,13 @@ type RateLimitRedis = Redis & {
 /**
  * Global: counts every request a User makes against their limit, and reports the requests left in `x-count`.
  * Runs after `SessionGuard`, so the session is known; public routes and the Admin are never counted.
+ * Fails open: when Redis can't answer, the request goes through uncounted and without `x-count`.
  */
 @Injectable()
 export class RateLimitInterceptor implements NestInterceptor {
   private readonly redis: RateLimitRedis;
+  private readonly logger = new Logger(RateLimitInterceptor.name);
+  private lastLoggedAt = -Infinity;
 
   constructor(
     private readonly reflector: Reflector,
@@ -64,11 +69,18 @@ export class RateLimitInterceptor implements NestInterceptor {
     const { session } = context.switchToHttp().getRequest<SessionRequest>();
     if (isPublic || session.role === 'admin') return next.handle();
 
-    const [allowed, requestsLeft, msUntilReset] = await this.redis.rateLimit(
-      ...rateLimitKeys(session.userId),
-      defaultHourlyLimit,
-      windowMs,
-    );
+    let reply: RateLimitReply;
+    try {
+      reply = await this.redis.rateLimit(
+        ...rateLimitKeys(session.userId),
+        defaultHourlyLimit,
+        windowMs,
+      );
+    } catch (error) {
+      this.failOpen(error);
+      return next.handle();
+    }
+    const [allowed, requestsLeft, msUntilReset] = reply;
     const response = context.switchToHttp().getResponse<Response>();
 
     if (!allowed) {
@@ -84,5 +96,19 @@ export class RateLimitInterceptor implements NestInterceptor {
 
     response.setHeader(requestsLeftHeader, requestsLeft);
     return next.handle();
+  }
+
+  /**
+   * Logs at most once per interval, so an outage can't flood the logs. How many requests went through
+   * uncounted is for the failed-open metric (#36), not the log.
+   */
+  private failOpen(error: unknown) {
+    const now = Date.now();
+    if (now - this.lastLoggedAt < uncountedLogEveryMs) return;
+    this.logger.error(
+      `Rate limit unavailable, letting requests through uncounted (${error instanceof Error ? error.message : String(error)})`,
+      error instanceof Error ? error.stack : undefined,
+    );
+    this.lastLoggedAt = now;
   }
 }
