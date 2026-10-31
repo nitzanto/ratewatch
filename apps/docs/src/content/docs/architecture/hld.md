@@ -276,9 +276,9 @@ The API sends live updates with `@nestjs/websockets` and Socket.IO. The Socket.I
 - **`rate:limit_exceeded`**: sent at once, one time for each user in each window.
 - **Reconnect**: the web app loads the data again, then continues with live events.
 
-### Admin controls (Planned)
+### Admin controls
 
-Admin endpoints accept the Admin role only. Each one changes the user's keys in Redis, then tells the dashboard publisher.
+Admin endpoints accept the Admin role only. Each one changes the user's keys and their record in Redis in one script, and sends the new row to the admins following that user. Reset limit and extra requests are built; custom limit, pause and unlock are planned.
 
 | Control        | Change in Redis                                            |
 | -------------- | ---------------------------------------------------------- |

@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { ActivityChart } from './activity-chart';
+import { AdminControls } from './admin-controls';
 import { RelativeTime } from './relative-time';
 import { RequestsLeftCell } from './requests-left-cell';
 import { DrawerSection } from './drawer-section';
@@ -79,6 +80,7 @@ const Details = ({
           : 'On'}
       </Stat>
     </Box>
+    <AdminControls row={row} />
     <ActivityChart userId={userId} />
     <DrawerSection title="Recent requests">
       {(titleId) => (
@@ -170,7 +172,7 @@ const UserDetails = ({
   );
 };
 
-/** One user's stats, activity and recent requests, live, in a dialog from the right; `userId` `null` closes it. */
+/** One user's stats, admin controls, activity and recent requests, live, in a dialog from the right; `userId` `null` closes it. */
 export const UserDrawer = ({
   userId,
   frozenAt,

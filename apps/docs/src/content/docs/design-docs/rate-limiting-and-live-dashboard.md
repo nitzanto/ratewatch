@@ -26,7 +26,6 @@ Every key that belongs to one user carries the user ID in braces, so Redis Clust
 | `rl:{uid}:window` | hash   | `count`, `extra`, `notified` (the first refusal was announced) | 1 hour, set when the window opens      | Limit script, admin controls |
 | `rl:{uid}:limit`  | string | The custom limit (1–1,000)                                     | None; removed when the admin clears it | Admin controls               |
 | `rl:{uid}:pause`  | string | The pause end, in epoch ms                                     | When the pause ends                    | Admin controls               |
-| `rl:undo:<token>` | string | A snapshot of one user's keys before an admin change, as JSON  | 10 seconds                             | Admin controls               |
 
 ### Dashboard keys
 
@@ -236,12 +235,12 @@ A user whose window ended has no `ratio`, `left` or `resetAt`, so they count as 
 - **Handshake:** the gateway reads the `session` cookie from the handshake headers, checks its signature with `SESSION_SECRET` and its expiry, and refuses anyone but the Admin. It ends the connection when that session expires. The web app treats both (a refused handshake, a connection the server ended) as signed out, since Socket.IO retries neither.
 - **Rooms:** every admin joins `admins`. The web app sends `rate:subscribe` with the user IDs on screen plus the open user (at most 101). The server leaves the old `user:<id>` rooms, joins the new ones, and acknowledges with the current rows, so nothing changes unseen between the page load and the subscription. With Redis down it acknowledges with no rows; the rooms are joined, so updates follow once Redis is back.
 
-| Event                 | Direction      | Room                 | When                                                                       | Payload                                                                                                |
-| --------------------- | -------------- | -------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `rate:subscribe`      | web → API, ack | none                 | The page or open user changes, and on reconnect                            | `{ userIds: string[] }` → ack `{ rows: UserRow[] }`                                                    |
-| `rate:update`         | API → web      | `user:<id>`          | At most once per second per user per instance, volatile                    | `{ row: UserRow, requests: { at, allowed }[] }`: the latest row and the requests since the last update |
-| `rate:limit_exceeded` | API → web      | `admins`             | At once, the first refusal in each window (`firstRefusal` from the script) | `{ userId, limit, resetAt, at }`                                                                       |
-| `rate:summary`        | API → web      | `admins`, local only | Once per second, by each instance that has admins connected                | `{ totalUsers, nearLimitShare, refusedToday, counts, topUsers }`                                       |
+| Event                 | Direction      | Room                 | When                                                                                                                                             | Payload                                                                                                                                             |
+| --------------------- | -------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rate:subscribe`      | web → API, ack | none                 | The page or open user changes, and on reconnect                                                                                                  | `{ userIds: string[] }` → ack `{ rows: UserRow[] }`                                                                                                 |
+| `rate:update`         | API → web      | `user:<id>`          | At most once per second per user per instance, and at once after an admin's change; never volatile, since a second's updates go out back to back | `{ row: UserRow, requests: { at, allowed }[], byAdmin? }`: the latest row and the requests since the last update; `byAdmin` marks an admin's change |
+| `rate:limit_exceeded` | API → web      | `admins`             | At once, the first refusal in each window (`firstRefusal` from the script)                                                                       | `{ userId, limit, resetAt, at }`                                                                                                                    |
+| `rate:summary`        | API → web      | `admins`, local only | Once per second, by each instance that has admins connected                                                                                      | `{ totalUsers, nearLimitShare, refusedToday, counts, topUsers }`                                                                                    |
 
 `UserRow` is `{ userId, limit, requestsLeft, resetAt | null, status, lastRequestAt, pausedUntil | null }`. Every payload is a schema in `libs/contracts`.
 
@@ -271,24 +270,24 @@ sequenceDiagram
 **The web app:**
 
 - Rows update in place in the TanStack Query cache, and flash. The table re-sorts the rows on screen only while the pointer is off it and no user is open, so nothing moves under the admin; a row never moves to another page until the page is fetched again.
-- It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change). Reset times within 5 seconds count as the same, because `rate:limit_exceeded` carries the instance's own reset time.
+- It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change). Reset times within 5 seconds count as the same, because `rate:limit_exceeded` carries the instance's own reset time. An admin's change (`byAdmin`, or the rows a control answers) always replaces the row: a reset row has no window, so it would look older.
 - On reconnect it refetches the page and sends `rate:subscribe` again, since a new connection follows nobody. Both answers pass the same newer-or-same check, so their order doesn't matter.
 - The open user's drawer takes the same rows, and puts each update's requests at the top of its recent requests, skipping any older than the newest it has (the detail may have been fetched after that batch was written). Their activity is fetched again on each update while it's on screen.
 
 ## Admin controls
 
-All under `/api/admin/users/:id`, Admin only. Each change takes effect at once, updates the user record directly, and sends a `rate:update` without waiting for the next tick.
+All under `/api/admin/users/:id`, Admin only. Each change runs one script on the user's limiter keys and record (all share the `{uid}` hash tag): it makes the change, then writes the record's window fields from the limiter's keys as the next batch would. It answers `{ rows }` and sends each row as a `rate:update` with `byAdmin: true`, without waiting for the next tick. A user without a record has no row; the change still applies to their limiter keys.
 
-| Control        | Endpoint                                                    | Change in Redis                                                                                           | Refused when                                       |
-| -------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Reset limit    | `POST …/reset`                                              | `DEL rl:{uid}:window`; the record's window fields are removed and `lastResetAt` set to now                | none                                               |
-| Reset many     | `POST /api/admin/users/reset` `{ userIds }`                 | The same for each user, up to 100                                                                         | more than 100 IDs                                  |
-| Custom limit   | `PUT …/limit` `{ limit }` / `DELETE …/limit`                | `SET rl:{uid}:limit` / `DEL`                                                                              | `limit` outside 1–1,000                            |
-| Extra requests | `POST …/extra-requests` `{ amount: 10 }`                    | `HINCRBY rl:{uid}:window extra 10`, in a script that checks the window exists and the limit stays ≤ 1,000 | no open window (409); limit would pass 1,000 (422) |
-| Pause          | `PUT …/pause` `{ duration: "15m" \| "1h" \| "untilReset" }` | `SET rl:{uid}:pause <end> PX <ms>`; `untilReset` uses the window's `PTTL`                                 | `untilReset` with no open window (409)             |
-| Unlock         | `DELETE …/pause`                                            | `DEL rl:{uid}:pause`                                                                                      | none                                               |
+| Control        | Endpoint                                                    | Change in Redis                                                                                                                 | Refused when                                       |
+| -------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Reset limit    | `POST …/reset`                                              | `DEL rl:{uid}:window`; the record's window fields are removed and `windowEnd` and `lastResetAt` set to now                      | none                                               |
+| Reset many     | `POST /api/admin/users/reset` `{ userIds }`                 | The same for each user, up to 100, in one pipeline; repeated IDs count once                                                     | none, or more than 100 IDs (400)                   |
+| Custom limit   | `PUT …/limit` `{ limit }` / `DELETE …/limit`                | `SET rl:{uid}:limit` / `DEL`                                                                                                    | `limit` outside 1–1,000                            |
+| Extra requests | `POST …/extra-requests` `{ amount: 10 }`                    | `HINCRBY rl:{uid}:window extra 10` and `HDEL … notified`, in a script that checks the window exists and the limit stays ≤ 1,000 | no open window (409); limit would pass 1,000 (422) |
+| Pause          | `PUT …/pause` `{ duration: "15m" \| "1h" \| "untilReset" }` | `SET rl:{uid}:pause <end> PX <ms>`; `untilReset` uses the window's `PTTL`                                                       | `untilReset` with no open window (409)             |
+| Unlock         | `DELETE …/pause`                                            | `DEL rl:{uid}:pause`                                                                                                            | none                                               |
 
-**Undo.** Each control answers with an `undoToken`. Before changing anything, it stores a snapshot of the user's three limiter keys (values and absolute expiry times) at `rl:undo:<token>` for 10 seconds. `POST /api/admin/undo/:token` restores them in one script, and puts each expiry back with `PEXPIREAT`, so the restored window ends when it would have. Requests the user made between the change and the undo are lost with the undo; it's at most 10 seconds.
+The rule that extra requests stop at 1,000 is `canAddExtraRequests` in `libs/contracts`, so the drawer disables the button where the API would refuse.
 
 ## Local environment and CI
 

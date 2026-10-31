@@ -1,7 +1,7 @@
 import { alpha, type Components, type Theme } from '@mui/material/styles';
 import { sizes } from '../sizes';
 
-/** The user drawer: 460px of `surface` from the right, the one shadow besides the snackbar's (ink), over a navy (`shell`) scrim. */
+/** The user drawer: 460px of `surface` from the right, the one shadow (ink), over a navy (`shell`) scrim. */
 export const MuiDrawer: Components<Theme>['MuiDrawer'] = {
   styleOverrides: {
     paper: ({ theme }) => ({

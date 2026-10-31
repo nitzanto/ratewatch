@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-**Status:** Shipped. Acting on the user arrives with [Admin controls](../admin-controls/).
+**Status:** Shipped.
 
 ## Summary
 

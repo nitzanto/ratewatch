@@ -1,12 +1,18 @@
 import {
+  afterExtraRequests,
+  afterReset,
   mockUsers,
   userDetail,
   userHistory,
   usersPage,
 } from '@/mocks/data/users';
 import {
+  canAddExtraRequests,
+  extraRequestsAmount,
+  resetUsersSchema,
   userHistoryQuerySchema,
   usersQuerySchema,
+  type AdminChange,
   type UserRow,
 } from '@ratewatch/contracts';
 import { http, HttpResponse } from 'msw';
@@ -21,7 +27,30 @@ export const setMockUsers = (rows: UserRow[]) => {
   users = rows;
 };
 
-export const resetUsers = () => setMockUsers(mockUsers());
+// Each user's extra requests in their current window, so a reset knows their plain limit.
+const extras = new Map<string, number>();
+
+export const resetUsers = () => {
+  setMockUsers(mockUsers());
+  extras.clear();
+};
+
+/** Applies `next` to these users as an admin change, and answers as the API does. */
+const changeUsers = (userIds: string[], next: (row: UserRow) => UserRow) => {
+  const after = users
+    .filter(({ userId }) => userIds.includes(userId))
+    .map(next);
+  users = users.map(
+    (row) => after.find(({ userId }) => userId === row.userId) ?? row,
+  );
+  return HttpResponse.json({ rows: after } satisfies AdminChange);
+};
+
+const resetUser = (row: UserRow) => {
+  const plain = afterReset(row, row.limit - (extras.get(row.userId) ?? 0));
+  extras.delete(row.userId);
+  return plain;
+};
 
 export const adminUserHandlers = [
   http.get('/api/admin/users', ({ request }) =>
@@ -39,6 +68,27 @@ export const adminUserHandlers = [
     return row
       ? HttpResponse.json(userDetail(row))
       : HttpResponse.json({ message: 'Not Found' }, { status: 404 });
+  }),
+  http.post('/api/admin/users/reset', async ({ request }) =>
+    changeUsers(
+      resetUsersSchema.parse(await request.json()).userIds,
+      resetUser,
+    ),
+  ),
+  http.post('/api/admin/users/:id/reset', ({ params }) =>
+    changeUsers([String(params['id'])], resetUser),
+  ),
+  http.post('/api/admin/users/:id/extra-requests', ({ params }) => {
+    const row = users.find(({ userId }) => userId === params['id']);
+    if (!row?.resetAt)
+      return HttpResponse.json({ message: 'No open window' }, { status: 409 });
+    if (!canAddExtraRequests(row.limit))
+      return HttpResponse.json(
+        { message: "A limit can't go above 1000" },
+        { status: 422 },
+      );
+    extras.set(row.userId, (extras.get(row.userId) ?? 0) + extraRequestsAmount);
+    return changeUsers([row.userId], afterExtraRequests);
   }),
   http.get('/api/admin/users/:id/history', ({ params, request }) => {
     const row = users.find(({ userId }) => userId === params['id']);

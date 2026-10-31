@@ -1,6 +1,6 @@
 import type { PaletteOptions } from '@mui/material/styles';
 
-/** The navy app bar: its text, muted text, raised fill (hover, pill), accent (`accent-on-dark`: focus rings, actions) and the status pill's dots. */
+/** The navy app bar: its text, muted text, raised fill (hover, pill), accent (`accent-on-dark`: focus rings) and the status pill's dots. */
 type ShellPalette = Record<
   'main' | 'contrastText' | 'muted' | 'raised' | 'accent' | 'ok' | 'down',
   string

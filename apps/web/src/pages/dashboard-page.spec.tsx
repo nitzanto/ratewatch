@@ -661,4 +661,204 @@ describe('Users table', () => {
       expect(await within(drawer).findByText('90 / 100')).toBeTruthy();
     });
   });
+
+  describe('admin controls', () => {
+    const openUser = async (userId: string) => {
+      fireEvent.click(
+        within(await page().findByRole('table', { name: 'Users' })).getByRole(
+          'button',
+          { name: userId },
+        ),
+      );
+      return screen.findByRole('dialog', { name: userId });
+    };
+
+    it("resets a user's limit from their detail, in the drawer and the table", async () => {
+      setMockUsers([userRow('user-aaaa1111', 59, 4_000)]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-aaaa1111');
+      await within(drawer).findByText('41 / 100');
+
+      fireEvent.click(
+        within(drawer).getByRole('button', { name: 'Reset limit' }),
+      );
+
+      expect(await within(drawer).findByText('100 / 100')).toBeTruthy();
+      expect(within(drawer).getByText('0%')).toBeTruthy();
+      fireEvent.keyDown(drawer, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(rowOf('user-aaaa1111').getByText('100 / 100')).toBeTruthy();
+    });
+
+    it('adds 10 requests to the current window', async () => {
+      setMockUsers([userRow('user-aaaa1111', 100, 4_000)]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-aaaa1111');
+      await within(drawer).findByText('0 / 100');
+
+      fireEvent.click(
+        within(drawer).getByRole('button', { name: 'Add 10 requests' }),
+      );
+
+      expect(await within(drawer).findByText('10 / 110')).toBeTruthy();
+      expect(within(drawer).getByText('Warning')).toBeTruthy();
+    });
+
+    it('offers no extra requests past a limit of 1,000, or without an open window', async () => {
+      setMockUsers([
+        userRow('user-aaaa1111', 10, 4_000, { limit: 995 }),
+        userRow('user-bbbb2222', 0, 4_000, { resetAt: null }),
+      ]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+
+      const full = await openUser('user-aaaa1111');
+      await within(full).findByText('985 / 995');
+      expect(
+        within(full).getByRole('button', { name: 'Add 10 requests' }),
+      ).toHaveProperty('disabled', true);
+      expect(
+        within(full).getByText("A limit can't go above 1,000."),
+      ).toBeTruthy();
+      fireEvent.keyDown(full, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+      const ended = await openUser('user-bbbb2222');
+      await within(ended).findByText('100 / 100');
+      expect(
+        within(ended).getByRole('button', { name: 'Add 10 requests' }),
+      ).toHaveProperty('disabled', true);
+    });
+
+    it('says when a change fails', async () => {
+      server.use(
+        http.post(
+          '/api/admin/users/:id/reset',
+          () => new HttpResponse(null, { status: 503 }),
+        ),
+      );
+      setMockUsers([userRow('user-aaaa1111', 59, 4_000)]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-aaaa1111');
+      await within(drawer).findByText('41 / 100');
+
+      fireEvent.click(
+        within(drawer).getByRole('button', { name: 'Reset limit' }),
+      );
+
+      expect(
+        await within(drawer).findByText(
+          "Couldn't reset user-aaaa1111's limit. Try again.",
+        ),
+      ).toBeTruthy();
+      expect(within(drawer).getByText('41 / 100')).toBeTruthy();
+    });
+
+    it('resets the ticked users together from the selection toolbar, in place of the filters', async () => {
+      setMockUsers([
+        userRow('user-aaaa1111', 59, 4_000),
+        userRow('user-bbbb2222', 100, 8_000),
+        userRow('user-cccc3333', 20, 12_000),
+      ]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      await page().findByRole('table', { name: 'Users' });
+
+      fireEvent.click(
+        rowOf('user-aaaa1111').getByRole('checkbox', {
+          name: 'Select user-aaaa1111',
+        }),
+      );
+      fireEvent.click(
+        rowOf('user-bbbb2222').getByRole('checkbox', {
+          name: 'Select user-bbbb2222',
+        }),
+      );
+
+      // Ticking a row doesn't open its user.
+      expect(screen.queryByRole('dialog')).toBeNull();
+      const toolbar = within(
+        page().getByRole('toolbar', { name: 'Selected users' }),
+      );
+      expect(toolbar.getByText('2 users selected')).toBeTruthy();
+      expect(
+        page().queryByRole('group', { name: 'Filter by status' }),
+      ).toBeNull();
+
+      fireEvent.click(
+        toolbar.getByRole('button', { name: 'Reset their limits' }),
+      );
+
+      expect(await rowOf('user-aaaa1111').findByText('100 / 100')).toBeTruthy();
+      expect(rowOf('user-bbbb2222').getByText('100 / 100')).toBeTruthy();
+      expect(rowOf('user-cccc3333').getByText('80 / 100')).toBeTruthy();
+      expect(
+        page().getByRole('group', { name: 'Filter by status' }),
+      ).toBeTruthy();
+      expectUserIds(['user-aaaa1111', 'user-bbbb2222', 'user-cccc3333']);
+    });
+
+    it('keeps the selection and says so when a bulk reset fails', async () => {
+      server.use(
+        http.post(
+          '/api/admin/users/reset',
+          () => new HttpResponse(null, { status: 503 }),
+        ),
+      );
+      setMockUsers([userRow('user-aaaa1111', 59, 4_000)]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      await page().findByRole('table', { name: 'Users' });
+      fireEvent.click(
+        rowOf('user-aaaa1111').getByRole('checkbox', {
+          name: 'Select user-aaaa1111',
+        }),
+      );
+
+      fireEvent.click(
+        page().getByRole('button', { name: 'Reset their limits' }),
+      );
+
+      expect(
+        await page().findByText("Couldn't reset their limits. Try again."),
+      ).toBeTruthy();
+      expect(page().getByText('1 user selected')).toBeTruthy();
+      expect(rowOf('user-aaaa1111').getByText('41 / 100')).toBeTruthy();
+    });
+
+    it('ticks every user shown from the header', async () => {
+      setMockUsers([
+        userRow('user-aaaa1111', 59, 4_000),
+        userRow('user-bbbb2222', 10, 8_000),
+      ]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      await page().findByRole('table', { name: 'Users' });
+
+      fireEvent.click(
+        usersTable().getByRole('checkbox', { name: 'Select every user shown' }),
+      );
+
+      expect(page().getByText('2 users selected')).toBeTruthy();
+
+      fireEvent.click(page().getByRole('button', { name: 'Clear selection' }));
+
+      expect(
+        page().getByRole('group', { name: 'Filter by status' }),
+      ).toBeTruthy();
+    });
+
+    it("applies another admin's change to a user, though the row looks older", async () => {
+      const user = userRow('user-aaaa1111', 59, 4_000);
+      setMockUsers([user]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      await page().findByRole('table', { name: 'Users' });
+
+      act(() =>
+        sendRateUpdate({
+          row: { ...user, requestsLeft: 100, resetAt: null },
+          requests: [],
+          byAdmin: true,
+        }),
+      );
+
+      expect(await rowOf('user-aaaa1111').findByText('100 / 100')).toBeTruthy();
+    });
+  });
 });

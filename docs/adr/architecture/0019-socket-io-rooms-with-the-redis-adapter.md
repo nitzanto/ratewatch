@@ -6,7 +6,7 @@ status: accepted
 
 # Socket.IO with the Redis adapter, events only for what an admin sees
 
-Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapter, so an event from any API instance reaches admins on every instance. Only the Admin can connect (the handshake checks the session cookie). An admin joins one room per user row on screen (at most 100) plus the open user, and an `admins` room. `rate:update` is sent at most once per second per user per instance, as a volatile emit; `rate:limit_exceeded` is sent at once, exactly once per user per window. Events therefore scale with what admins look at, not with the number of users.
+Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapter, so an event from any API instance reaches admins on every instance. Only the Admin can connect (the handshake checks the session cookie). An admin joins one room per user row on screen (at most 100) plus the open user, and an `admins` room. `rate:update` is sent at most once per second per user per instance, as a plain (not volatile) emit; `rate:limit_exceeded` is sent at once, exactly once per user per window. Events therefore scale with what admins look at, not with the number of users.
 
 ## Considered Options
 
@@ -21,3 +21,4 @@ Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapt
 - The sharded adapter publishes a room's event even when no socket is in it, so until updates are published only for followed users (measured with #41), Redis pub/sub traffic grows with active users even though deliveries don't.
 - An admin sees live changes only for rows on screen; other pages are fresh when opened.
 - Two instances can each send an update for the same user in the same second; the client keeps the newer one.
+- `rate:update` is not volatile: a second's updates go out back to back, and Socket.IO drops a volatile packet while the one before it is still being written, so an admin following several active users lost all but one each second ([#52](https://github.com/nitzanto/ratewatch/issues/52)). A slow admin's backlog stays small: at most one update per followed user per second.

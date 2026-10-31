@@ -16,7 +16,7 @@ Built production-grade: every significant decision needs an ADR with its trade-o
 
 ## Running the app and e2e
 
-- **Reuse the Compose stack, leave clean.** Before serving the app or running e2e, check what listens on 3000 (API), 4200 (web) and 6379 (Redis). If it's this repo's Compose stack (`docker compose ls`), use it: Compose Watch keeps it on the current branch's code. If nothing is there, start the stack with `docker compose up -d --wait`. Ask the developer about anything else on those ports: Playwright reuses whatever answers there, so a mock-mode web server turns e2e red at sign-in.
+- **Reuse the Compose stack, leave clean.** Before serving the app or running e2e, check what listens on 3000 (API), 4200 (web) and 6379 (Redis). If it's this repo's Compose stack (`docker compose ls`) or nothing, run `docker compose up -d --wait` either way. Don't rely on Compose Watch: the stack may run without it, and then it serves old code. `pull_policy: build` makes `up` rebuild from the working tree and recreate only the containers whose code changed, keeping Redis and its data. Ask the developer about anything else on those ports: Playwright reuses whatever answers there, so a mock-mode web server turns e2e red at sign-in.
 - **Run e2e against that stack** with `pnpm nx run ratewatch-e2e:e2e --exclude-task-dependencies`. Without the flag Nx starts its own `nx serve api` and `nx serve web`, which wait forever for the ports the stack holds. Serve the app only through Compose, so every server is one `docker compose down` away. When done, run `docker compose down` only if you started the stack.
 
 ## Git workflow
