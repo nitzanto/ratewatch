@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-test.beforeEach(({ signInPage }) => signInPage.signInAsUser());
+test.beforeEach(({ signInPage }) => signInPage.signIn('Admin'));
 
 test('home shows the API health status', async ({ homePage }) => {
   await homePage.goto();
@@ -25,6 +25,6 @@ test('the tabs move between the dashboard and the cookie clicker', async ({
   );
 
   await homePage.tab('Dashboard').click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/dashboard');
   await expect(homePage.apiStatus).toHaveText('API status: ok');
 });

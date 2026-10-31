@@ -3,12 +3,14 @@ import { BrandMark } from '@/components/ui/brand-mark';
 import { useSession } from '@/hooks/api/use-session';
 import { useSignOut } from '@/hooks/api/use-sign-out';
 import { sizes } from '@/libs/theme/sizes';
+import type { Role } from '@ratewatch/contracts';
 import { AppBar, Box, Button, Container, Typography } from '@mui/material';
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import { ROUTES } from './route-paths';
 
-const tabs = [
-  { to: ROUTES.dashboard, label: 'Dashboard' },
+// A tab with `roles` shows only to those roles, like `@Roles` on the API.
+const tabs: { to: string; label: string; roles?: Role[] }[] = [
+  { to: ROUTES.dashboard, label: 'Dashboard', roles: ['admin'] },
   { to: ROUTES.play, label: 'Cookie Clicker' },
 ];
 
@@ -52,23 +54,25 @@ export const AppShell = () => {
             columnGap: 3,
           }}
         >
-          <BrandMark component={Link} to={ROUTES.dashboard} />
+          <BrandMark component={Link} to={ROUTES.home} />
           <Box
             component="nav"
             aria-label="Main"
             sx={{ display: 'flex', alignSelf: 'stretch', flexGrow: 1 }}
           >
-            {tabs.map(({ to, label }) => (
-              <Button
-                key={to}
-                variant="shellTab"
-                component={NavLink}
-                to={to}
-                end
-              >
-                {label}
-              </Button>
-            ))}
+            {tabs
+              .filter(({ roles }) => !roles || roles.includes(session.role))
+              .map(({ to, label }) => (
+                <Button
+                  key={to}
+                  variant="shellTab"
+                  component={NavLink}
+                  to={to}
+                  end
+                >
+                  {label}
+                </Button>
+              ))}
           </Box>
           <ApiStatusPill />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -9,8 +9,8 @@ export const NotFoundPage = () => (
     </Typography>
     <Typography>
       There's nothing at this address.{' '}
-      <Link component={RouterLink} to={ROUTES.dashboard}>
-        Go to the dashboard
+      <Link component={RouterLink} to={ROUTES.home}>
+        Go to the start page
       </Link>
     </Typography>
   </>

@@ -60,6 +60,8 @@ sequenceDiagram
 - The session (user ID, role, expiry) is the cookie's value, signed with `SESSION_SECRET`. A cookie whose value was edited (for example, to change the role) fails the signature check and gets a 401.
 - A session lasts **24 hours from sign-in** and is never extended. The cookie's `Max-Age` matches, so the browser drops it at the same moment.
 - Every endpoint answers 401 without a valid session, except sign-in, sign-out and health.
+- An endpoint marked with roles (`@Roles('admin')`, or `@Roles('admin', 'user')`) answers 403 to a signed-in person whose role isn't listed; one with no roles is open to every signed-in person. A handler's roles override its controller's. Today only admin endpoints are marked.
+- The web app follows the same roles. Opening `/` sends the Admin to the dashboard (`/dashboard`) and a User to the cookie clicker (`/play`). Users don't see the Dashboard tab, and a User who opens an admin page gets the not-found page, so the web app never reveals that admin pages exist. Hiding them is a courtesy; the API's 403 is the protection.
 
 ### Consequences
 
@@ -67,14 +69,14 @@ sequenceDiagram
 - Good, because the browser sends the cookie on API calls and on the Socket.IO handshake by itself: nginx serves both on one origin, so `SameSite=Strict` never gets in the way.
 - Bad, because a session can't be revoked before it expires: signing out clears the browser's cookie, but a copy stays valid until its 24 hours are up. The fixed expiry is what limits that.
 - Good, because a session that expires or was edited mid-use ends the same way as signing out: the next request gets a 401, the web app clears the session, and the person lands on sign-in. The check sits on the query client's cache rather than the API client, because only the cache holds the session, and the API client also sees the 401 that `/auth/me` gives every signed-out visitor.
-- Good, because sign-in returns a visitor to the page they opened. That page travels in the router's state, never in a query parameter, so a link from another site can't choose where sign-in sends someone. Signing out doesn't pass it on, so the next person starts on their own landing page.
+- Good, because sign-in returns a visitor to the page they opened. That page travels in the router's state, never in a query parameter, so a link from another site can't choose where sign-in sends someone. Signing out doesn't pass it on, so the next person starts on their own start page.
 - Bad, because changing `SESSION_SECRET` signs everyone out.
 - Bad, because anyone can sign in as the Admin. That's acceptable only while ratewatch isn't deployed publicly.
 
 ### Confirmation
 
-- API tests over HTTP cover sign-in, sign-out, a missing, edited or expired cookie (401), and an unmarked endpoint answering 401.
-- Web component tests cover returning to the opened page after sign-in, signing out without passing that page on, and a 401 mid-use sending the person to sign-in and back.
+- API tests over HTTP cover sign-in, sign-out, a missing, edited or expired cookie (401), an unmarked endpoint answering 401, and a role-marked endpoint answering 403 to a role it doesn't list.
+- Web component tests cover each role's start page, the Dashboard tab hidden from Users, a User getting the not-found page on the dashboard, returning to the opened page after sign-in, signing out without passing that page on, and a 401 mid-use sending the person to sign-in and back.
 - A Playwright journey signs in, reloads (the session survives) and signs out.
 - Revisit when ratewatch needs real people or a public deployment: then real accounts move users and custom limits to Postgres, Redis keeps the counters, and the cookie stays as it is.
 
@@ -85,8 +87,9 @@ sequenceDiagram
 
 ## In the code
 
-- `apps/api/src/app/auth/`: `controllers/` (sign-in, sign-out and `me`), `services/auth.service.ts` (issues and reads sessions), `guards/session.guard.ts` (the global guard), and `decorators/`: `@Public()` for routes that need no session, `@CurrentSession()` for handlers that read it. `cookie-parser` checks the signature; it's registered for the whole app in `main.ts`.
+- `apps/api/src/app/auth/`: `controllers/` (sign-in, sign-out and `me`), `services/auth.service.ts` (issues and reads sessions), `guards/session.guard.ts` (the global guard), and `decorators/`: `@Public()` for routes that need no session, `@Roles(...)` for routes only some roles may use, `@CurrentSession()` for handlers that read it. `cookie-parser` checks the signature; it's registered for the whole app in `main.ts`.
 - `libs/contracts/src/lib/session.schema.ts`: the session and sign-in request shapes.
 - `apps/web/src/libs/api/session-queries.ts`: restores the session on load and signs in and out. The session is a TanStack Query entry rather than a React context, because it's server state that only signing in or out changes; signing in or out drops every other cached query, since it belonged to the last person.
-- `apps/web/src/app/app-shell.tsx`: sends anyone without a session to the sign-in page, and shows who is signed in. The page they were on travels in router state, so sign-in returns them to it; signing out doesn't pass it on, so the next person starts on their own landing page.
+- `apps/web/src/app/app-shell.tsx`: sends anyone without a session to the sign-in page, and shows who is signed in. The page they were on travels in router state, so sign-in returns them to it; signing out doesn't pass it on, so the next person starts on their own start page.
+- `apps/web/src/app/route-guards.tsx`: `RoleLanding` sends `/` to the role's start page, and `AdminRoute`, the layout route around admin pages, shows a User the not-found page. The app shell hides admin-only tabs from Users.
 - `apps/web/src/app/providers.tsx`: any query or mutation answered 401 (a session that expired or was edited mid-use) clears the session, which sends the person to sign-in the same way.

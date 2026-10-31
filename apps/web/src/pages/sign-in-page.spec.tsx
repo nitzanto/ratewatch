@@ -31,6 +31,19 @@ describe('Sign-in', () => {
     ).toBeTruthy();
   });
 
+  it.each([
+    ['Sign in as User', 'Cookie Clicker'],
+    ['Sign in as Admin', 'Dashboard'],
+  ] as const)('%s lands on the %s', async (button, title) => {
+    await renderApp('/sign-in', { signedInAs: null });
+
+    await signInAs(button);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: title }),
+    ).toBeTruthy();
+  });
+
   it('signs in as a User and shows the user ID in the app bar', async () => {
     await renderApp('/', { signedInAs: null });
 

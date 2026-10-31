@@ -3,6 +3,7 @@ import type { Session } from '@ratewatch/contracts';
 import { cookieOf, signIn, startApp } from '../../test-app';
 import { CurrentSession } from '../decorators/current-session.decorator';
 import { Public } from '../decorators/public.decorator';
+import { Roles } from '../decorators/roles.decorator';
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -12,6 +13,22 @@ class GuardedController {
   @Get()
   get(@CurrentSession() session: Session) {
     return session;
+  }
+}
+
+@Roles('admin')
+@Controller('roles')
+class RolesController {
+  @Get('admin')
+  admin() {
+    return { ok: true };
+  }
+
+  // A handler's roles override its controller's.
+  @Roles('admin', 'user')
+  @Get('both')
+  both() {
+    return { ok: true };
   }
 }
 
@@ -29,7 +46,11 @@ describe('SessionGuard', () => {
   let baseUrl: string;
 
   beforeEach(async () => {
-    ({ app, baseUrl } = await startApp([GuardedController, OpenController]));
+    ({ app, baseUrl } = await startApp([
+      GuardedController,
+      RolesController,
+      OpenController,
+    ]));
   });
 
   afterEach(() => app.close());
@@ -84,6 +105,29 @@ describe('SessionGuard', () => {
       vi.setSystemTime(Date.now() + dayMs);
 
       expect((await guarded(cookie)).status).toBe(401);
+    });
+  });
+
+  describe('on a route marked with roles', () => {
+    const get = (path: string, cookie?: string) =>
+      fetch(`${baseUrl}/roles/${path}`, { headers: cookie ? { cookie } : {} });
+
+    it.each([
+      ['admin', 'admin', 200],
+      ['admin', 'user', 403],
+      ['both', 'admin', 200],
+      ['both', 'user', 200],
+    ] as const)(
+      '/roles/%s answers the %s with %i',
+      async (path, role, status) => {
+        const cookie = cookieOf(await signIn(baseUrl, role));
+
+        expect((await get(path, cookie)).status).toBe(status);
+      },
+    );
+
+    it('answers 401 without a session', async () => {
+      expect((await get('admin')).status).toBe(401);
     });
   });
 

@@ -164,9 +164,8 @@ describe('Cookie Clicker', () => {
       await clickCrumb();
       expect(await page().findByRole('timer')).toBeTruthy();
 
-      fireEvent.click(appBar().getByRole('link', { name: 'Dashboard' }));
-      await page().findByRole('heading', { level: 1, name: 'Dashboard' });
-      fireEvent.click(appBar().getByRole('link', { name: 'Cookie Clicker' }));
+      // A User has no other tab: home unmounts the page, then sends them back to it.
+      fireEvent.click(appBar().getByRole('link', { name: /ratewatch/ }));
 
       expect(await page().findByRole('timer')).toBeTruthy();
       expect(crumb()).toHaveProperty('disabled', true);
