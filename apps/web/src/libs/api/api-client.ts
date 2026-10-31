@@ -29,6 +29,10 @@ type Call<Options> = {
   ): Promise<z.output<S>>;
 };
 
+/** 204 No Content never has a body, and some servers send other empty responses with `Content-Length: 0`. */
+const hasNoBody = (res: Response) =>
+  res.status === 204 || res.headers.get('Content-Length') === '0';
+
 /**
  * Every call takes the response's schema and returns what it parses, so no
  * caller can claim a response type it never checked.
@@ -52,8 +56,9 @@ export const createApiClient = ({
         }),
       });
       if (!res.ok) throw await toApiError(res);
-      // The API is a trust boundary for the browser too: parse, don't cast.
-      const data = schema.parse(await res.json());
+      // The API is a trust boundary for the browser too: parse, don't cast. An empty response's
+      // body is `undefined`, so a caller expecting one passes `z.undefined()`.
+      const data = schema.parse(hasNoBody(res) ? undefined : await res.json());
       if (!responseHeaders) return data;
       return {
         data,

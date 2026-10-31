@@ -85,6 +85,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@ratewatch/contracts": "workspace:*",
+    "cookie-parser": "^1.4.7",
     "nestjs-zod": "^5.5.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",

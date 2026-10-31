@@ -2,6 +2,7 @@
 export const ROUTES = {
   dashboard: '/',
   play: '/play',
+  signIn: '/sign-in',
   /** Anything no other route matches. */
   notFound: '*',
 } as const;

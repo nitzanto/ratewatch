@@ -11,26 +11,37 @@ The API (`apps/api`) is a NestJS 11 application on Express. This page covers how
 
 ```text
 apps/api/src/
-├── main.ts                    # bootstrap: /api prefix, port, readiness signal
+├── main.ts                    # bootstrap: /api prefix, cookie-parser, port, readiness signal
 └── app/
     ├── app.module.ts          # root module: config, global validation
+    ├── auth/                  # a feature module, one folder per kind of file:
+    │   ├── controllers/       #   sign-in, sign-out, me (spec beside it)
+    │   ├── decorators/        #   @Public(), @CurrentSession()
+    │   ├── dto/               #   Zod DTOs from the shared contracts
+    │   ├── guards/            #   the global SessionGuard (spec beside it)
+    │   ├── interfaces/        #   SessionRequest
+    │   ├── modules/           #   AuthModule
+    │   ├── services/          #   AuthService: issues and reads sessions
+    │   └── constants/         #   cookie name, session lifetime
     ├── env.ts                 # schema for the API's environment variables
     ├── health.controller.ts   # GET /api/health
     └── health.controller.spec.ts
 ```
 
-Each feature will get its own NestJS module next to `app/` (for example `rate-limit/`), holding its controller, providers and tests. `AppModule` imports the feature modules.
+Each feature gets its own folder under `app/` (for example `rate-limit/`), laid out like `auth/`: one subfolder per kind of file, holding only the kinds it has, with each test next to the file it tests. `AppModule` imports the feature modules.
 
 ## Request pipeline
 
 ```mermaid
 flowchart LR
-  req[Request] --> pipe["ZodValidationPipe<br/>body, query, params"]
+  req[Request] --> guard["SessionGuard<br/>401 without a session"]
+  guard --> pipe["ZodValidationPipe<br/>body, query, params"]
   pipe --> handler[Controller handler]
   handler --> ser["ZodSerializerInterceptor<br/>response shape"]
   ser --> res[Response]
 ```
 
+- **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health). A handler reads the signed-in person with `@CurrentSession()`; the rate limiter will read the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
 - **Input validation.** A global `ZodValidationPipe` validates every body, query and route parameter against its DTO. DTOs are built from the shared contracts with `createZodDto`.
 - **Output validation.** A global `ZodSerializerInterceptor` checks the response of every route marked `@ZodSerializerDto`.
 - **Rate limiting** will be an interceptor in this pipeline, ahead of the handler.
@@ -41,7 +52,7 @@ Settings that vary between deploys (port, session secret, Redis URL) are environ
 
 ## Testing
 
-Unit tests use Vitest with `unplugin-swc`, so NestJS's decorator metadata survives the test transform. Controllers are tested through `@nestjs/testing`. The API is also covered end to end by the `api` Playwright suite.
+Unit tests use Vitest with `unplugin-swc`, so NestJS's decorator metadata survives the test transform. Controllers are tested over HTTP against the whole app, started on a free port by `startApp()` in `app/test-app.ts`, which also takes test-only controllers (for example, one that breaks its contract, or one that isn't public). The API is also covered end to end by the `api` Playwright suite.
 
 ## Decisions to make
 
@@ -49,4 +60,3 @@ These are open and will be decided with the feature that needs them; each gets a
 
 - Rate-limit store, algorithm and failure mode (with the rate-limiting feature).
 - Realtime gateway and fan-out across API instances (with the live dashboard).
-- Authentication and how the user ID reaches the rate limiter (with the auth feature).

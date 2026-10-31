@@ -29,7 +29,7 @@ apps/web/src/
 ├── hooks/
 │   ├── api/                  # one-line query and mutation hooks, e.g. use-health.ts
 │   └── ui/                   # shared hooks with no server state
-├── contexts/                 # real cross-cutting state only (the future auth session)
+├── contexts/                 # real cross-cutting state only (none yet: the session is server state, in TanStack Query)
 ├── libs/
 │   ├── api/                  # API client and one module per resource
 │   ├── errors/               # ApiError, RateLimitedError

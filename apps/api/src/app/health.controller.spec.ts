@@ -1,10 +1,11 @@
 import { Controller, Get, type INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { healthResponseSchema } from '@ratewatch/contracts';
 import { createZodDto, ZodSerializerDto } from 'nestjs-zod';
-import { AppModule } from './app.module';
+import { Public } from './auth/decorators/public.decorator';
+import { startApp } from './test-app';
 
 // Returns a body that breaks the health contract, to prove responses are validated.
+@Public()
 @Controller('broken-health')
 class BrokenHealthController {
   @Get()
@@ -19,14 +20,7 @@ describe('health endpoint', () => {
   let baseUrl: string;
 
   beforeEach(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-      controllers: [BrokenHealthController],
-    }).compile();
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api');
-    await app.listen(0);
-    baseUrl = `${await app.getUrl()}/api`;
+    ({ app, baseUrl } = await startApp([BrokenHealthController]));
   });
 
   afterEach(() => app.close());

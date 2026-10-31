@@ -15,6 +15,21 @@ export default [
     ],
   },
   {
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
+    languageOptions: {
+      parserOptions: {
+        // Type information, which no-deprecated needs. Each file uses its project's own tsconfig;
+        // config files outside every tsconfig fall back to a default project.
+        projectService: { allowDefaultProject: ['*.config.mts'] },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      // Deprecated APIs are on their way out: use the replacement their @deprecated tag names.
+      '@typescript-eslint/no-deprecated': 'error',
+    },
+  },
+  {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
     rules: {
       '@nx/enforce-module-boundaries': [

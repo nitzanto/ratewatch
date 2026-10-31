@@ -12,7 +12,7 @@ const clickCrumb = async () =>
 
 describe('Cookie Clicker', () => {
   it('counts down the requests left from each response', async () => {
-    renderApp('/play');
+    await renderApp('/play');
 
     await clickCrumb();
     expect(await page().findByText('99')).toBeTruthy();
@@ -37,7 +37,7 @@ describe('Cookie Clicker', () => {
           HttpResponse.json(click(), { headers: { 'x-count': count } }),
         ),
       );
-      renderApp('/play');
+      await renderApp('/play');
 
       await clickCrumb();
 
@@ -50,7 +50,7 @@ describe('Cookie Clicker', () => {
   );
 
   it('drops an old count when a later response has no x-count', async () => {
-    renderApp('/play');
+    await renderApp('/play');
 
     await clickCrumb();
     expect(await page().findByText('99')).toBeTruthy();
@@ -71,7 +71,7 @@ describe('Cookie Clicker', () => {
         }),
       ),
     );
-    renderApp('/play');
+    await renderApp('/play');
 
     await clickCrumb();
     expect(await page().findByText('81')).toBeTruthy();
@@ -89,7 +89,7 @@ describe('Cookie Clicker', () => {
     server.use(
       http.post('/api/clicks', () => HttpResponse.json(click(), { headers })),
     );
-    renderApp('/play');
+    await renderApp('/play');
 
     expect(
       await page().findByText('Click Crumb to see your requests left.'),
@@ -119,7 +119,7 @@ describe('Cookie Clicker', () => {
           ),
         ),
       );
-      renderApp('/play');
+      await renderApp('/play');
 
       await clickCrumb();
 
@@ -160,7 +160,7 @@ describe('Cookie Clicker', () => {
 
     it('keeps the wait when the user leaves the page and comes back', async () => {
       refuseUntil('2026-10-30T18:01:30.000Z');
-      renderApp('/play');
+      await renderApp('/play');
       await clickCrumb();
       expect(await page().findByRole('timer')).toBeTruthy();
 
@@ -174,7 +174,7 @@ describe('Cookie Clicker', () => {
 
     it('shows no old count when the first click after a wait fails', async () => {
       refuseUntil('2026-10-30T18:01:30.000Z');
-      renderApp('/play');
+      await renderApp('/play');
       await clickCrumb();
       await page().findByRole('timer');
       act(() => vi.advanceTimersByTime(90_000));
@@ -207,7 +207,7 @@ describe('Cookie Clicker', () => {
           ),
         ),
       );
-      renderApp('/play');
+      await renderApp('/play');
 
       await clickCrumb();
 
@@ -225,7 +225,7 @@ describe('Cookie Clicker', () => {
           HttpResponse.json({ message: 'Too many' }, { status: 429 }),
         ),
       );
-      renderApp('/play');
+      await renderApp('/play');
 
       await clickCrumb();
 

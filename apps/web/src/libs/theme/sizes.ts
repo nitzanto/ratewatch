@@ -17,4 +17,5 @@ export const sizes = {
   noteChipHeight: 16,
   shellPillHeight: 32,
   statusDot: 8,
+  signInForm: 380,
 } as const;
