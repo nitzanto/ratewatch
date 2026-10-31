@@ -77,6 +77,30 @@ WEB_PORT=4300 pnpm nx serve web
 
 The API checks its variables when it starts and stops with a message naming any that is missing or invalid. Every variable and its rules are in [Runtime configuration](../../adrs/runtime-config/).
 
+## Simulate traffic
+
+To fill the dashboard with realistic users, start the product (with Docker Compose or natively), then run, natively:
+
+```sh
+pnpm nx simulate traffic
+```
+
+Over about 20 seconds, 20 users sign in through the real sign-in, and each clicks the cookie at its own pace through the API:
+
+| Users | Pace                | Clicks | Ends up                                                    |
+| ----- | ------------------- | ------ | ---------------------------------------------------------- |
+| 4     | One a second        | 150    | **Exceeded** after about 100 seconds; the last 50 get 429s |
+| 6     | One a second        | 95     | **Warning**                                                |
+| 10    | One every 5 seconds | 40     | **OK**                                                     |
+
+Start it once the API answers (with Compose, once `docker compose ps` shows the API as healthy): a user who can't sign in is counted as failed and never clicks. The run takes about 4 minutes and prints a summary of the responses. The simulated users stay on the dashboard until their one-hour window ends, and each run signs in new ones. The scenario is in `apps/traffic/simulate.yml`, and each user's clicks and pace come from `apps/traffic/profiles.csv`.
+
+The simulator sends its requests to `API_URL` from the root `.env`. To point it at the production-like stack, pass its origin:
+
+```sh
+pnpm nx simulate traffic -- --target http://localhost:8080
+```
+
 ## Test
 
 Tests run natively.

@@ -1,0 +1,30 @@
+# About 20 users sign in through the real sign-in and click at different rates, so the dashboard
+# shows OK, Warning and Exceeded users. Each run signs in new users; they stay on the dashboard for their one-hour window.
+config:
+  # The API's origin from the root .env, which Nx loads; override with `-- --target <url>`.
+  target: '{{ $env.API_URL }}'
+  phases:
+    - name: Users arrive
+      duration: 20
+      arrivalCount: 20
+  # Read in order and interleaved, so every run gets the same mix:
+  # 4 users click 150 times a second apart (Exceeded after about 100 s, then refused),
+  # 6 click 95 times a second apart (Warning), 10 click 40 times 5 s apart (OK).
+  payload:
+    path: profiles.csv
+    fields: [clicks, secondsBetween]
+    order: sequence
+    skipHeader: true
+
+scenarios:
+  - name: Signed-in user clicking
+    flow:
+      - post:
+          url: /api/auth/sign-in
+          json:
+            role: user
+      - loop:
+          - post:
+              url: /api/clicks
+          - think: '{{ secondsBetween }}'
+        count: '{{ clicks }}'
