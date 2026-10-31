@@ -14,15 +14,12 @@ export default defineConfig(() => ({
     alias: { '@': `${import.meta.dirname}/src` },
   },
   server: {
-    port: 4200,
-    // In a container Vite must listen on every interface (the dev image sets 0.0.0.0).
-    host: process.env.WEB_HOST ?? 'localhost',
+    // From the root .env, which Nx loads. In a container Vite must listen on every interface
+    // (the dev image sets WEB_HOST=0.0.0.0).
+    port: Number(process.env.WEB_PORT),
+    host: process.env.WEB_HOST,
     // Same origin as production, where nginx forwards /api to the API.
-    proxy: { '/api': process.env.API_URL ?? 'http://localhost:3000' },
-  },
-  preview: {
-    port: 4300,
-    host: 'localhost',
+    proxy: { '/api': { target: process.env.API_URL, changeOrigin: true } },
   },
   plugins: [
     react(),

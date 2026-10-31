@@ -4,6 +4,9 @@ services:
       target: prod
     # Only reachable through nginx, as in production.
     ports: !reset []
+    environment:
+      # The image has no .env and refuses the dev secret: pass a real one from the shell.
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to a random value of 32+ characters}
     develop: !reset {}
     read_only: true
     tmpfs:

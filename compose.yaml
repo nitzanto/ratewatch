@@ -9,6 +9,9 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
       target: dev
+    environment:
+      # shortcut: no redis service yet, #46 adds it when the API first connects.
+      REDIS_URL: redis://redis:6379
     ports:
       - 127.0.0.1:3000:3000
     develop:
