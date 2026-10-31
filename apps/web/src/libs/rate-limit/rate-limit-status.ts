@@ -1,6 +1,6 @@
 import { defaultHourlyLimit, warningThreshold } from '@ratewatch/contracts';
 
-/** Where a user stands in the current window (see GLOSSARY.md). Paused arrives with admin controls. */
+/** Where the clicker's user stands in the current window (see GLOSSARY.md). Paused is only in the admin's `UserStatus`, since a user can't see their own pause. */
 export type RateLimitStatus = 'ok' | 'warning' | 'exceeded';
 
 // shortcut: assumes the default limit, since `x-count` only says what's left; take the user's limit from the API once custom limits exist.
