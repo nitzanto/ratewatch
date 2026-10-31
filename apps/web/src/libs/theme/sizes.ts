@@ -12,6 +12,12 @@ export const sizes = {
   /** Tall enough for a two-line banner, so nothing below Crumb jumps when the message changes. */
   clickerMessageSlot: 76,
   statusChipHeight: 28,
+  filterChipHeight: 36,
+  /** The users table's filter row; the selection toolbar takes the same height, so the table never moves. */
+  filterRowHeight: 48,
+  searchWidth: 260,
+  /** The users table's scroll box: about seven rows under the header. */
+  usersTableHeight: 560,
   /** The chocolate chip that marks a stage note: slightly wider than tall. */
   noteChipWidth: 18,
   noteChipHeight: 16,

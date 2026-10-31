@@ -7,7 +7,8 @@ import {
 import type { UserStatus } from '@ratewatch/contracts';
 import { Chip } from '@mui/material';
 
-const statusStyles = {
+/** Each status's word, theme colour and icon. */
+export const statusStyles = {
   ok: { label: 'OK', color: 'success', Icon: OkIcon },
   warning: { label: 'Warning', color: 'warning', Icon: WarningIcon },
   exceeded: { label: 'Exceeded', color: 'error', Icon: ExceededIcon },

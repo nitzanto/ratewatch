@@ -258,6 +258,204 @@ describe('Users table', () => {
     });
   });
 
+  describe('search, filters and sorting', () => {
+    const ok = userRow('user-aaaa1111', 10, 2 * minuteMs);
+    const warning = userRow('user-aabb2222', 95, 30_000);
+    const exceeded = userRow('user-cccc3333', 100, 5 * minuteMs);
+    const paused = userRow('user-dddd4444', 50, 40 * minuteMs, {
+      status: 'paused',
+      pausedUntil: new Date(Date.now() + 15 * minuteMs).toISOString(),
+    });
+    const ended = userRow('user-eeee5555', 0, 3 * 60 * minuteMs, {
+      resetAt: null,
+    });
+    const chip = (name: string) => page().getByRole('button', { name });
+    const search = (q: string) =>
+      fireEvent.change(
+        page().getByRole('searchbox', { name: 'Search user ID' }),
+        { target: { value: q } },
+      );
+    const header = (name: string) =>
+      usersTable().getByRole('columnheader', { name });
+
+    beforeEach(async () => {
+      setMockUsers([ok, warning, exceeded, paused, ended]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      await page().findByRole('table', { name: 'Users' });
+    });
+
+    it('finds users by a prefix of their ID, or the whole ID', async () => {
+      search('user-aa');
+
+      await waitFor(() => expectUserIds(['user-aabb2222', 'user-aaaa1111']));
+
+      search('user-cccc3333');
+
+      await waitFor(() => expectUserIds(['user-cccc3333']));
+    });
+
+    it('searches once typing pauses, not on every keystroke', async () => {
+      const searched: string[] = [];
+      const onRequest = ({ request }: { request: Request }) => {
+        const q = new URL(request.url).searchParams.get('q');
+        if (q) searched.push(q);
+      };
+      server.events.on('request:start', onRequest);
+
+      for (const q of ['u', 'us', 'user-a', 'user-aa']) search(q);
+
+      await waitFor(() => expectUserIds(['user-aabb2222', 'user-aaaa1111']));
+      server.events.removeListener('request:start', onRequest);
+      expect(searched).toEqual(['user-aa']);
+    });
+
+    it("counts each status on its chip, and shows only that status's users when picked", async () => {
+      expect(chip('All 5')).toHaveProperty('ariaPressed', 'true');
+      expect(chip('OK 2')).toBeTruthy();
+      expect(chip('Exceeded 1')).toBeTruthy();
+      expect(chip('Paused 1')).toBeTruthy();
+
+      fireEvent.click(chip('Warning 1'));
+
+      await waitFor(() => expectUserIds(['user-aabb2222']));
+      expect(chip('Warning 1')).toHaveProperty('ariaPressed', 'true');
+      expect(chip('All 5')).toHaveProperty('ariaPressed', 'false');
+
+      fireEvent.click(chip('Paused 1'));
+
+      await waitFor(() => expectUserIds(['user-dddd4444']));
+    });
+
+    it('counts under the search', async () => {
+      search('user-aa');
+
+      expect(await page().findByRole('button', { name: 'All 2' })).toBeTruthy();
+      expect(chip('OK 1')).toBeTruthy();
+      expect(chip('Warning 1')).toBeTruthy();
+      expect(chip('Exceeded 0')).toBeTruthy();
+    });
+
+    it('moves a user between the counts when a live update changes their status', async () => {
+      act(() =>
+        sendRateUpdate({
+          row: { ...ok, requestsLeft: 5, status: 'warning' },
+          requests: [],
+        }),
+      );
+
+      expect(
+        await page().findByRole('button', { name: 'Warning 2' }),
+      ).toBeTruthy();
+      expect(chip('OK 1')).toBeTruthy();
+    });
+
+    it('filters by when users were last active', async () => {
+      fireEvent.mouseDown(
+        page().getByRole('combobox', { name: 'Last active' }),
+      );
+      fireEvent.click(screen.getByRole('option', { name: 'Last 15 minutes' }));
+
+      await waitFor(() =>
+        expectUserIds(['user-aabb2222', 'user-aaaa1111', 'user-cccc3333']),
+      );
+      expect(chip('All 3')).toBeTruthy();
+    });
+
+    it('sorts by a column from its header, ended windows last', async () => {
+      expect(header('Last request')).toHaveProperty('ariaSort', 'descending');
+
+      fireEvent.click(within(header('Requests left')).getByRole('button'));
+
+      await waitFor(() =>
+        expectUserIds([
+          'user-cccc3333',
+          'user-aabb2222',
+          'user-dddd4444',
+          'user-aaaa1111',
+          'user-eeee5555',
+        ]),
+      );
+      expect(header('Requests left')).toHaveProperty('ariaSort', 'ascending');
+      expect(header('Last request')).toHaveProperty('ariaSort', null);
+
+      fireEvent.click(within(header('Requests left')).getByRole('button'));
+
+      await waitFor(() =>
+        expectUserIds([
+          'user-aaaa1111',
+          'user-dddd4444',
+          'user-aabb2222',
+          'user-cccc3333',
+          'user-eeee5555',
+        ]),
+      );
+      expect(header('Requests left')).toHaveProperty('ariaSort', 'descending');
+    });
+
+    it('sorts at once though the pointer is on the table to click the header, then holds the new order', async () => {
+      const table = page().getByRole('table', { name: 'Users' });
+      const byRequestsLeft = [
+        'user-cccc3333',
+        'user-aabb2222',
+        'user-dddd4444',
+        'user-aaaa1111',
+        'user-eeee5555',
+      ];
+      fireEvent.pointerEnter(table);
+
+      fireEvent.click(within(header('Requests left')).getByRole('button'));
+
+      await waitFor(() => expectUserIds(byRequestsLeft));
+
+      fireEvent.pointerMove(table);
+      act(() =>
+        sendRateUpdate({
+          row: { ...ok, requestsLeft: 1, status: 'warning' },
+          requests: [],
+        }),
+      );
+
+      expect(await rowOf('user-aaaa1111').findByText('1 / 100')).toBeTruthy();
+      expectUserIds(byRequestsLeft);
+    });
+
+    it('says when nothing matches, and clears the filters', async () => {
+      fireEvent.click(chip('Exceeded 1'));
+      search('user-aa');
+
+      expect(
+        await page().findByText(
+          'No users match this search and these filters.',
+        ),
+      ).toBeTruthy();
+
+      fireEvent.click(
+        page().getAllByRole('button', { name: 'Clear filters' })[0],
+      );
+
+      await waitFor(() =>
+        expect(usersTable().getAllByRole('rowheader')).toHaveLength(5),
+      );
+      expect(chip('All 5')).toHaveProperty('ariaPressed', 'true');
+    });
+  });
+
+  it('pages through the users', async () => {
+    setMockUsers(
+      Array.from({ length: 26 }, (_, i) =>
+        userRow(`user-${String(i).padStart(2, '0')}`, 1, i * 1000),
+      ),
+    );
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+    await page().findByRole('table', { name: 'Users' });
+
+    expect(page().getByText('1–25 of 26')).toBeTruthy();
+
+    fireEvent.click(page().getByRole('button', { name: 'Go to next page' }));
+
+    await waitFor(() => expectUserIds(['user-25']));
+  });
+
   it('points to the cookie clicker when there are no users yet', async () => {
     setMockUsers([]);
     await renderApp('/dashboard', { signedInAs: 'admin' });

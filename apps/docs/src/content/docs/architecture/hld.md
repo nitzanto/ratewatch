@@ -263,7 +263,7 @@ We accept that a user can send more than their limit while Redis is down. The ot
 The limiter does not write dashboard data on the request path. Each API instance keeps the latest numbers for each user in memory. One time each second, it writes them to Redis in one batch. One batch per second replaces one write for each request.
 
 - **User record**: one Redis hash for each user, with the limit, the count, the reset time, the pause end and the last request. It keeps numbers only. The **status** (OK, Warning, Exceeded or Paused) comes from these numbers and the current time when the API reads them, so a window that ended never shows a stale status.
-- **Search index**: the Redis 8 query engine indexes the user records. The users table reads its first page, latest request first, and the count for each status. If Redis loses the index (a restart or a failover without its data), the API creates it again on the next read, and Redis indexes the records again in the background. **Planned:** search by user ID, filters, sort by any column, and pages of up to 100 rows, all in the same query.
+- **Search index**: the Redis 8 query engine indexes the user records. One query answers the users table: search by user ID, the status and last-active filters, sort by any column, and pages of up to 100 rows, with the count for each status. If Redis loses the index (a restart or a failover without its data), the API creates it again on the next read, and Redis indexes the records again in the background.
 - **History (Planned)**: accepted and refused requests for the past hour and day, kept 24 hours.
 - **Refused requests today (Planned)**: one counter for each UTC day. It expires at the end of the day.
 

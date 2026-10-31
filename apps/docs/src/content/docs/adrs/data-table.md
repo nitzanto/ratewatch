@@ -25,4 +25,4 @@ The users table is the centre of the dashboard, and most of what it does is cust
 
 **Revisit when:** a page needs more rows than plain rendering can keep smooth, or the React Compiler is turned on (check that the table re-renders when live data changes).
 
-**In the code:** the table is `apps/web/src/features/users-table/components/users-table.tsx`: its features and columns are declared once at module level, rows are keyed by user ID (`getRowId`), and the freeze passes the on-screen order as already sorted (`manualSorting`) while the pointer is on the table.
+**In the code:** the table is `apps/web/src/features/users-table/components/users-table.tsx`: its features and columns are declared once at module level, rows are keyed by user ID (`getRowId`), sorting is controlled from `live-users.tsx` (a header asks the API for that order, and the table sorts the rows on screen the same way so live changes re-sort them), and the freeze passes the on-screen order as already sorted (`manualSorting`) while the pointer is on the table.

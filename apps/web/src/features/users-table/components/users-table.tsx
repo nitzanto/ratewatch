@@ -1,5 +1,11 @@
 import { StatusChip } from '@/components/business/status-chip';
-import type { UserRow } from '@ratewatch/contracts';
+import { sortValueOf } from '@/libs/api/admin-users-queries';
+import { sizes } from '@/libs/theme/sizes';
+import {
+  usersQuerySchema,
+  type UserRow,
+  type UsersQuery,
+} from '@ratewatch/contracts';
 import {
   Table,
   TableBody,
@@ -7,6 +13,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Typography,
 } from '@mui/material';
 import {
@@ -16,6 +23,8 @@ import {
   sortFn_basic,
   tableFeatures,
   useTable,
+  type SortingState,
+  type Updater,
 } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { LiveRow } from './live-row';
@@ -33,28 +42,54 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, UserRow>();
 
+// Each column's ID is the API's sort key, and it sorts the rows on screen the way the API does.
+const sortsLikeTheApi = { sortFn: 'basic', sortUndefined: 'last' } as const;
+
+// Fixed shares of the table's width, so the columns don't shift as a filter or a live change alters the rows.
+const columnWidths: Record<string, string> = {
+  id: '20%',
+  left: '22%',
+  resetAt: '18%',
+  ratio: '18%',
+  lastRequest: '22%',
+};
+
 const columns = columnHelper.columns([
-  columnHelper.accessor('userId', { header: 'User' }),
-  columnHelper.accessor('requestsLeft', {
+  columnHelper.accessor('userId', {
+    id: 'id',
+    header: 'User',
+    ...sortsLikeTheApi,
+  }),
+  columnHelper.accessor((row) => sortValueOf(row, 'left'), {
+    id: 'left',
     header: 'Requests left',
+    ...sortsLikeTheApi,
     cell: ({ row }) => <RequestsLeftCell user={row.original} />,
   }),
-  columnHelper.accessor('resetAt', {
+  columnHelper.accessor((row) => sortValueOf(row, 'resetAt'), {
+    id: 'resetAt',
     header: 'Resets',
-    cell: ({ getValue, table }) => (
+    ...sortsLikeTheApi,
+    cell: ({ row, table }) => (
       <ResetCell
-        resetAt={getValue()}
+        resetAt={row.original.resetAt}
         frozenAt={table.options.meta?.frozenAt ?? null}
       />
     ),
   }),
-  columnHelper.accessor('status', {
+  // The API sorts status by the share of the limit used.
+  columnHelper.accessor((row) => sortValueOf(row, 'ratio'), {
+    id: 'ratio',
     header: 'Status',
-    cell: ({ getValue }) => <StatusChip status={getValue()} />,
+    ...sortsLikeTheApi,
+    sortDescFirst: true,
+    cell: ({ row }) => <StatusChip status={row.original.status} />,
   }),
   columnHelper.accessor('lastRequestAt', {
+    id: 'lastRequest',
     header: 'Last request',
-    sortFn: 'basic',
+    ...sortsLikeTheApi,
+    sortDescFirst: true,
     cell: ({ getValue, table }) => (
       <Typography variant="body2">
         <RelativeTime
@@ -73,13 +108,22 @@ const inOrder = (rows: UserRow[], order: string[]) => {
   return [...rows].sort((a, b) => rankOf(a) - rankOf(b));
 };
 
-/** Every user's state, latest request first. Live changes re-sort it only while the pointer is off it. */
+/**
+ * Every user's state, in the API's order: a header sorts the API's page with `onSort`. Live changes re-sort the rows
+ * on screen the same way, only while the pointer is off the table.
+ */
 export const UsersTable = ({
   rows,
   frozenAt,
+  sort,
+  order,
+  onSort,
 }: {
   rows: UserRow[];
   frozenAt: number | null;
+  sort: UsersQuery['sort'];
+  order: UsersQuery['order'];
+  onSort: (sort: UsersQuery['sort'], order: UsersQuery['order']) => void;
 }) => {
   // The row order on screen while the pointer is on the table, so a live change never moves a row under it.
   const [frozenOrder, setFrozenOrder] = useState<string[] | null>(null);
@@ -87,33 +131,67 @@ export const UsersTable = ({
     () => (frozenOrder ? inOrder(rows, frozenOrder) : rows),
     [rows, frozenOrder],
   );
+  const sorting = [{ id: sort, desc: order === 'desc' }];
   const table = useTable({
     features,
     columns,
     data,
     getRowId: (row) => row.userId,
-    initialState: { sorting: [{ id: 'lastRequestAt', desc: true }] },
+    state: { sorting },
+    onSortingChange: (updater: Updater<SortingState>) => {
+      const [next] = typeof updater === 'function' ? updater(sorting) : updater;
+      // The admin asked for this order, so it shows at once though the pointer is on the header.
+      setFrozenOrder(null);
+      onSort(
+        usersQuerySchema.shape.sort.parse(next.id),
+        next.desc ? 'desc' : 'asc',
+      );
+    },
+    enableSortingRemoval: false,
+    sortDescFirst: false,
     manualSorting: frozenOrder !== null,
     meta: { frozenAt },
   });
 
+  const freeze = () =>
+    setFrozenOrder(table.getRowModel().rows.map((row) => row.id));
+
   return (
-    <TableContainer>
+    // A fixed height, whatever the page size or the rows a filter leaves: the table scrolls inside it, under its header.
+    <TableContainer sx={{ height: sizes.usersTableHeight }}>
       <Table
+        stickyHeader
+        sx={{ tableLayout: 'fixed' }}
         aria-label="Users"
-        onPointerEnter={() =>
-          setFrozenOrder(table.getRowModel().rows.map((row) => row.id))
-        }
+        onPointerEnter={freeze}
+        // A header click lifts the freeze; the next move takes it again, in the new order.
+        onPointerMove={() => {
+          if (!frozenOrder) freeze();
+        }}
         onPointerLeave={() => setFrozenOrder(null)}
       >
         <TableHead>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableCell key={header.id}>
-                  <table.FlexRender header={header} />
-                </TableCell>
-              ))}
+              {headerGroup.headers.map((header) => {
+                const sorted = header.column.getIsSorted();
+                return (
+                  // `sortDirection` sets `aria-sort`.
+                  <TableCell
+                    key={header.id}
+                    sortDirection={sorted}
+                    sx={{ width: columnWidths[header.column.id] }}
+                  >
+                    <TableSortLabel
+                      active={sorted !== false}
+                      direction={sorted || header.column.getFirstSortDir()}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      <table.FlexRender header={header} />
+                    </TableSortLabel>
+                  </TableCell>
+                );
+              })}
             </TableRow>
           ))}
         </TableHead>

@@ -6,3 +6,12 @@ export const MuiTable: Components<Theme>['MuiTable'] = {
     root: { fontVariantNumeric: 'tabular-nums' },
   },
 };
+
+/** A sticky header stays opaque over the rows scrolling under it, in `surface-sunken`. */
+export const MuiTableCell: Components<Theme>['MuiTableCell'] = {
+  styleOverrides: {
+    stickyHeader: ({ theme }) => ({
+      backgroundColor: theme.palette.surfaceSunken,
+    }),
+  },
+};

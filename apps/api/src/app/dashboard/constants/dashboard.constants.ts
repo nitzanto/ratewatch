@@ -24,11 +24,6 @@ export const maxRequestsPerUpdate = 50;
 /** A user record lives this long after the user's last request. */
 export const userRecordTtlSeconds = 24 * 60 * 60;
 
-/** The users table lists users active within this time. */
-export const activeWithinMs = 24 * 60 * 60 * 1000;
-
-export const usersPageSize = 25;
-
 /** The query engine index over every `user:{id}` record. */
 export const usersIndex = 'users';
 
