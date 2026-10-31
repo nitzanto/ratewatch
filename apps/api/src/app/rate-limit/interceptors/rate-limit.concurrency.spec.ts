@@ -4,7 +4,7 @@ import {
   type StartedRedisContainer,
 } from '@testcontainers/redis';
 import Redis from 'ioredis';
-import { cookieOf, signIn, startApp } from '../../test-app';
+import { postClick, signedInCookie, startApp } from '../../test-utils/test-app';
 
 // A real Redis, because ioredis-mock can't prove the script is atomic. Same image as compose.yaml.
 describe('rate limit under concurrent requests', () => {
@@ -26,12 +26,10 @@ describe('rate limit under concurrent requests', () => {
   });
 
   it('lets exactly 100 of 150 simultaneous clicks through', async () => {
-    const cookie = cookieOf(await signIn(baseUrl, 'user'));
+    const cookie = await signedInCookie(baseUrl, 'user');
 
     const responses = await Promise.all(
-      Array.from({ length: 150 }, () =>
-        fetch(`${baseUrl}/clicks`, { method: 'POST', headers: { cookie } }),
-      ),
+      Array.from({ length: 150 }, () => postClick(baseUrl, cookie)),
     );
 
     const statuses = responses.map((res) => res.status);

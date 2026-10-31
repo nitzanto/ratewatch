@@ -5,9 +5,9 @@ import type { Role } from '@ratewatch/contracts';
 import cookieParser from 'cookie-parser';
 import type Redis from 'ioredis';
 import RedisMock from 'ioredis-mock';
-import { AppModule } from './app.module';
-import type { Env } from './env';
-import { redisClient } from './redis/constants/redis.constants';
+import { AppModule } from '../app.module';
+import type { Env } from '../env';
+import { redisClient } from '../redis/constants/redis.constants';
 
 /**
  * Starts the whole API on a free port with `main.ts`'s setup (keep the two in step), plus any test-only
@@ -46,3 +46,11 @@ export const signIn = (baseUrl: string, role: Role | string | undefined) =>
 /** The `name=value` part of the session cookie a response set, as a browser would send it back. */
 export const cookieOf = (res: Response) =>
   res.headers.getSetCookie()[0].split(';')[0];
+
+/** Signs in through the real endpoint and returns the session cookie to send back. */
+export const signedInCookie = async (baseUrl: string, role: Role) =>
+  cookieOf(await signIn(baseUrl, role));
+
+/** One cookie-clicker click, as the signed-in person the cookie belongs to. */
+export const postClick = (baseUrl: string, cookie: string) =>
+  fetch(`${baseUrl}/clicks`, { method: 'POST', headers: { cookie } });

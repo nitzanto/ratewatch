@@ -25,9 +25,10 @@ apps/api/src/
     │   └── constants/         #   cookie name, session lifetime
     ├── clicks/controllers/    # POST /api/clicks: the cookie clicker's request
     ├── rate-limit/            # the global RateLimitInterceptor, its Lua script and keys (specs beside it)
-    ├── redis/                 # RedisModule: one shared ioredis client, injected by the redisClient token
+    ├── redis/                 # RedisModule: one shared, fail-fast ioredis client (built in providers/), injected by the redisClient token
+    ├── test-utils/            # shared test helpers: startApp(), sign-in and click helpers, a fake Redis
     ├── env.ts                 # schema for the API's environment variables
-    ├── health.controller.ts   # GET /api/health
+    ├── health.controller.ts   # GET /api/health: liveness and readiness, never checks Redis
     └── health.controller.spec.ts
 ```
 
@@ -48,7 +49,7 @@ flowchart LR
 - **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health); routes only some roles may use are marked `@Roles(...)` (for example `@Roles('admin')`), and the same guard answers 403 to any other role. Unmarked routes are open to every signed-in role. A handler reads the signed-in person with `@CurrentSession()`; the rate limiter reads the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
 - **Input validation.** A global `ZodValidationPipe` validates every body, query and route parameter against its DTO. DTOs are built from the shared contracts with `createZodDto`.
 - **Output validation.** A global `ZodSerializerInterceptor` checks the response of every route marked `@ZodSerializerDto`.
-- **Rate limiting.** A global `RateLimitInterceptor` runs after the guard, so it knows the user. It counts every request a User makes with one atomic Lua script in Redis, sets `x-count` to the requests left, and answers 429 with the reset time over the limit, before the handler runs. Public routes and the Admin are never counted. See [Rate-limit store and window](../../adrs/rate-limit-store/) and the [design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+- **Rate limiting.** A global `RateLimitInterceptor` runs after the guard, so it knows the user. It counts every request a User makes with one atomic Lua script in Redis, sets `x-count` to the requests left, and answers 429 with the reset time over the limit, before the handler runs. Public routes and the Admin are never counted. When Redis can't answer within about 50 ms, the request goes through without `x-count` (fail open), the interceptor logs at most once every 10 seconds, and the Redis client logs when the connection fails and when it's back. `GET /api/health` never checks Redis, so an outage doesn't take the API out of service. See [Rate-limit store and window](../../adrs/rate-limit-store/), [Failure mode](../../adrs/failure-mode/) and the [design doc](../../design-docs/rate-limiting-and-live-dashboard/).
 
 ## Configuration
 
@@ -56,7 +57,7 @@ Settings that vary between deploys (port, session secret, Redis URL) are environ
 
 ## Testing
 
-Unit tests use Vitest with `unplugin-swc`, so NestJS's decorator metadata survives the test transform. Controllers are tested over HTTP against the whole app, started on a free port by `startApp()` in `app/test-app.ts`, which also takes test-only controllers (for example, one that breaks its contract, or one that isn't public). It swaps Redis for `ioredis-mock`, which runs the real Lua script, unless a test passes a real client: the concurrency test starts a real Redis with Testcontainers, so it needs Docker. The API is also covered end to end by the `api` Playwright suite.
+Unit tests use Vitest with `unplugin-swc`, so NestJS's decorator metadata survives the test transform. Controllers are tested over HTTP against the whole app, started on a free port by `startApp()` in `app/test-utils/test-app.ts`, which also takes test-only controllers (for example, one that breaks its contract, or one that isn't public). It swaps Redis for `ioredis-mock`, which runs the real Lua script, unless a test passes a real client: the concurrency test starts a real Redis with Testcontainers, so it needs Docker, and the failure tests use `test-utils/fake-redis.ts`, a Redis that is unreachable or stops answering. The API is also covered end to end by the `api` Playwright suite.
 
 ## Decisions to make
 

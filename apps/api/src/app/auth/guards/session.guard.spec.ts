@@ -1,6 +1,11 @@
 import { Controller, Get, type INestApplication } from '@nestjs/common';
 import type { Session } from '@ratewatch/contracts';
-import { cookieOf, signIn, startApp } from '../../test-app';
+import {
+  cookieOf,
+  signedInCookie,
+  signIn,
+  startApp,
+} from '../../test-utils/test-app';
 import { CurrentSession } from '../decorators/current-session.decorator';
 import { Public } from '../decorators/public.decorator';
 import { Roles } from '../decorators/roles.decorator';
@@ -73,7 +78,7 @@ describe('SessionGuard', () => {
   });
 
   it('answers 401 when the cookie was edited, for example to change the role', async () => {
-    const cookie = cookieOf(await signIn(baseUrl, 'user'));
+    const cookie = await signedInCookie(baseUrl, 'user');
     const forged = cookie.replace(
       encodeURIComponent('"role":"user"'),
       encodeURIComponent('"role":"admin"'),
@@ -100,7 +105,7 @@ describe('SessionGuard', () => {
     afterEach(() => vi.useRealTimers());
 
     it('answers 401 because the session has expired', async () => {
-      const cookie = cookieOf(await signIn(baseUrl, 'user'));
+      const cookie = await signedInCookie(baseUrl, 'user');
 
       vi.setSystemTime(Date.now() + dayMs);
 
@@ -120,7 +125,7 @@ describe('SessionGuard', () => {
     ] as const)(
       '/roles/%s answers the %s with %i',
       async (path, role, status) => {
-        const cookie = cookieOf(await signIn(baseUrl, role));
+        const cookie = await signedInCookie(baseUrl, role);
 
         expect((await get(path, cookie)).status).toBe(status);
       },

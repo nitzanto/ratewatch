@@ -2,7 +2,7 @@ import { Controller, Get, type INestApplication } from '@nestjs/common';
 import { healthResponseSchema } from '@ratewatch/contracts';
 import { createZodDto, ZodSerializerDto } from 'nestjs-zod';
 import { Public } from './auth/decorators/public.decorator';
-import { startApp } from './test-app';
+import { startApp } from './test-utils/test-app';
 
 // Returns a body that breaks the health contract, to prove responses are validated.
 @Public()

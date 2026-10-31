@@ -1,6 +1,9 @@
 /** A window lasts one hour from the user's first request. */
 export const windowMs = 60 * 60 * 1000;
 
+/** While Redis is down, the limiter logs that it's letting requests through uncounted at most this often. */
+export const uncountedLogEveryMs = 10_000;
+
 /** The user's keys share the `{userId}` hash tag, so Redis Cluster keeps them on one shard for the script. */
 export const rateLimitKeys = (userId: string) =>
   [

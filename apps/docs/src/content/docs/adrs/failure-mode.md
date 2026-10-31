@@ -50,17 +50,18 @@ sequenceDiagram
   L-xR: atomic script
   Note over L,R: no reply within about 50 ms
   rect rgba(253,230,138,0.45)
-    L->>L: log (at most once every 10 s), count failed-open requests
+    L->>L: log (at most once every 10 s)
     L-->>U: 200, no x-count
   end
   Note over U: the clicker shows "Limit unavailable"
-  O->>L: GET /api/health/ready
-  L-->>O: 503 until Redis is ready
+  Note over O: sees "Redis unavailable" in the logs, and later the failed-open alert
+  O->>L: GET /api/health
+  L-->>O: 200: the API stays in service
 ```
 
 - The Redis client has no offline queue and no retries: a command fails at once when the connection is down, and after about 50 ms when Redis doesn't reply. The load test sets the final timeout; it stays about 10 times the limit check's p99 target.
-- Failures are logged at most once every 10 seconds, with the number of requests that failed open, so an outage doesn't write a log line per request.
-- `GET /api/health/ready` answers 503 while the Redis connection isn't ready; `GET /api/health` stays the liveness check.
+- Failures are logged at most once every 10 seconds, so an outage doesn't write a log line per request. How many requests failed open is a metric, added with observability. The connection also logs once when it fails and once when it's back.
+- `GET /api/health` never checks Redis, for liveness or readiness. Every API instance shares the one Redis, so a health check that failed with it would take all of them out of service at once: the full outage failing open exists to avoid. The outage shows in the logs instead, and in the failed-open metric once observability lands.
 
 **Showing "Limit unavailable" is a product decision.** Most products hide a failure like this from the user. In ratewatch the limit is the product, so the user should know when it isn't being counted, rather than see an old number or nothing at all.
 
@@ -76,14 +77,20 @@ sequenceDiagram
 
 - Unit tests: a Redis error and a timeout both let the request through without `x-count`.
 - A web component test: a response without `x-count` shows "Limit unavailable".
-- Metric and alert: failed-open requests above 0 for 1 minute alert the operator.
+- Metric and alert, with observability: failed-open requests above 0 for 1 minute alert the operator.
 - Revisit if the limit ever protects something costly, such as a paid upstream API: then fail closed for those routes.
 
 ## Notes on options
+
+- **Reporting not ready while Redis is down** was the first design. It was dropped: readiness that fails on a dependency every instance shares makes the orchestrator remove all of them at once, turning a Redis outage into a full outage. Readiness should only report what's wrong with one instance, such as shutting down.
 
 - **Fail closed** is the safer choice when exceeding the limit costs money or enables abuse. Here it turns any Redis outage into a full outage.
 - **In-memory counting during the outage** keeps `x-count` on every response, but each instance counts alone, so a user's count jumps between responses and their limit is up to n times looser. Those requests are also never added to Redis afterwards.
 
 ## In the code
 
-Planned with [#47](https://github.com/nitzanto/ratewatch/issues/47): the client options in the API's Redis module, the fail-open branch in the rate-limit interceptor, and the readiness endpoint on the health controller. The web side already exists: `requests-left.tsx` shows "Limit unavailable" when `x-count` is missing.
+- `apps/api/src/app/redis/constants/redis.constants.ts`: the fail-fast options (no offline queue, no retries, the 50 ms command timeout), used by `createRedisClient` in `redis/providers/redis-client.provider.ts`.
+- `apps/api/src/app/rate-limit/interceptors/rate-limit.interceptor.ts`: the fail-open branch and its rate-limited log line.
+- `apps/api/src/app/redis/providers/redis-client.provider.ts`: logs once when the connection fails and once when it's back.
+- `apps/api/src/app/health.controller.ts`: `GET /api/health`, which never checks Redis.
+- `apps/web/src/features/cookie-clicker/components/requests-left.tsx`: shows "Limit unavailable" when `x-count` is missing.

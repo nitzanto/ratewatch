@@ -25,17 +25,17 @@ Out of scope: limits for each endpoint or plan, billing, history older than 24 h
 
 These rules are fixed. Every design on this page obeys them.
 
-| Rule                  | What it means                                                                                            |
-| --------------------- | -------------------------------------------------------------------------------------------------------- |
-| Limit                 | 100 requests per user per hour, unless an admin sets a custom limit.                                     |
-| Who counts            | The user ID from the session. Never the IP address or the device.                                        |
-| Where the check runs  | A NestJS interceptor in the API.                                                                         |
-| Where the count lives | An external store (Redis), shared by all API instances.                                                  |
-| Concurrent requests   | Exactly the limit succeeds, never more, also when many requests arrive at the same time.                 |
-| Successful response   | Has the header `x-count`: the requests left.                                                             |
-| Refused response      | HTTP 429 with a message and the time the user can try again.                                             |
-| Live updates          | `@nestjs/websockets`, with the events `rate:update` and `rate:limit_exceeded`.                           |
-| Store failure         | The API keeps serving (fail open). It sends no `x-count`, logs the failure and reports itself not ready. |
+| Rule                  | What it means                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Limit                 | 100 requests per user per hour, unless an admin sets a custom limit.                                         |
+| Who counts            | The user ID from the session. Never the IP address or the device.                                            |
+| Where the check runs  | A NestJS interceptor in the API.                                                                             |
+| Where the count lives | An external store (Redis), shared by all API instances.                                                      |
+| Concurrent requests   | Exactly the limit succeeds, never more, also when many requests arrive at the same time.                     |
+| Successful response   | Has the header `x-count`: the requests left.                                                                 |
+| Refused response      | HTTP 429 with a message and the time the user can try again.                                                 |
+| Live updates          | `@nestjs/websockets`, with the events `rate:update` and `rate:limit_exceeded`.                               |
+| Store failure         | The API keeps serving (fail open). It sends no `x-count` and logs the failure. Its health check stays green. |
 
 ### Assumptions and estimates
 
@@ -195,8 +195,8 @@ sequenceDiagram
     L-->>U: 200, no x-count
   end
   Note over U: the clicker shows "Limit unavailable"
-  K->>L: GET /api/health/ready
-  L-->>K: 503 (Redis not ready)
+  K->>L: GET /api/health
+  L-->>K: 200 (the API stays in service)
 ```
 
 **An admin pauses a user, and every admin sees it live.**
@@ -250,9 +250,9 @@ The interceptor runs after the guard, so it knows the user ID. It skips public e
 
 The script sets the expiry one time only, when the window opens. A new expiry on each request would move the reset time later and later.
 
-### Failure mode (Planned)
+### Failure mode (built)
 
-Redis can stop or be slow. Then the API **fails open**: the request continues without `x-count`. Each Redis call has a short time limit (about 50 ms, 10 times the p99 target; the load test sets the final value) and no retry, so a slow Redis does not make requests slow. The API logs each failure, and `GET /api/health/ready` answers 503 until Redis is back. The web app shows "Limit unavailable" when `x-count` is missing.
+Redis can stop or be slow. Then the API **fails open**: the request continues without `x-count`. Each Redis call has a short time limit (about 50 ms, 10 times the p99 target; the load test sets the final value) and no retry, so a slow Redis does not make requests slow. The API logs when Redis goes down and comes back, and while it's down, at most one line every 10 seconds saying requests go through uncounted. How many went through uncounted is a metric (Step 5). `GET /api/health` never checks Redis: a check that failed with Redis would take every API instance out of service at once, the full outage that failing open avoids. The web app shows "Limit unavailable" when `x-count` is missing.
 
 Showing "Limit unavailable" to the user is a product decision. Most products hide a failure like this from the user. In ratewatch, the limit is the product, so the user must know when we cannot count their requests. The other choices: hide the count, keep the last count, or count in the memory of each API instance. Each one shows a number that is wrong, or hides that the limit does not apply.
 
@@ -356,7 +356,7 @@ A time target is true only up to a request rate. "p99 less than 5 ms" means: 99 
 | Limit check time, p50, p95 and p99                       | The time the interceptor waits for the atomic script. It is added to each limited request.          | p50 less than 1 ms, p99 less than 5 ms. Warning when p99 is more than 10 ms for 5 minutes, critical when more than 50 ms |
 | Decisions per second: allowed, refused, failed open      | Shows the traffic, the share of refused requests, and each request that went through with no limit. | Alert when failed open is more than 0 for 1 minute                                                                       |
 | Redis errors and time-outs per second                    | The cause of failed open requests.                                                                  | Alert when more than 0 for 1 minute                                                                                      |
-| Readiness                                                | How many API instances report "not ready".                                                          | Alert when one or more is not ready for 1 minute                                                                         |
+| Redis connection                                         | The "Redis unavailable" and "Redis is back" log lines: when the limit stopped and started applying. | Alert on "Redis unavailable"                                                                                             |
 | Refused without a Redis call (when that memory is added) | Shows how many Redis calls the "refused until the reset time" memory saves.                         | No target                                                                                                                |
 
 ### API
