@@ -28,7 +28,6 @@ compose*.yaml
 apps/docs/*
 !apps/docs/package.json
 
-# Local secrets and overrides.
-.env
-.env.*
-!.env.example
+# Personal overrides of the committed .env defaults.
+**/.env*.local
+**/*.local.env

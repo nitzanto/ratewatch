@@ -2,9 +2,9 @@ node_modules/
 dist/
 .nx/
 coverage/
-.env
-.env.*
-!.env.example
+# Personal overrides of the committed .env defaults.
+.env*.local
+*.local.env
 .serena/
 .scratch/
 tmp/

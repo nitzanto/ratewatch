@@ -74,6 +74,11 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      # compose.prod.yaml needs a real session secret: a random one per run.
+      - run: |
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          echo "SESSION_SECRET=$secret" >> "$GITHUB_ENV"
       # Runs when an app is affected, or when a root Docker file changes: those belong to no Nx project.
       - id: affected
         run: |

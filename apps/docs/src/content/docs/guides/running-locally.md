@@ -27,10 +27,10 @@ Watch copies files rather than sharing a folder with the container, so it works 
 **Production-like run.** This builds the production images and serves everything on one origin through nginx, as in production:
 
 ```sh
-docker compose -f compose.yaml -f compose.prod.yaml up --build
+SESSION_SECRET=$(openssl rand -hex 32) docker compose -f compose.yaml -f compose.prod.yaml up --build
 ```
 
-Open http://localhost:8080. The API isn't published on its own port; nginx forwards `/api` to it. Both containers run as non-root users on a read-only filesystem.
+Open http://localhost:8080. The API isn't published on its own port; nginx forwards `/api` to it. Both containers run as non-root users on a read-only filesystem. The production image refuses the development session secret, so the command passes a random one.
 
 Stop either with `Ctrl+C`, then `docker compose down`.
 
@@ -54,6 +54,21 @@ Every task runs through Nx (`pnpm nx <target> <project>`), so caching and task d
 | `pnpm nx dev docs`                     | This wiki on http://localhost:4321/ratewatch/                      |
 
 **Mock mode** answers API requests in the browser from the handlers in `apps/web/src/mocks/handlers/`. Use it to build UI before its endpoint exists: add a fixture and a handler for the new endpoint, then build against it. See [API mocking](../../architecture/frontend/#api-mocking).
+
+## Configuration
+
+Ports, URLs and secrets come from environment variables. Safe local defaults are committed in two files, which Nx loads for every task:
+
+- `.env` at the root: `API_URL`, `WEB_HOST` and `WEB_PORT`, read by Vite and Playwright.
+- `apps/api/.env`: the API's `PORT`, `SESSION_SECRET` and `REDIS_URL`.
+
+To change a value on your machine, put it in a `.env.local` next to the file (git ignores it), or set it in your shell; both win over the committed defaults. For example, to run the dashboard on another port:
+
+```sh
+WEB_PORT=4300 pnpm nx serve web
+```
+
+The API checks its variables when it starts and stops with a message naming any that is missing or invalid. Every variable and its rules are in [Runtime configuration](../../adrs/runtime-config/).
 
 ## Test
 

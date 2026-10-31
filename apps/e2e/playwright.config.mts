@@ -6,9 +6,9 @@ import {
   type ReporterDescription,
 } from '@playwright/test';
 
-// shortcut: hardcoded local addresses; read them from env config with #24.
-const apiUrl = 'http://localhost:3000';
-const webUrl = 'http://localhost:4200';
+// From the root .env, which Nx loads, so they match the servers Nx starts.
+const apiUrl = process.env['API_URL'];
+const webUrl = `http://${process.env['WEB_HOST']}:${process.env['WEB_PORT']}`;
 
 const preset = nxE2EPreset(import.meta.dirname, { testDir: './src' });
 
