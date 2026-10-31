@@ -1,17 +1,19 @@
 import type { INestApplication, Type } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import type { Role } from '@ratewatch/contracts';
+import { type Role, sessionSchema } from '@ratewatch/contracts';
 import cookieParser from 'cookie-parser';
 import type Redis from 'ioredis';
 import RedisMock from 'ioredis-mock';
 import { AppModule } from '../app.module';
+import { RedisIoAdapter } from '../dashboard/adapters/redis-io.adapter';
 import type { Env } from '../env';
 import { redisClient } from '../redis/constants/redis.constants';
 
 /**
  * Starts the whole API on a free port with `main.ts`'s setup (keep the two in step), plus any test-only
- * controllers. Redis is ioredis-mock unless a test passes a real client.
+ * controllers. Redis is ioredis-mock unless a test passes a real client. Socket.IO's Redis adapter needs sharded
+ * pub/sub, which ioredis-mock lacks, so with the mock Socket.IO stays on one instance's in-memory adapter.
  */
 export const startApp = async (
   controllers: Type[] = [],
@@ -31,6 +33,8 @@ export const startApp = async (
       app.get(ConfigService<Env, true>).get('SESSION_SECRET', { infer: true }),
     ),
   );
+  if (!(redis instanceof RedisMock))
+    app.useWebSocketAdapter(new RedisIoAdapter(app));
   await app.listen(0);
   return { app, baseUrl: `${await app.getUrl()}/api` };
 };
@@ -50,6 +54,13 @@ export const cookieOf = (res: Response) =>
 /** Signs in through the real endpoint and returns the session cookie to send back. */
 export const signedInCookie = async (baseUrl: string, role: Role) =>
   cookieOf(await signIn(baseUrl, role));
+
+/** Signs in a new User and returns their user ID with the cookie, without a request the limiter would count. */
+export const signedInUser = async (baseUrl: string) => {
+  const res = await signIn(baseUrl, 'user');
+  const { userId } = sessionSchema.parse(await res.json());
+  return { userId, cookie: cookieOf(res) };
+};
 
 /** One cookie-clicker click, as the signed-in person the cookie belongs to. */
 export const postClick = (baseUrl: string, cookie: string) =>

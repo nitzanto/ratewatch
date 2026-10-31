@@ -68,8 +68,8 @@ flowchart TB
     guard{{"Session guard"}}:::api
     limiter{{"Rate-limit interceptor"}}:::api
     handlers["Handlers<br/>click, auth, admin controls"]:::api
-    publisher["Dashboard publisher<br/>one batch per second"]:::planned
-    realtime["Realtime gateway<br/>Socket.IO"]:::planned
+    publisher["Dashboard publisher<br/>one batch per second"]:::api
+    realtime["Realtime gateway<br/>Socket.IO"]:::api
   end
 
   subgraph redis["Redis 8"]
@@ -258,20 +258,20 @@ Showing "Limit unavailable" to the user is a product decision. Most products hid
 
 We accept that a user can send more than their limit while Redis is down. The other choice, fail closed, refuses all requests during the failure, so a store failure stops the whole product.
 
-### Dashboard data (Planned)
+### Dashboard data
 
 The limiter does not write dashboard data on the request path. Each API instance keeps the latest numbers for each user in memory. One time each second, it writes them to Redis in one batch. One batch per second replaces one write for each request.
 
 - **User record**: one Redis hash for each user, with the limit, the count, the reset time, the pause end and the last request. It keeps numbers only. The **status** (OK, Warning, Exceeded or Paused) comes from these numbers and the current time when the API reads them, so a window that ended never shows a stale status.
-- **Search index**: the Redis 8 query engine indexes the user records. One query does search by user ID, filters, sort by one column, a page of up to 100 rows, and the count for each status.
-- **History**: accepted and refused requests for the past hour and day, kept 24 hours.
-- **Refused requests today**: one counter for each UTC day. It expires at the end of the day.
+- **Search index**: the Redis 8 query engine indexes the user records. The users table reads its first page, latest request first, and the count for each status. **Planned:** search by user ID, filters, sort by any column, and pages of up to 100 rows, all in the same query.
+- **History (Planned)**: accepted and refused requests for the past hour and day, kept 24 hours.
+- **Refused requests today (Planned)**: one counter for each UTC day. It expires at the end of the day.
 
-### Realtime delivery (Planned)
+### Realtime delivery
 
 The API sends live updates with `@nestjs/websockets` and Socket.IO. The Socket.IO Redis adapter passes each event to all API instances, so an admin on any instance gets it. Only the Admin can connect: the handshake checks the session cookie.
 
-- **Rooms.** An admin joins one room for each row on screen and one for the open user. A room for all admins gets the summary numbers and the counts for each status. An admin gets events only for what they see, so the number of events does not grow with the number of users.
+- **Rooms.** An admin joins one room for each row on screen (`rate:subscribe`, sent again after every reconnect) and, once user detail is built, one for the open user. A room for all admins gets `rate:limit_exceeded`, and later the summary numbers and the counts for each status (Planned). An admin gets events only for what they see, so the number of events does not grow with the number of users.
 - **`rate:update`**: at most one each second for each user, with the latest numbers. If an admin is disconnected, the event is dropped, because a newer one follows.
 - **`rate:limit_exceeded`**: sent at once, one time for each user in each window.
 - **Reconnect**: the web app loads the data again, then continues with live events.

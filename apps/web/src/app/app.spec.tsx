@@ -19,7 +19,7 @@ describe('App', () => {
     );
     expect(appBar().getByRole('status')).toHaveProperty(
       'textContent',
-      'API OK',
+      'Live · API OK',
     );
   });
 

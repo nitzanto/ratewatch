@@ -17,6 +17,7 @@ Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapt
 
 ## Consequences
 
-- Several API instances need sticky sessions for Socket.IO's HTTP long-polling fallback.
+- The web app connects over WebSocket only, so several API instances need no sticky sessions; a network that blocks WebSockets gets no live updates.
+- The sharded adapter publishes a room's event even when no socket is in it, so until updates are published only for followed users (measured with #41), Redis pub/sub traffic grows with active users even though deliveries don't.
 - An admin sees live changes only for rows on screen; other pages are fresh when opened.
 - Two instances can each send an update for the same user in the same second; the client keeps the newer one.

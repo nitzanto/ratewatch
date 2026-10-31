@@ -1,8 +1,11 @@
 import { renderApp } from '@/libs/test-utils/render-app';
 import { userRow } from '@/mocks/data/users';
 import { setMockUsers } from '@/mocks/handlers/admin-users';
+import { setMockSession } from '@/mocks/handlers/session';
 import {
   dropRealtime,
+  followedUserIds,
+  refuseRealtime,
   restoreRealtime,
   sendLimitExceeded,
   sendRateUpdate,
@@ -93,6 +96,14 @@ describe('Users table', () => {
       await page().findByRole('table', { name: 'Users' });
     });
 
+    it('follows the users on screen, so the API sends only their updates', () => {
+      expect(followedUserIds()).toEqual([
+        'user-aaaa1111',
+        'user-bbbb2222',
+        'user-cccc3333',
+      ]);
+    });
+
     it('updates a row in place and flashes it', async () => {
       update(requestFrom(second, 21));
 
@@ -124,6 +135,27 @@ describe('Users table', () => {
 
       expect(await rowOf('user-cccc3333').findByText('Exceeded')).toBeTruthy();
       expect(rowOf('user-cccc3333').getByText('0 / 100')).toBeTruthy();
+    });
+
+    it('keeps updating a user after they hit their limit, though each instance sees the reset time a few ms apart', async () => {
+      const resetAt = Date.parse(third.resetAt as string);
+      act(() =>
+        sendLimitExceeded({
+          userId: 'user-cccc3333',
+          limit: 100,
+          resetAt: new Date(resetAt + 3).toISOString(),
+          at: new Date().toISOString(),
+        }),
+      );
+      await rowOf('user-cccc3333').findByText('Exceeded');
+
+      update({
+        ...requestFrom(third, 100),
+        status: 'paused',
+        pausedUntil: new Date(Date.now() + 15 * minuteMs).toISOString(),
+      });
+
+      expect(await rowOf('user-cccc3333').findByText('Paused')).toBeTruthy();
     });
 
     it('keeps the order while the pointer is on the table, then re-sorts', async () => {
@@ -178,6 +210,31 @@ describe('Users table', () => {
 
       expect(page().queryByRole('alert')).toBeNull();
       expect(await rowOf('user-aaaa1111').findByText('1 min ago')).toBeTruthy();
+    });
+
+    it('shows the live connection in the app bar', async () => {
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const pill = () => within(screen.getByRole('banner')).getByRole('status');
+
+      await waitFor(() =>
+        expect(pill()).toHaveProperty('textContent', 'Live · API OK'),
+      );
+
+      act(() => dropRealtime());
+
+      expect(pill()).toHaveProperty('textContent', 'Reconnecting · API OK');
+    });
+
+    it('sends the admin to sign in when the live connection is refused because their session ended', async () => {
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      await page().findByText('50 / 100');
+
+      setMockSession(null);
+      act(() => refuseRealtime());
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'Sign in' }),
+      ).toBeTruthy();
     });
 
     it('refetches the users when the connection is back', async () => {

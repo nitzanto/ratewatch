@@ -18,8 +18,15 @@ export default defineConfig(() => ({
     // (the dev image sets WEB_HOST=0.0.0.0).
     port: Number(process.env.WEB_PORT),
     host: process.env.WEB_HOST,
-    // Same origin as production, where nginx forwards /api to the API.
-    proxy: { '/api': { target: process.env.API_URL, changeOrigin: true } },
+    // Same origin as production, where nginx forwards /api and the admins' live connection to the API.
+    proxy: {
+      '/api': { target: process.env.API_URL, changeOrigin: true },
+      '/socket.io': {
+        target: process.env.API_URL,
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   plugins: [
     react(),
