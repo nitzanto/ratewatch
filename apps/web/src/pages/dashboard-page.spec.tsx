@@ -33,7 +33,13 @@ const rowOf = (userId: string) =>
 const minuteMs = 60_000;
 
 describe('Users table', () => {
+  // The times on screen count from the real clock: a slow render would turn "8 s ago" into "9 s ago". Faking only
+  // `Date` freezes them, while MSW, TanStack Query and the table's one-second tick keep their real timers.
+  const freezeClock = () => vi.useFakeTimers({ toFake: ['Date'] });
+  afterEach(() => vi.useRealTimers());
+
   it("shows each user's requests left, reset time, status and last request, latest first", async () => {
+    freezeClock();
     setMockUsers([
       userRow('user-aaaa1111', 59, 3 * minuteMs, {
         resetAt: new Date(Date.now() + 51.5 * minuteMs).toISOString(),
@@ -186,17 +192,16 @@ describe('Users table', () => {
 
   describe('connection', () => {
     beforeEach(() => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
+      freezeClock();
       setMockUsers([userRow('user-aaaa1111', 50, 5_000)]);
     });
-    afterEach(() => vi.useRealTimers());
 
     it('shows a banner and freezes the times while the connection is lost, keeping the data', async () => {
       await renderApp('/dashboard', { signedInAs: 'admin' });
       expect(await page().findByText('5 s ago')).toBeTruthy();
 
       act(() => dropRealtime());
-      act(() => vi.advanceTimersByTime(60_000));
+      vi.setSystemTime(Date.now() + 60_000);
 
       expect(page().getByRole('alert')).toHaveProperty(
         'textContent',
@@ -206,10 +211,14 @@ describe('Users table', () => {
       expect(rowOf('user-aaaa1111').getByText('50 / 100')).toBeTruthy();
 
       act(() => restoreRealtime());
-      act(() => vi.advanceTimersByTime(1_000));
 
       expect(page().queryByRole('alert')).toBeNull();
-      expect(await rowOf('user-aaaa1111').findByText('1 min ago')).toBeTruthy();
+      // On the table's next one-second tick.
+      expect(
+        await rowOf('user-aaaa1111').findByText('1 min ago', undefined, {
+          timeout: 2000,
+        }),
+      ).toBeTruthy();
     });
 
     it('shows the live connection in the app bar', async () => {
