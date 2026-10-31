@@ -41,6 +41,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.0",
     "@vitest/coverage-v8": "~5.0.1",
+    "artillery": "^2.0.34",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "2.31.0",

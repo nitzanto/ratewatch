@@ -12,3 +12,6 @@ allowBuilds:
   cpu-features: false
   protobufjs: false
   ssh2: false
+  # Artillery's browser engine and StatsD reporter, which the traffic simulator doesn't use.
+  '@playwright/browser-chromium': false
+  unix-dgram: false
