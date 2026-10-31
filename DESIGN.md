@@ -172,7 +172,7 @@ Prototypes for every screen are in `docs/design/prototypes/`; Crumb's artwork is
   - OK `status-ok` teal, under 90% used.
   - Warning `status-warning` amber for fills and bars; `status-warning-strong` for icons, chip borders and any text, because the light amber fails 3:1 on white.
   - Exceeded `status-exceeded` crimson, 100% used.
-  - Paused `status-paused` grey, throttling suspended by an admin.
+  - Paused `status-paused` grey, an admin has paused the limit: requests still count but none is refused.
 - Tints (`*-tint`) are only for banners and alerts that carry the same status.
 - `live-flash` briefly highlights a row a live update just changed; `data-bar` fills neutral volume bars such as top users and activity.
 - **Crumb's colours** (`crumb-*`) belong to the mascot only and never appear in UI chrome.

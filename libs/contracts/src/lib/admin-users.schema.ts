@@ -10,6 +10,10 @@ export const userRowSchema = z.object({
   userId: z.string().min(1),
   /** The user's limit for this window: 100 or their custom limit, plus any extra requests. */
   limit: z.int().positive(),
+  /** The user's limit in every window: 100 or their custom limit, without extra requests. */
+  baseLimit: z.int().positive(),
+  /** Requests counted this window; past the limit while paused, or once an admin lowered it. */
+  used: z.int().nonnegative(),
   requestsLeft: z.int().nonnegative(),
   /** When the window ends; `null` once it has, which reads as a full limit. */
   resetAt: z.iso.datetime().nullable(),

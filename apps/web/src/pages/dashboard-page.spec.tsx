@@ -18,6 +18,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type { UserRow } from '@ratewatch/contracts';
 import { http, HttpResponse } from 'msw';
 
 const page = () => within(screen.getByRole('main'));
@@ -859,6 +860,273 @@ describe('Users table', () => {
       );
 
       expect(await rowOf('user-aaaa1111').findByText('100 / 100')).toBeTruthy();
+    });
+
+    describe('custom limit', () => {
+      const limitField = (drawer: HTMLElement) =>
+        within(drawer).getByRole('spinbutton', { name: 'Limit per hour' });
+      const saveLimit = (drawer: HTMLElement) =>
+        within(drawer).getByRole('button', { name: 'Save limit' });
+      const typeLimit = (drawer: HTMLElement, value: string) =>
+        fireEvent.change(limitField(drawer), { target: { value } });
+      const openWith = async (row: UserRow, shown: string) => {
+        setMockUsers([row]);
+        await renderApp('/dashboard', { signedInAs: 'admin' });
+        const drawer = await openUser(row.userId);
+        await within(drawer).findByText(shown);
+        return drawer;
+      };
+
+      it('sets a limit for every window, marked in the table', async () => {
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 59, 4_000),
+          '41 / 100',
+        );
+        expect(limitField(drawer)).toHaveProperty('value', '100');
+        expect(saveLimit(drawer)).toHaveProperty('disabled', true);
+
+        typeLimit(drawer, '250');
+        fireEvent.click(saveLimit(drawer));
+
+        expect(await within(drawer).findByText('191 / 250')).toBeTruthy();
+        expect(limitField(drawer)).toHaveProperty('value', '250');
+        fireEvent.keyDown(drawer, { key: 'Escape' });
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(rowOf('user-aaaa1111').getByText('Custom limit')).toBeTruthy();
+      });
+
+      it('warns only when the next request would be refused', async () => {
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 59, 4_000),
+          '41 / 100',
+        );
+        const warning =
+          'user-aaaa1111 has already used 59 requests this hour, so their next one will be refused.';
+
+        typeLimit(drawer, '60');
+        expect(within(drawer).queryByText(warning)).toBeNull();
+
+        typeLimit(drawer, '59');
+        expect(within(drawer).getByText(warning)).toBeTruthy();
+        expect(saveLimit(drawer)).toHaveProperty('disabled', false);
+      });
+
+      it("counts this window's extra requests before warning", async () => {
+        // 60 used of 100 plus 10 extra requests.
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 60, 4_000, { limit: 110, baseLimit: 100 }),
+          '50 / 110',
+        );
+
+        typeLimit(drawer, '55');
+        expect(within(drawer).queryByRole('alert')).toBeNull();
+
+        typeLimit(drawer, '50');
+        expect(within(drawer).getByRole('alert')).toHaveProperty(
+          'textContent',
+          expect.stringContaining('their next one will be refused'),
+        );
+      });
+
+      it('says a paused user is refused only once the pause ends', async () => {
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 59, 4_000, {
+            status: 'paused',
+            pausedUntil: new Date(Date.now() + 15 * minuteMs).toISOString(),
+          }),
+          '41 / 100',
+        );
+
+        typeLimit(drawer, '50');
+
+        expect(
+          within(drawer).getByText(
+            'user-aaaa1111 has already used 59 requests this hour, so their requests will be refused once their pause ends.',
+          ),
+        ).toBeTruthy();
+      });
+
+      it.each(['0', '1001', '2.5', ''])(
+        'refuses a limit of "%s", as the API does',
+        async (value) => {
+          const drawer = await openWith(
+            userRow('user-aaaa1111', 59, 4_000),
+            '41 / 100',
+          );
+
+          typeLimit(drawer, value);
+
+          expect(
+            within(drawer).getByText('Enter a whole number from 1 to 1,000.'),
+          ).toBeTruthy();
+          expect(saveLimit(drawer)).toHaveProperty('disabled', true);
+        },
+      );
+
+      it("keeps the limit and this window's extra requests at 1,000 or under", async () => {
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 60, 4_000, { limit: 110, baseLimit: 100 }),
+          '50 / 110',
+        );
+
+        typeLimit(drawer, '991');
+
+        expect(
+          within(drawer).getByText(
+            "With 10 extra requests this hour, the limit can't go above 990.",
+          ),
+        ).toBeTruthy();
+        expect(saveLimit(drawer)).toHaveProperty('disabled', true);
+
+        typeLimit(drawer, '990');
+        fireEvent.click(saveLimit(drawer));
+
+        expect(await within(drawer).findByText('940 / 1000')).toBeTruthy();
+      });
+
+      it('says when saving fails', async () => {
+        server.use(
+          http.put(
+            '/api/admin/users/:id/limit',
+            () => new HttpResponse(null, { status: 503 }),
+          ),
+        );
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 59, 4_000),
+          '41 / 100',
+        );
+
+        typeLimit(drawer, '250');
+        fireEvent.click(saveLimit(drawer));
+
+        expect(
+          await within(drawer).findByText(
+            "Couldn't change user-aaaa1111's limit. Try again.",
+          ),
+        ).toBeTruthy();
+        expect(within(drawer).getByText('41 / 100')).toBeTruthy();
+      });
+    });
+
+    describe('pause and unlock', () => {
+      const pauseFor = (drawer: HTMLElement, duration: string) => {
+        fireEvent.click(within(drawer).getByRole('button', { name: 'Pause' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: duration }));
+      };
+      const hourMinute = (iso: string) =>
+        new Date(iso).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      const pausedUser = (pausedUntil: string) =>
+        userRow('user-aaaa1111', 100, 4_000, { status: 'paused', pausedUntil });
+
+      it('pauses for 15 minutes or 1 hour, until a time in local HH:MM', async () => {
+        freezeClock();
+        setMockUsers([userRow('user-aaaa1111', 100, 4_000)]);
+        await renderApp('/dashboard', { signedInAs: 'admin' });
+        const drawer = await openUser('user-aaaa1111');
+        await within(drawer).findByText('Exceeded');
+
+        pauseFor(drawer, '15 minutes');
+
+        expect(
+          await within(drawer).findByText(
+            `Paused until ${hourMinute(new Date(Date.now() + 15 * minuteMs).toISOString())}`,
+          ),
+        ).toBeTruthy();
+        expect(within(drawer).getByText('Paused')).toBeTruthy();
+
+        fireEvent.click(within(drawer).getByRole('button', { name: 'Unlock' }));
+        await within(drawer).findByText('Exceeded');
+        pauseFor(drawer, '1 hour');
+
+        expect(
+          await within(drawer).findByText(
+            `Paused until ${hourMinute(new Date(Date.now() + 60 * minuteMs).toISOString())}`,
+          ),
+        ).toBeTruthy();
+      });
+
+      it('pauses until the next reset, which a user without an open window is not offered', async () => {
+        const user = userRow('user-aaaa1111', 30, 4_000);
+        setMockUsers([
+          user,
+          userRow('user-bbbb2222', 0, 4_000, { resetAt: null }),
+        ]);
+        await renderApp('/dashboard', { signedInAs: 'admin' });
+        const open = await openUser('user-aaaa1111');
+        await within(open).findByText('70 / 100');
+
+        pauseFor(open, 'Until next reset');
+
+        expect(
+          await within(open).findByText(
+            `Paused until ${hourMinute(user.resetAt ?? '')}`,
+          ),
+        ).toBeTruthy();
+        fireEvent.keyDown(open, { key: 'Escape' });
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+        const ended = await openUser('user-bbbb2222');
+        await within(ended).findByText('100 / 100');
+        fireEvent.click(within(ended).getByRole('button', { name: 'Pause' }));
+        expect(
+          screen.getByRole('menuitem', { name: 'Until next reset' }),
+        ).toHaveProperty('ariaDisabled', 'true');
+      });
+
+      it('unlocks a paused user early', async () => {
+        const pausedUntil = new Date(Date.now() + 40 * minuteMs).toISOString();
+        setMockUsers([pausedUser(pausedUntil)]);
+        await renderApp('/dashboard', { signedInAs: 'admin' });
+        const drawer = await openUser('user-aaaa1111');
+        await within(drawer).findByText(
+          `Paused until ${hourMinute(pausedUntil)}`,
+        );
+
+        fireEvent.click(within(drawer).getByRole('button', { name: 'Unlock' }));
+
+        expect(await within(drawer).findByText('Exceeded')).toBeTruthy();
+        expect(within(drawer).getByText('On')).toBeTruthy();
+        expect(
+          within(drawer).getByRole('button', { name: 'Pause' }),
+        ).toBeTruthy();
+      });
+
+      it('shows the pause ended once its time comes, with no update from the API', async () => {
+        setMockUsers([pausedUser(new Date(Date.now() + 1000).toISOString())]);
+        await renderApp('/dashboard', { signedInAs: 'admin' });
+        const drawer = await openUser('user-aaaa1111');
+        await within(drawer).findByRole('button', { name: 'Unlock' });
+
+        expect(
+          await within(drawer).findByText('On', {}, { timeout: 4000 }),
+        ).toBeTruthy();
+        expect(within(drawer).getByText('Exceeded')).toBeTruthy();
+        fireEvent.keyDown(drawer, { key: 'Escape' });
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(rowOf('user-aaaa1111').getByText('Exceeded')).toBeTruthy();
+      });
+
+      it('shows Paused in the table and under its filter chip', async () => {
+        setMockUsers([
+          userRow('user-aaaa1111', 10, 4_000),
+          userRow('user-bbbb2222', 20, 5_000),
+        ]);
+        await renderApp('/dashboard', { signedInAs: 'admin' });
+        const drawer = await openUser('user-aaaa1111');
+        await within(drawer).findByText('90 / 100');
+        pauseFor(drawer, '15 minutes');
+        await within(drawer).findByText('Paused');
+        fireEvent.keyDown(drawer, { key: 'Escape' });
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+        expect(rowOf('user-aaaa1111').getByText('Paused')).toBeTruthy();
+        fireEvent.click(page().getByRole('button', { name: 'Paused 1' }));
+
+        await waitFor(() => expectUserIds(['user-aaaa1111']));
+      });
     });
   });
 });

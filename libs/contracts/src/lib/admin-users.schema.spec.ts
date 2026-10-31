@@ -7,6 +7,8 @@ import {
 const row = {
   userId: 'user-3f9a1c2e',
   limit: 100,
+  baseLimit: 100,
+  used: 59,
   requestsLeft: 41,
   resetAt: '2026-10-31T14:32:00.000Z',
   status: 'ok',

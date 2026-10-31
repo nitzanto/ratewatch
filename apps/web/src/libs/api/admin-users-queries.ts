@@ -35,6 +35,20 @@ export const getAdminUsers = (query: UsersQuery) =>
     usersPageSchema,
   );
 
+/**
+ * How long until the first of these rows' pauses ends, so the query is fetched again then: no update arrives when a
+ * pause runs out, since nothing changes in Redis but a key expiring. `false` with no pause on screen.
+ */
+export const untilFirstPauseEnds = (rows: UserRow[] = []) => {
+  const ends = rows.flatMap(({ pausedUntil }) =>
+    pausedUntil ? [Date.parse(pausedUntil)] : [],
+  );
+  // A moment after the end, so the API has dropped the pause by then.
+  return ends.length
+    ? Math.max(Math.min(...ends) - Date.now(), 0) + 500
+    : false;
+};
+
 export const adminUsersQueries = {
   // A new search, filter, sort or page keeps the last page on screen until its own arrives.
   list: (query: UsersQuery) =>
@@ -42,12 +56,15 @@ export const adminUsersQueries = {
       queryKey: [...adminUsersQueryKey, query],
       queryFn: () => getAdminUsers(query),
       placeholderData: keepPreviousData,
+      refetchInterval: ({ state }) => untilFirstPauseEnds(state.data?.rows),
     }),
   detail: (userId: string) =>
     queryOptions({
       queryKey: [...adminUserKey, userId],
       queryFn: () =>
         api.get(`/admin/users/${encodeURIComponent(userId)}`, userDetailSchema),
+      refetchInterval: ({ state }) =>
+        untilFirstPauseEnds(state.data && [state.data.row]),
     }),
   // The other range stays on screen until this one arrives, so the switch doesn't flash empty.
   history: (userId: string, range: ActivityRange) =>
@@ -196,6 +213,7 @@ export const applyLimitExceeded = (
   applyUserRow(client, {
     ...row,
     limit,
+    used: Math.max(row.used, limit),
     requestsLeft: 0,
     resetAt,
     status: 'exceeded',
