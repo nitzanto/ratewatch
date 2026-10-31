@@ -11,13 +11,25 @@ import type {
 
 const connections = new Set<RealtimeListeners>();
 let online = true;
+let followed: string[] = [];
 
-/** Stands in for the Socket.IO connection: connects at once, and tests send its events. */
+/** Stands in for the Socket.IO connection: connects at once, and tests send its events. Every user's events reach it, followed or not. */
 export const connectFakeRealtime: ConnectRealtime = (listeners) => {
   connections.add(listeners);
   listeners.onStatus(online ? 'live' : 'lost');
-  return () => connections.delete(listeners);
+  return {
+    follow: (userIds) => {
+      followed = userIds;
+    },
+    close: () => {
+      connections.delete(listeners);
+      followed = [];
+    },
+  };
 };
+
+/** The users the open page last asked to follow. */
+export const followedUserIds = () => followed;
 
 export const sendRateUpdate = (event: RateUpdateEvent) =>
   connections.forEach(({ onUpdate }) => onUpdate(event));
@@ -29,6 +41,12 @@ export const sendLimitExceeded = (event: RateLimitExceededEvent) =>
 export const dropRealtime = () => {
   online = false;
   connections.forEach(({ onStatus }) => onStatus('lost'));
+};
+
+/** The API refuses the connection, as it does once the admin's session has ended. */
+export const refuseRealtime = () => {
+  online = false;
+  connections.forEach(({ onRefused }) => onRefused());
 };
 
 export const restoreRealtime = () => {

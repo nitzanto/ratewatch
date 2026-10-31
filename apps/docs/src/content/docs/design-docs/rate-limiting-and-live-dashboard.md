@@ -62,7 +62,7 @@ FT.CREATE users ON HASH PREFIX 1 user: SCHEMA
   ratio NUMERIC SORTABLE  resetAt NUMERIC SORTABLE  pausedUntil NUMERIC
 ```
 
-The API creates the index at startup when `FT.INFO users` says it's missing.
+The API creates the index (`FT.CREATE`) the first time it writes or reads a record; an "Index already exists" reply counts as done. Redis may be down at startup, so a failed attempt is tried again next time.
 
 ## The limit check
 
@@ -177,20 +177,20 @@ The Redis client fails fast, so a Redis outage costs at most about 50 ms per req
 
 On any error the interceptor lets the request through without `x-count`, and writes one log line at most every 10 seconds, with the error. How many requests went through uncounted is the failed-open metric, added with observability. The Redis client also logs once when the connection fails and once when it's back, so an outage or a wrong `REDIS_URL` shows in the logs even with no traffic. `GET /api/health` never checks Redis, so Kubernetes keeps every instance in service during an outage. The web app already shows "Limit unavailable" when `x-count` is missing.
 
-While Redis is down the dashboard publisher keeps the latest numbers in memory (at most 100,000 users, oldest dropped first) and writes them when Redis is back. Events between instances stop, because the Socket.IO adapter uses Redis too; each instance still serves its own admins.
+While Redis is down the dashboard publisher keeps the latest numbers in memory (at most 10,000 users, oldest dropped first, about 5 KB each) and writes them when Redis is back. No `rate:update` goes out meanwhile, because each one carries the row as written to Redis; `rate:limit_exceeded` still reaches the admins on the same instance. The Socket.IO adapter's subscriber has its own connection, which queues while Redis is down and subscribes again when it's back.
 
 ## Dashboard data
 
 ### Writing: once per second
 
-`DashboardPublisher` keeps, per user changed since the last tick: the latest decision, accepted and refused counts per minute, and up to 50 new requests. Every second it sends one pipeline:
+`DashboardPublisher` keeps, per user changed since the last tick: the latest decision, accepted and refused counts per minute, and up to 50 new requests. Every second it sends one pipeline per 500 users, on the dashboard's own Redis connection: a duplicate of the shared client with a 1-second reply timeout, so the batch never waits in front of a limit check and the limit check's 50 ms never cuts the batch short. On shutdown it writes the last batch after the HTTP server has closed, then closes that connection. Each pipeline holds:
 
 - `EVALSHA` the record script for each user (below);
 - `HINCRBY hist:{uid} a:<minute> n`, and `r:` the same, then `HEXPIRE hist:{uid} 86400 NX FIELDS …`;
 - `LPUSH recent:{uid} …`, `LTRIM recent:{uid} 0 49`, `EXPIRE recent:{uid} 86400`;
 - `INCRBY stats:refused:<today> n` and `EXPIREAT` the end of tomorrow (UTC).
 
-**The record script** writes one user record, and only when the numbers are newer: a later window, or the same window with a higher `used`. Two instances can flush the same user in either order, and the older batch never wins. It ignores a window that opened before `lastResetAt`, so a batch from before an admin's reset can't bring the old count back. When a later window opens, it sets `lastResetAt` to the old `windowEnd`. It then sets `HPEXPIREAT` on the window's fields at `resetAt` and `EXPIRE user:{uid} 86400`.
+**The record script** writes one user record, and only when the numbers are newer: a later window, or the same window with at least as many requests `used`. Each instance turns the window's TTL into a reset time with its own clock, so reset times within 5 seconds are the same window, and the record keeps the first one it saw: every row for that window, on every instance, has the same `resetAt`. Two instances can flush the same user in either order, and the older batch never wins. It ignores a window that opened before `lastResetAt`, so a batch from before an admin's reset can't bring the old count back. When a later window opens, it sets `lastResetAt` to the old `windowEnd`. It then sets `HPEXPIREAT` on the window's fields at `resetAt` and `EXPIRE user:{uid} 86400`, and returns the record, from which the publisher sends that user's `rate:update`.
 
 ### Reading: the users table
 
@@ -206,7 +206,7 @@ While Redis is down the dashboard publisher keeps the latest numbers in memory (
 | `page`         | 0, 1, 2…                                           | 0             |
 | `pageSize`     | 25, 50, 100                                        | 25            |
 
-It answers `{ rows, total, counts: { ok, warning, exceeded, paused } }`. One `FT.SEARCH` gets the page and `total`; four `FT.SEARCH … LIMIT 0 0` get the counts, each with the same search and last-active filters, so each chip's count matches what that filter would show. Status filters, with `P = @pausedUntil:[-inf +inf]`:
+It answers `{ rows, total, counts: { ok, warning, exceeded, paused } }`. One `FT.SEARCH` gets the page and `total`; four `FT.SEARCH … LIMIT 0 0` get the counts, each with the same search and last-active filters, so each chip's count matches what that filter would show. Every search sets `DIALECT 2`: Redis 8 still defaults to dialect 1, where `-P @ratio:[1 +inf]` means "not (P and ratio ≥ 1)". Status filters, with `P = @pausedUntil:[-inf +inf]`:
 
 | Status   | Query                   |
 | -------- | ----------------------- |
@@ -230,8 +230,9 @@ A user whose window ended has no `ratio`, `left` or `resetAt`, so they count as 
 
 `RealtimeGateway` uses `@nestjs/websockets` with Socket.IO on `/socket.io`, and the sharded Redis adapter (`@socket.io/redis-adapter`, `createShardedAdapter`) on a duplicate of the ioredis client.
 
-- **Handshake:** the gateway reads the `session` cookie from the handshake headers, checks its signature with `SESSION_SECRET` and its expiry, and refuses anyone but the Admin.
-- **Rooms:** every admin joins `admins`. The web app sends `rate:subscribe` with the user IDs on screen plus the open user (at most 101). The server leaves the old `user:<id>` rooms, joins the new ones, and acknowledges with the current rows, so nothing changes unseen between the page load and the subscription.
+- **Transport:** WebSocket only. HTTP long-polling would need sticky sessions across API instances.
+- **Handshake:** the gateway reads the `session` cookie from the handshake headers, checks its signature with `SESSION_SECRET` and its expiry, and refuses anyone but the Admin. It ends the connection when that session expires. The web app treats both (a refused handshake, a connection the server ended) as signed out, since Socket.IO retries neither.
+- **Rooms:** every admin joins `admins`. The web app sends `rate:subscribe` with the user IDs on screen plus the open user (at most 101). The server leaves the old `user:<id>` rooms, joins the new ones, and acknowledges with the current rows, so nothing changes unseen between the page load and the subscription. With Redis down it acknowledges with no rows; the rooms are joined, so updates follow once Redis is back.
 
 | Event                 | Direction      | Room                 | When                                                                       | Payload                                                                                                |
 | --------------------- | -------------- | -------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -268,8 +269,8 @@ sequenceDiagram
 **The web app:**
 
 - Rows update in place in the TanStack Query cache, and flash. The table re-sorts the rows on screen only while the pointer is off it and no user is open, so nothing moves under the admin; a row never moves to another page until the page is fetched again.
-- It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change).
-- On reconnect it refetches the page, then sends `rate:subscribe` again.
+- It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change). Reset times within 5 seconds count as the same, because `rate:limit_exceeded` carries the instance's own reset time.
+- On reconnect it refetches the page and sends `rate:subscribe` again, since a new connection follows nobody. Both answers pass the same newer-or-same check, so their order doesn't matter.
 
 ## Admin controls
 

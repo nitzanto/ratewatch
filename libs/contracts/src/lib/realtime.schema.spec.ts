@@ -1,5 +1,6 @@
 import {
   rateLimitExceededEventSchema,
+  rateSubscribeSchema,
   rateUpdateEventSchema,
 } from './realtime.schema.js';
 
@@ -12,6 +13,22 @@ const row = {
   lastRequestAt: '2026-10-31T13:40:12.000Z',
   pausedUntil: null,
 };
+
+describe('rateSubscribeSchema', () => {
+  it('accepts up to a page of 100 users plus the open one', () => {
+    const userIds = Array.from({ length: 101 }, (_, i) => `user-${i}`);
+
+    expect(rateSubscribeSchema.parse({ userIds })).toEqual({ userIds });
+  });
+
+  it.each([
+    { userIds: Array.from({ length: 102 }, (_, i) => `user-${i}`) },
+    { userIds: [''] },
+    { userIds: 'user-3f9a1c2e' },
+  ])('rejects %j', (body) => {
+    expect(rateSubscribeSchema.safeParse(body).success).toBe(false);
+  });
+});
 
 describe('rateUpdateEventSchema', () => {
   it('accepts the latest row and the requests since the last update', () => {

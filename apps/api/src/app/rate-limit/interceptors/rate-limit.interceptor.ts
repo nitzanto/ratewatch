@@ -18,6 +18,7 @@ import type { Response } from 'express';
 import type Redis from 'ioredis';
 import { isPublicKey } from '../../auth/decorators/public.decorator';
 import type { SessionRequest } from '../../auth/interfaces/session-request.interface';
+import { DashboardPublisher } from '../../dashboard/services/dashboard-publisher.service';
 import { redisClient } from '../../redis/constants/redis.constants';
 import {
   uncountedLogEveryMs,
@@ -53,6 +54,7 @@ export class RateLimitInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
     @Inject(redisClient) redis: Redis,
+    private readonly dashboard: DashboardPublisher,
   ) {
     // Runs as EVALSHA, and ioredis resends the script when Redis has lost its script cache.
     redis.defineCommand('rateLimit', { numberOfKeys: 3, lua: rateLimitScript });
@@ -80,7 +82,20 @@ export class RateLimitInterceptor implements NestInterceptor {
       this.failOpen(error);
       return next.handle();
     }
-    const [allowed, requestsLeft, msUntilReset] = reply;
+    const [allowed, requestsLeft, msUntilReset, limit, used, firstRefusal] =
+      reply;
+    const at = Date.now();
+    const resetAt = at + msUntilReset;
+    // In memory only: the dashboard writes it to Redis with the rest of the second's decisions.
+    this.dashboard.record({
+      userId: session.userId,
+      allowed: allowed === 1,
+      at,
+      limit,
+      used,
+      resetAt,
+      firstRefusal: firstRefusal === 1,
+    });
     const response = context.switchToHttp().getResponse<Response>();
 
     if (!allowed) {
@@ -88,7 +103,7 @@ export class RateLimitInterceptor implements NestInterceptor {
       throw new HttpException(
         {
           message: "You've used all your requests for this hour.",
-          retryAt: new Date(Date.now() + msUntilReset).toISOString(),
+          retryAt: new Date(resetAt).toISOString(),
         } satisfies RateLimitedResponse,
         HttpStatus.TOO_MANY_REQUESTS,
       );

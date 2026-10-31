@@ -16,7 +16,7 @@ ratewatch protects a service from overuse by limiting how many requests each use
 | Feature                                   | In one line                                         | Status              |
 | ----------------------------------------- | --------------------------------------------------- | ------------------- |
 | [Rate limiting](rate-limiting/)           | Each user gets a fixed number of requests per hour  | Planned             |
-| [Live user table](live-user-table/)       | Every user's usage, updating live                   | Planned             |
+| [Live user table](live-user-table/)       | Every user's usage, updating live                   | Shipped             |
 | [User detail](user-detail/)               | One user's usage, recent requests and live activity | Planned             |
 | [Admin controls](admin-controls/)         | Reset, adjust, pause or top up a user's limit       | Planned             |
 | [Search and filters](search-and-filters/) | Find users by ID, status or last activity           | Planned             |

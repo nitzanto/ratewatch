@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app/app.module';
+import { RedisIoAdapter } from './app/dashboard/adapters/redis-io.adapter';
 import type { Env } from './app/env';
 
 async function bootstrap() {
@@ -13,6 +14,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
   const config = app.get(ConfigService<Env, true>);
   app.use(cookieParser(config.get('SESSION_SECRET', { infer: true })));
+  app.useWebSocketAdapter(new RedisIoAdapter(app));
   const port = config.get('PORT', { infer: true });
   await app.listen(port);
   // Set when Nx waits for this server to be ready

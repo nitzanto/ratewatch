@@ -69,7 +69,8 @@ flowchart LR
 - Good, because the cost of live updates depends on admins, not on users.
 - Good, because the Redis adapter's sharded mode only notifies instances that have members in a room.
 - Bad, because an admin sees live changes only for rows on screen; another page is current when it's opened.
-- Bad, because with several instances, Socket.IO's HTTP long-polling fallback needs sticky sessions at the load balancer.
+- Bad, because the web app connects over WebSocket only (HTTP long-polling would need sticky sessions at the load balancer), so a network that blocks WebSockets gets no live updates.
+- Bad, because the sharded adapter publishes a room's event even when no admin is in it: until the API publishes only for followed users, Redis pub/sub traffic grows with active users, though what reaches admins doesn't. The load test measures it.
 - Bad, because two instances can each send an update for the same user in the same second; the web app keeps the newer one.
 
 ### Confirmation
@@ -85,4 +86,4 @@ flowchart LR
 
 ## In the code
 
-The event payloads are in `libs/contracts` (`realtime.schema.ts`), and the web app's Socket.IO client is `apps/web/src/libs/realtime/realtime-client.ts`. Planned with [#49](https://github.com/nitzanto/ratewatch/issues/49): the realtime gateway in the API, and `rate:subscribe`. The rooms and payloads are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+The event payloads are in `libs/contracts` (`realtime.schema.ts`), and the web app's Socket.IO client is `apps/web/src/libs/realtime/realtime-client.ts`. In the API, `RealtimeGateway` (handshake, rooms and `rate:subscribe`) and `RedisIoAdapter` (the sharded Redis adapter, set up in `main.ts`) are in `apps/api/src/app/dashboard/`. The rooms and payloads are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).

@@ -7,5 +7,7 @@ import { AuthService } from '../services/auth.service';
 @Module({
   controllers: [AuthController],
   providers: [AuthService, { provide: APP_GUARD, useClass: SessionGuard }],
+  // The realtime gateway reads the session from the Socket.IO handshake.
+  exports: [AuthService],
 })
 export class AuthModule {}

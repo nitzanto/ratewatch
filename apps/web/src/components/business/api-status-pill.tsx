@@ -1,10 +1,22 @@
 import { useHealth } from '@/hooks/api/use-health';
+import { realtimeStatusStore } from '@/libs/realtime/realtime-client';
 import { sizes } from '@/libs/theme/sizes';
 import { Box, Chip } from '@mui/material';
+import { useSyncExternalStore } from 'react';
 
-/** The app bar's connection pill. The live and reconnecting states arrive with the realtime connection. */
+const realtimeLabels = {
+  connecting: '',
+  live: 'Live · ',
+  lost: 'Reconnecting · ',
+};
+
+/** The app bar's connection pill: the API's health, and the live connection's state on a page that holds one. */
 export const ApiStatusPill = () => {
   const { isPending, isError } = useHealth();
+  const realtime = useSyncExternalStore(
+    realtimeStatusStore.subscribe,
+    realtimeStatusStore.get,
+  );
 
   if (isPending) return null;
 
@@ -22,7 +34,11 @@ export const ApiStatusPill = () => {
           }}
         />
       }
-      label={isError ? 'API unreachable' : 'API OK'}
+      label={
+        isError
+          ? 'API unreachable'
+          : `${realtime ? realtimeLabels[realtime] : ''}API OK`
+      }
     />
   );
 };

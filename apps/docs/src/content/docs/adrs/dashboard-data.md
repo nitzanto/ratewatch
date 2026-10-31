@@ -78,4 +78,4 @@ flowchart LR
 
 ## In the code
 
-Planned with [#49](https://github.com/nitzanto/ratewatch/issues/49) and [#51](https://github.com/nitzanto/ratewatch/issues/51): the dashboard publisher and the users query in the API, and the table in the web app. The records, index and queries are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+The API's dashboard module (`apps/api/src/app/dashboard/`): `DashboardPublisher` writes the records once a second, and `UsersService` holds the record script, the index and the users query behind `GET /api/admin/users`. Search, filters and sorting are planned with [#51](https://github.com/nitzanto/ratewatch/issues/51). The records, index and queries are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).

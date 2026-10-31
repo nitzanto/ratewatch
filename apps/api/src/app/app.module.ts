@@ -4,6 +4,7 @@ import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './auth/modules/auth.module';
 import { ClicksController } from './clicks/controllers/clicks.controller';
+import { DashboardModule } from './dashboard/modules/dashboard.module';
 import { envSchema } from './env';
 import { HealthController } from './health.controller';
 import { RateLimitModule } from './rate-limit/modules/rate-limit.module';
@@ -21,6 +22,7 @@ import { RedisModule } from './redis/modules/redis.module';
     AuthModule,
     RedisModule,
     RateLimitModule,
+    DashboardModule,
   ],
   controllers: [HealthController, ClicksController],
   providers: [

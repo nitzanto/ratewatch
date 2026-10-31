@@ -8,7 +8,7 @@ import type Redis from 'ioredis';
 import { redisClient } from '../constants/redis.constants';
 import { redisClientProvider } from '../providers/redis-client.provider';
 
-/** One Redis connection per API instance, shared by every feature. */
+/** The shared Redis client of each API instance. The dashboard and the Socket.IO adapter's subscriber open their own duplicates. */
 @Global()
 @Module({
   providers: [redisClientProvider],
