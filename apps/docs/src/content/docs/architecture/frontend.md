@@ -96,6 +96,7 @@ flowchart LR
 - **Resource modules** (`libs/api/<resource>-queries.ts`) export the resource's query key as a constant (`healthQueryKey = ['health']`), the plain calls, and a query-options factory (`healthQueries.status()` builds the full `queryOptions` on that key). A write uses `mutationOptions` the same way (`clickMutations.click()`), with a mutation key only once something filters or sets defaults by it. Fetching, prefetching and invalidation (`queryClient.invalidateQueries({ queryKey: healthQueryKey })`) all import the same constant, so a key is never retyped as a string.
 - **Hooks** are one line: `useHealth = () => useQuery(healthQueries.status())`, `useClick = () => useMutation(clickMutations.click())`. Components never fetch directly.
 - **No automatic retries or focus refetches.** Against a rate-limited API every extra request spends the user's allowance, so a query fails at once and shows its error, and returning to the tab doesn't fetch again. Live data will arrive over the realtime connection instead.
+- **Devtools.** In development, the TanStack Query devtools button (bottom corner) shows every cached query and mutation, the session and the rate limit included. `main.tsx` mounts it; production builds leave it out.
 - **Lint.** `@tanstack/eslint-plugin-query` checks query keys against the query function's inputs and catches unstable query clients.
 
 ## No `useEffect`

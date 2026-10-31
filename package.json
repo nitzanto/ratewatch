@@ -80,6 +80,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@tanstack/react-query": "^5.105.0",
+    "@tanstack/react-query-devtools": "^5.105.0",
     "cookie-parser": "^1.4.7",
     "nestjs-zod": "^5.5.0",
     "react": "^19.0.0",
