@@ -6,7 +6,7 @@ status: accepted
 
 # MUI as the UI library
 
-The dashboard is a data-heavy admin tool: a live user table with sorting, filtering and search, detail views, admin forms and summary cards. We use MUI (Material UI) because it covers all of that with mature, accessible components, a theme system, and MUI X Data Grid, whose free tier already sorts, filters and paginates the live table.
+The dashboard is a data-heavy admin tool: a live user table with sorting, filtering and search, detail views, admin forms and summary cards. We use MUI (Material UI) because it covers all of that with mature, accessible components, a theme system, and MUI X Data Grid, whose free tier already sorts, filters and paginates the live table. The Data Grid part is superseded by ADR-0022: the users table uses TanStack Table rendered with MUI's table components.
 
 ## Considered Options
 
@@ -17,4 +17,3 @@ The dashboard is a data-heavy admin tool: a live user table with sorting, filter
 ## Consequences
 
 - Styling runs through Emotion (CSS-in-JS at runtime) and the MUI theme; components use the `sx` prop and theme tokens rather than separate CSS files.
-- Advanced Data Grid features (row grouping, server-side data source) are in MUI X's paid tiers; the dashboard sticks to the free tier unless a decision says otherwise.

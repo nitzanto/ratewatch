@@ -1,3 +1,4 @@
+import { adminUserHandlers } from './admin-users';
 import { clickHandlers } from './clicks';
 import { healthHandlers } from './health';
 import { sessionHandlers } from './session';
@@ -7,4 +8,5 @@ export const handlers = [
   ...healthHandlers,
   ...clickHandlers,
   ...sessionHandlers,
+  ...adminUserHandlers,
 ];

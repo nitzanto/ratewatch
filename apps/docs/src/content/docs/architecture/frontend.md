@@ -142,7 +142,7 @@ flowchart LR
 
 Because MSW intercepts at the network level, the app runs its real client in both cases: fetching, contract parsing and error mapping. End-to-end tests never use MSW.
 
-**Realtime events** won't go through MSW: the MSW binding for Socket.IO doesn't support MSW 3 yet. The app will reach the realtime connection through one client module, which tests replace with `vi.mock` and mock mode swaps for a fake that emits contract-typed events.
+**Realtime events** don't go through MSW: the MSW binding for Socket.IO doesn't support MSW 3 yet. The app reaches the realtime connection only through `libs/realtime/realtime-client.ts`. The test setup and mock mode swap in a fake (`replaceRealtime`, with the fake in `mocks/realtime.ts`): tests send `rate:update` and `rate:limit_exceeded` through it and drop or restore the connection, and mock mode adds about one request a second of simulated traffic.
 
 ## Testing
 

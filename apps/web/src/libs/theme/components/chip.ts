@@ -5,7 +5,7 @@ declare module '@mui/material/Chip' {
   interface ChipPropsVariantOverrides {
     /** A pill on the navy app bar, such as the connection status. */
     shell: true;
-    /** A rate-limit status: outlined in the status colour (`success`, `warning` or `error`), label in ink. */
+    /** A rate-limit status: outlined in the status colour (`success`, `warning`, `error`, or `default` for Paused), label in ink. */
     status: true;
   }
 }
@@ -45,5 +45,13 @@ export const MuiChip: Components<Theme>['MuiChip'] = {
         return { borderColor: strong, '& .MuiChip-icon': { color: strong } };
       },
     })),
+    {
+      // Paused is the neutral slate; `default` is the status chip with no status colour.
+      props: { variant: 'status', color: 'default' },
+      style: ({ theme }) => ({
+        borderColor: theme.palette.paused,
+        '& .MuiChip-icon': { color: theme.palette.paused },
+      }),
+    },
   ],
 };

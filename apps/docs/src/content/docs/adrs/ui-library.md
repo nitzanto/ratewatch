@@ -1,13 +1,13 @@
 ---
 title: UI library
-description: The dashboard uses MUI, with MUI X Data Grid for the live user table.
+description: The dashboard uses MUI, styled with Emotion and the MUI theme.
 sidebar:
   order: 4
 ---
 
-**Status:** Accepted · **Issue:** [#8](https://github.com/nitzanto/ratewatch/issues/8)
+**Status:** Accepted; the Data Grid part is superseded by [Data table](../data-table/) · **Issue:** [#8](https://github.com/nitzanto/ratewatch/issues/8)
 
-The dashboard uses **MUI, styled with Emotion and the MUI theme, and MUI X Data Grid for the live user table**.
+The dashboard uses **MUI, styled with Emotion and the MUI theme**. This decision also chose MUI X Data Grid for the live user table; when the table was built, its live behaviour (in-place updates, a frozen order while the admin points at it, multi-part cells) moved it to TanStack Table rendered with MUI's table components instead. See [Data table](../data-table/).
 
 **Options considered**
 
@@ -25,8 +25,8 @@ The dashboard uses **MUI, styled with Emotion and the MUI theme, and MUI X Data 
 
 **Why:** the live table is the centre of the dashboard, and building the grid ourselves would put the most risk on the most important screen. shadcn/ui wins on performance, but the grid's row virtualisation keeps MUI's runtime styling cost small at our table sizes.
 
-**Trade-offs we accept:** Emotion adds styling work to every render. Row grouping and server-side data sources are in MUI X's paid tiers; we stay on the free tier unless a later decision says otherwise.
+**Trade-offs we accept:** Emotion adds styling work to every render.
 
-**Revisit when:** we need a paid Data Grid feature, or the live table can't meet the render budget its design doc sets.
+**Revisit when:** runtime styling becomes a measurable cost on the dashboard's busiest screens.
 
 **In the code:** the theme is `apps/web/src/libs/theme/theme.ts`, applied with `CssBaseline` in `apps/web/src/app/providers.tsx`. Components style with the `sx` prop and theme tokens, never separate CSS files.

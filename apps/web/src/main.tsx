@@ -14,6 +14,12 @@ if (import.meta.env.DEV && import.meta.env.VITE_MOCKS === 'true') {
   const { setupWorker } = await import('msw/browser');
   const { handlers } = await import('./mocks/handlers');
   await setupWorker(...handlers).start({ onUnhandledFrame: 'bypass' });
+  // MSW doesn't mock Socket.IO yet (no MSW 3 binding), so the realtime connection swaps in a fake.
+  const { replaceRealtime } = await import('./libs/realtime/realtime-client');
+  const { connectFakeRealtime, simulateTraffic } =
+    await import('./mocks/realtime');
+  replaceRealtime(connectFakeRealtime);
+  simulateTraffic();
 }
 
 const root = ReactDOM.createRoot(

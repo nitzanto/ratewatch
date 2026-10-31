@@ -267,8 +267,8 @@ sequenceDiagram
 
 **The web app:**
 
-- Rows update in place in the TanStack Query cache, without re-sorting. A row whose new value would move it shows the "order changed" hint; refreshing the page refetches.
-- It keeps an update only when it's newer than the row it has: a later `resetAt`, or the same `resetAt` with a higher `used`.
+- Rows update in place in the TanStack Query cache, and flash. The table re-sorts the rows on screen only while the pointer is off it and no user is open, so nothing moves under the admin; a row never moves to another page until the page is fetched again.
+- It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change).
 - On reconnect it refetches the page, then sends `rate:subscribe` again.
 
 ## Admin controls

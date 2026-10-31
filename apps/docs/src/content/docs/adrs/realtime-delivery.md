@@ -85,4 +85,4 @@ flowchart LR
 
 ## In the code
 
-Planned with [#49](https://github.com/nitzanto/ratewatch/issues/49): the realtime gateway in the API, the Socket.IO client in the web app, and the event payloads in `libs/contracts`. The rooms and payloads are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+The event payloads are in `libs/contracts` (`realtime.schema.ts`), and the web app's Socket.IO client is `apps/web/src/libs/realtime/realtime-client.ts`. Planned with [#49](https://github.com/nitzanto/ratewatch/issues/49): the realtime gateway in the API, and `rate:subscribe`. The rooms and payloads are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).

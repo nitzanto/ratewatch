@@ -1,6 +1,6 @@
 import { createSvgIcon } from '@mui/material/utils';
 
-// Material Icons (filled) paths, so the three status icons don't need the whole icon package.
+// Material Icons (filled) paths, so the four status icons don't need the whole icon package.
 export const OkIcon = createSvgIcon(
   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />,
   'CheckCircle',
@@ -9,6 +9,11 @@ export const OkIcon = createSvgIcon(
 export const WarningIcon = createSvgIcon(
   <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />,
   'Warning',
+);
+
+export const PausedIcon = createSvgIcon(
+  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />,
+  'PauseCircle',
 );
 
 export const ExceededIcon = createSvgIcon(
