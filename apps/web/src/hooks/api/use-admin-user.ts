@@ -2,7 +2,7 @@ import { adminUsersQueries } from '@/libs/api/admin-users-queries';
 import type { ActivityRange } from '@ratewatch/contracts';
 import { useQuery } from '@tanstack/react-query';
 
-/** One user's row and recent requests, for the user drawer; live events update it in place (see `useLiveUsers`). */
+/** One user's row and recent requests, for the user drawer; live events update it in place (see `useLiveDashboard`). */
 export const useAdminUser = (userId: string) =>
   useQuery(adminUsersQueries.detail(userId));
 

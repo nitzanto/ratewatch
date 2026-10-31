@@ -218,12 +218,12 @@ A user whose window ended has no `ratio`, `left` or `resetAt`, so they count as 
 
 ### Reading: user detail and analytics
 
-| Endpoint                                      | Answers                                                                                                                   | From                               |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `GET /api/admin/users/:id`                    | `{ row, lastResetAt, recent }`: the row, when the count last went to zero, and the last 50 requests; 404 without a record | `user:{uid}`, `recent:{uid}`       |
-| `GET /api/admin/users/:id/history?range=hour` | `{ buckets: [{ start, accepted, refused }] }`: 60 one-minute buckets, oldest first, the last one holding now              | `hist:{uid}`                       |
-| `GET /api/admin/users/:id/history?range=day`  | 96 fifteen-minute buckets, the same way                                                                                   | `hist:{uid}`                       |
-| `GET /api/admin/summary`                      | Total users (active in 24 hours), share near the limit (Warning ÷ total), refused today (UTC), top 5 users by `used`      | The index, `stats:refused:<today>` |
+| Endpoint                                      | Answers                                                                                                                                                | From                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `GET /api/admin/users/:id`                    | `{ row, lastResetAt, recent }`: the row, when the count last went to zero, and the last 50 requests; 404 without a record                              | `user:{uid}`, `recent:{uid}`       |
+| `GET /api/admin/users/:id/history?range=hour` | `{ buckets: [{ start, accepted, refused }] }`: 60 one-minute buckets, oldest first, the last one holding now                                           | `hist:{uid}`                       |
+| `GET /api/admin/users/:id/history?range=day`  | 96 fifteen-minute buckets, the same way                                                                                                                | `hist:{uid}`                       |
+| `GET /api/admin/summary`                      | Total users (active in 24 hours), share near the limit ((Warning + Exceeded) ÷ total), each status's count, refused today (UTC), top 5 users by `used` | The index, `stats:refused:<today>` |
 
 `lastResetAt` is the record's `windowEnd` once that has passed (the count went to zero then, though the record only moves on with the next request), and the record's `lastResetAt` before that; `null` until a first window has ended.
 

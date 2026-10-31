@@ -9,6 +9,8 @@ export const realtimeEvents = {
   update: 'rate:update',
   /** A user's first refusal in a window, sent at once. */
   limitExceeded: 'rate:limit_exceeded',
+  /** The dashboard's summary (`adminSummarySchema`), once a second. */
+  summary: 'rate:summary',
 } as const;
 
 /** The most users one admin follows: a page of 100 rows plus the open user. */

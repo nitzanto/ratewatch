@@ -1,11 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type ActivityRange,
+  type AdminSummary,
   activeWithinMs,
   activityRanges,
   defaultHourlyLimit,
   recentRequestsKept,
   sameWindowToleranceMs,
+  type TopUser,
+  topUsersShown,
   type UserDetail,
   type UserHistory,
   type UserRow,
@@ -28,6 +31,7 @@ import {
   recentKey,
   recordChunkSize,
   recordUserScript,
+  refusedKey,
   statusQueries,
   userKey,
   userRecordTtlSeconds,
@@ -75,6 +79,61 @@ export const toRow = (fields: Record<string, string>, now: number): UserRow => {
     pausedUntil: paused ? new Date(pausedUntil).toISOString() : null,
   };
 };
+
+const daySeconds = 24 * 60 * 60;
+
+/** A time's UTC day, as `YYYY-MM-DD`. */
+const utcDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** The refused requests in a user's per-minute counts (`r:<minute>`), added up per UTC day. */
+const refusedPerDay = (counts: Activity['counts']) => {
+  const days = new Map<string, number>();
+  for (const [field, count] of counts) {
+    const [kind, minute] = field.split(':');
+    if (kind !== 'r') continue;
+    const day = utcDay(Number(minute) * 60_000);
+    days.set(day, (days.get(day) ?? 0) + count);
+  }
+  return days;
+};
+
+/** The documents an FT.SEARCH found, as field maps: it answers [total, key, fields, key, fields…]. */
+const hitsOf = (reply: unknown[]) => {
+  const hits: Record<string, string>[] = [];
+  for (let i = 2; i < reply.length; i += 2)
+    hits.push(toFields(reply[i] as string[]));
+  return hits;
+};
+
+const statuses = Object.keys(statusQueries) as UserStatus[];
+
+/** Queues one count per status among the users `matching`; their replies come back in `statuses` order. */
+const countStatuses = (pipeline: ChainableCommander, matching: string) => {
+  for (const status of statuses)
+    pipeline.call(
+      'FT.SEARCH',
+      usersIndex,
+      `${matching} ${statusQueries[status]}`,
+      'LIMIT',
+      0,
+      0,
+      'DIALECT',
+      queryDialect,
+    );
+};
+
+/** The status counts' replies (`[total]` each) as `{ ok, warning, exceeded, paused }`. */
+const toCounts = (replies: unknown[][]) =>
+  Object.fromEntries(
+    statuses.map((status, i) => [status, Number(replies[i][0])]),
+  ) as UsersPage['counts'];
+
+/** A pipeline's replies, throwing the first error. */
+const repliesOf = (results: [Error | null, unknown][] | null) =>
+  (results ?? []).map(([error, reply]) => {
+    if (error) throw error;
+    return reply;
+  });
 
 /**
  * Users whose ID is `q`, or starts with it once it's 2 characters (the query engine's shortest prefix). Every
@@ -162,6 +221,14 @@ export class UsersService {
       );
       pipeline.ltrim(recentKey(userId), 0, recentRequestsKept - 1);
       pipeline.expire(recentKey(userId), userRecordTtlSeconds);
+      // Each refused request counts on its own minute's UTC day, so a batch across midnight splits.
+      for (const [day, refused] of refusedPerDay(counts)) {
+        pipeline.incrby(refusedKey(day), refused);
+        pipeline.expireat(
+          refusedKey(day),
+          Date.parse(day) / 1000 + 2 * daySeconds,
+        );
+      }
     }
     const results = (await pipeline.exec()) ?? [];
     const now = Date.now();
@@ -217,18 +284,82 @@ export class UsersService {
   }
 
   /** One page of the users table, and each status's count under the same search and last-active filter. */
-  async list(query: UsersQuery): Promise<UsersPage> {
+  list(query: UsersQuery): Promise<UsersPage> {
+    return this.withIndex(() => this.search(query));
+  }
+
+  /**
+   * The dashboard's summary over the users active in the past 24 hours: their count, the share near the limit
+   * (Warning or Exceeded), each status's count, the requests refused today (UTC), and the top users by requests in
+   * their current window.
+   */
+  summary(): Promise<AdminSummary> {
+    return this.withIndex(async () => {
+      const now = Date.now();
+      const active = `@lastRequest:[${now - activeWithinMs['24h']} +inf]`;
+      const pipeline = this.redis.pipeline();
+      countStatuses(pipeline, active);
+      // `used` expires with the window, so a user whose window ended isn't matched.
+      pipeline.call(
+        'FT.SEARCH',
+        usersIndex,
+        `${active} @used:[1 +inf]`,
+        'SORTBY',
+        'used',
+        'DESC',
+        'LIMIT',
+        0,
+        topUsersShown,
+        'RETURN',
+        3,
+        'id',
+        'used',
+        'limit',
+        'DIALECT',
+        queryDialect,
+      );
+      pipeline.get(refusedKey(utcDay(now)));
+      const replies = repliesOf(await pipeline.exec());
+      const counts = toCounts(replies.slice(0, statuses.length) as unknown[][]);
+      const [top, refused] = replies.slice(statuses.length) as [
+        (number | string | string[])[],
+        string | null,
+      ];
+      const totalUsers = statuses.reduce(
+        (sum, status) => sum + counts[status],
+        0,
+      );
+      const topUsers: TopUser[] = hitsOf(top).map((fields) => ({
+        userId: fields.id,
+        used: Number(fields.used),
+        limit: Number(fields.limit),
+      }));
+      return {
+        totalUsers,
+        nearLimitShare: totalUsers
+          ? (counts.warning + counts.exceeded) / totalUsers
+          : 0,
+        refusedToday: Number(refused ?? 0),
+        counts,
+        topUsers,
+      };
+    });
+  }
+
+  /** Runs a read of the index, creating the index again, once, if Redis has lost it (a flush, or a restart or failover without its data). */
+  private async withIndex<T>(read: () => Promise<T>) {
+    await this.ensureIndex();
     try {
-      return await this.search(query);
+      return await read();
     } catch (error) {
-      // Redis lost the index (a flush, or a restart or failover without its data): create it again, once.
       if (!(
         error instanceof Error &&
         error.message.startsWith('SEARCH_INDEX_NOT_FOUND')
       ))
         throw error;
       this.indexReady = false;
-      return this.search(query);
+      await this.ensureIndex();
+      return read();
     }
   }
 
@@ -241,7 +372,6 @@ export class UsersService {
     page,
     pageSize,
   }: UsersQuery): Promise<UsersPage> {
-    await this.ensureIndex();
     const now = Date.now();
     const matching = `@lastRequest:[${now - activeWithinMs[activeWithin]} +inf]${q ? ` ${idQuery(q)}` : ''}`;
     const pipeline = this.redis.pipeline();
@@ -258,34 +388,14 @@ export class UsersService {
       'DIALECT',
       queryDialect,
     );
-    const statuses = Object.keys(statusQueries) as UserStatus[];
-    for (const status of statuses)
-      pipeline.call(
-        'FT.SEARCH',
-        usersIndex,
-        `${matching} ${statusQueries[status]}`,
-        'LIMIT',
-        0,
-        0,
-        'DIALECT',
-        queryDialect,
-      );
-    const [found, ...counts] = ((await pipeline.exec()) ?? []).map(
-      ([error, reply]) => {
-        if (error) throw error;
-        return reply as (number | string | string[])[];
-      },
-    );
-    const rows: UserRow[] = [];
-    // FT.SEARCH answers [total, key, fields, key, fields…].
-    for (let i = 2; i < found.length; i += 2)
-      rows.push(toRow(toFields(found[i] as string[]), now));
+    countStatuses(pipeline, matching);
+    const [found, ...counts] = repliesOf(await pipeline.exec()) as (
+      number | string | string[]
+    )[][];
     return {
-      rows,
+      rows: hitsOf(found).map((fields) => toRow(fields, now)),
       total: Number(found[0]),
-      counts: Object.fromEntries(
-        statuses.map((status, i) => [status, Number(counts[i][0])]),
-      ) as UsersPage['counts'],
+      counts: toCounts(counts),
     };
   }
 

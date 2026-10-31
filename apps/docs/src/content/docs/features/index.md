@@ -20,7 +20,7 @@ ratewatch protects a service from overuse by limiting how many requests each use
 | [User detail](user-detail/)               | One user's usage, recent requests and live activity          | Shipped             |
 | [Admin controls](admin-controls/)         | Reset, adjust or pause a user's limit, or add extra requests | Shipped             |
 | [Search and filters](search-and-filters/) | Find users by ID, status or last activity                    | Shipped             |
-| [Analytics](analytics/)                   | Totals and top users at a glance                             | Planned             |
+| [Analytics](analytics/)                   | Totals and top users at a glance                             | Shipped             |
 | [Cookie Clicker](cookie-clicker/)         | Spend requests by clicking a cookie, see the limit           | Shipped (mock mode) |
 
 ## Writing a feature spec

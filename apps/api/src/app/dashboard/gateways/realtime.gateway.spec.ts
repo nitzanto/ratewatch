@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import {
+  type AdminSummary,
+  adminSummarySchema,
   rateLimitedResponseSchema,
   type RateLimitExceededEvent,
   rateSubscribeAckSchema,
@@ -202,6 +204,34 @@ describe('realtime', () => {
 
     expect(updates).toEqual([]);
   });
+
+  it('sends admins rate:summary every second, counting the latest requests', async () => {
+    const { userId, cookie } = await signedInUser(baseUrl);
+    const socket = await adminSocket();
+    const summaries: AdminSummary[] = [];
+    socket.on(realtimeEvents.summary, (payload: unknown) =>
+      summaries.push(adminSummarySchema.parse(payload)),
+    );
+
+    await Promise.all(
+      Array.from({ length: 150 }, () => postClick(baseUrl, cookie)),
+    );
+
+    // More than any other user in this spec, so first.
+    await vi.waitFor(
+      () =>
+        expect(summaries.at(-1)?.topUsers[0]).toEqual({
+          userId,
+          used: 100,
+          limit: 100,
+        }),
+      { timeout: 3000 },
+    );
+    expect(summaries.at(-1)?.refusedToday).toBeGreaterThanOrEqual(50);
+    const count = summaries.length;
+    await new Promise((resolve) => setTimeout(resolve, 2100));
+    expect(summaries.length - count).toBeGreaterThanOrEqual(2);
+  }, 10_000);
 
   it('sends rate:limit_exceeded to every admin at once, on the first refusal in the window only', async () => {
     const { userId, cookie } = await signedInUser(baseUrl);

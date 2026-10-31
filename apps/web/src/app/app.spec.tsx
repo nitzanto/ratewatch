@@ -15,7 +15,7 @@ describe('App', () => {
     expect(page().getByRole('progressbar', { name: 'Loading' })).toBeTruthy();
     expect(await page().findByRole('status')).toHaveProperty(
       'textContent',
-      'API status: ok',
+      'OK',
     );
     expect(appBar().getByRole('status')).toHaveProperty(
       'textContent',

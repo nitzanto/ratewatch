@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto';
 import {
   historyKey,
   recentKey,
+  refusedKey,
   userKey,
 } from '../constants/dashboard.constants';
 import type { Activity } from '../interfaces/activity.interface';
@@ -277,6 +278,114 @@ describe('UsersService.list', () => {
         userIds(await users.list(query({ q: prefix, sort, order }))),
       ).toEqual(expected);
     });
+  });
+});
+
+// A container of its own: the summary covers every user in Redis.
+describe('UsersService.summary', () => {
+  let container: StartedRedisContainer;
+  let redis: Redis;
+  let users: UsersService;
+
+  beforeAll(async () => {
+    container = await new RedisContainer('redis:8.10-alpine').start();
+    redis = new Redis(container.getConnectionUrl());
+    users = new UsersService(redis);
+  }, 120_000);
+
+  afterAll(async () => {
+    await users?.close();
+    await redis?.quit();
+    await container?.stop();
+  });
+
+  const minuteMs = 60_000;
+
+  /** Records `used` of 100 requests for `userId`, the last of them `refused` ones, at `at`, the window ending in `resetInMs`. */
+  const record = async (
+    userId: string,
+    used: number,
+    { refused = 0, at = Date.now(), resetInMs = 30 * minuteMs } = {},
+  ) => {
+    const minute = Math.floor(at / minuteMs);
+    const [row] = await users.record([
+      {
+        latest: {
+          userId,
+          allowed: !refused,
+          at,
+          limit: 100,
+          used,
+          resetAt: Date.now() + resetInMs,
+          firstRefusal: false,
+        },
+        requests: [{ at, allowed: !refused }],
+        counts: new Map([[`${refused ? 'r' : 'a'}:${minute}`, refused || 1]]),
+      },
+    ]);
+    if (row instanceof Error) throw row;
+  };
+
+  it('answers zeros before any request', async () => {
+    await expect(users.summary()).resolves.toEqual({
+      totalUsers: 0,
+      nearLimitShare: 0,
+      refusedToday: 0,
+      counts: { ok: 0, warning: 0, exceeded: 0, paused: 0 },
+      topUsers: [],
+    });
+  });
+
+  it("counts the users, the share near the limit, today's refusals and the top users", async () => {
+    const startOfToday =
+      Math.floor(Date.now() / (24 * 60 * minuteMs)) * 24 * 60 * minuteMs;
+    await record('user-ok', 10);
+    await record('user-warning', 95);
+    await record('user-exceeded', 100, { refused: 3 });
+    // Refused just before midnight UTC: yesterday's, not today's.
+    await record('user-yesterday', 100, {
+      refused: 4,
+      at: startOfToday - 1000,
+    });
+    await record('user-ended', 100, { resetInMs: -1000 });
+    await record('user-paused', 100);
+    await redis.hset(
+      userKey('user-paused'),
+      'pausedUntil',
+      Date.now() + 15 * minuteMs,
+    );
+    for (let i = 0; i < 6; i++) await record(`user-light-${i}`, 1);
+
+    const summary = await users.summary();
+
+    expect(summary).toMatchObject({
+      totalUsers: 12,
+      counts: { ok: 8, warning: 1, exceeded: 2, paused: 1 },
+      nearLimitShare: 3 / 12,
+      refusedToday: 3,
+    });
+    // Most requests in the current window first; the user whose window ended has none. The three at 100 tie.
+    expect(
+      summary.topUsers
+        .slice(0, 3)
+        .map(({ userId }) => userId)
+        .sort(),
+    ).toEqual(['user-exceeded', 'user-paused', 'user-yesterday']);
+    expect(summary.topUsers.slice(3)).toEqual([
+      { userId: 'user-warning', used: 95, limit: 100 },
+      { userId: 'user-ok', used: 10, limit: 100 },
+    ]);
+  });
+
+  it('keeps a day of refusals until the end of the next UTC day', async () => {
+    await record('user-refused', 100, { refused: 1 });
+
+    const day = new Date().toISOString().slice(0, 10);
+    const expiresAt = (await redis.call(
+      'EXPIRETIME',
+      refusedKey(day),
+    )) as number;
+    expect(expiresAt).toBe(Date.parse(day) / 1000 + 2 * 24 * 60 * 60);
   });
 });
 

@@ -1,8 +1,10 @@
 import {
+  adminSummarySchema,
   rateLimitExceededEventSchema,
   rateSubscribeAckSchema,
   rateUpdateEventSchema,
   realtimeEvents,
+  type AdminSummary,
   type RateLimitExceededEvent,
   type RateUpdateEvent,
   type UserRow,
@@ -15,6 +17,8 @@ export type RealtimeStatus = 'connecting' | 'live' | 'lost';
 export type RealtimeListeners = {
   onUpdate: (event: RateUpdateEvent) => void;
   onLimitExceeded: (event: RateLimitExceededEvent) => void;
+  /** The dashboard's summary, once a second. */
+  onSummary: (summary: AdminSummary) => void;
   /** The followed users' current rows, answered to each subscription. */
   onRows: (rows: UserRow[]) => void;
   onStatus: (status: RealtimeStatus) => void;
@@ -45,6 +49,7 @@ const subscribeTimeoutMs = 5000;
 const connectSocket: ConnectRealtime = ({
   onUpdate,
   onLimitExceeded,
+  onSummary,
   onRows,
   onStatus,
   onRefused,
@@ -82,6 +87,9 @@ const connectSocket: ConnectRealtime = ({
   );
   socket.on(realtimeEvents.limitExceeded, (payload) =>
     onLimitExceeded(rateLimitExceededEventSchema.parse(payload)),
+  );
+  socket.on(realtimeEvents.summary, (payload) =>
+    onSummary(adminSummarySchema.parse(payload)),
   );
   return {
     follow: (userIds) => {

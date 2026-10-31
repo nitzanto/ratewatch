@@ -112,7 +112,7 @@ const isNotOlder = (next: UserRow, current: UserRow) => {
  * page's status counts; the table never re-sorts from here. An admin's change (`byAdmin`) always wins, though a
  * reset row looks older: it has no window.
  */
-// shortcut: only the users on screen send updates, so the counts miss status changes of users off the page until the next fetch; take the unfiltered view's counts from `rate:summary` once analytics (#57) sends it every second.
+// shortcut: only the users on screen send updates, so under a search or a last-active filter the counts miss status changes of users off the page until the next fetch (`applySummary` corrects the default view every second); a per-query count event fixes it if admins need it.
 export const applyUserRow = (
   client: QueryClient,
   next: UserRow,

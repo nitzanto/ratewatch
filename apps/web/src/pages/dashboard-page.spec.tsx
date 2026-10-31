@@ -1,6 +1,9 @@
 import { renderApp } from '@/libs/test-utils/render-app';
 import { userRow } from '@/mocks/data/users';
-import { setMockUsers } from '@/mocks/handlers/admin-users';
+import {
+  setMockRefusedToday,
+  setMockUsers,
+} from '@/mocks/handlers/admin-users';
 import { setMockSession } from '@/mocks/handlers/session';
 import {
   dropRealtime,
@@ -9,6 +12,7 @@ import {
   restoreRealtime,
   sendLimitExceeded,
   sendRateUpdate,
+  sendSummary,
 } from '@/mocks/realtime';
 import { server } from '@/mocks/node';
 import {
@@ -1128,5 +1132,132 @@ describe('Users table', () => {
         await waitFor(() => expectUserIds(['user-aaaa1111']));
       });
     });
+  });
+});
+
+describe('Analytics', () => {
+  const card = (name: string) => within(page().getByRole('region', { name }));
+  const topUsers = () =>
+    within(page().getByRole('region', { name: 'Top users' }));
+
+  it('shows the users, the share near their limit, the 429s today and the top users', async () => {
+    setMockUsers([
+      userRow('user-aaaa1111', 59, 4_000),
+      userRow('user-bbbb2222', 95, 8_000),
+      userRow('user-cccc3333', 100, 20_000),
+      userRow('user-dddd4444', 12, 30_000),
+      userRow('user-eeee5555', 0, 70 * minuteMs, {
+        requestsLeft: 100,
+        resetAt: null,
+      }),
+    ]);
+    setMockRefusedToday(1234);
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+
+    expect(await card('Total users').findByText('5')).toBeTruthy();
+    // Warning and Exceeded both count as near the limit.
+    expect(card('Near their limit').getByText('40%')).toBeTruthy();
+    expect(
+      card('Near their limit').getByText('1 in Warning, 1 Exceeded'),
+    ).toBeTruthy();
+    expect(card('429s today (UTC)').getByText('1,234')).toBeTruthy();
+
+    // Most requests first; a user whose window ended has none.
+    const items = topUsers().getAllByRole('listitem');
+    expect(items).toHaveLength(4);
+    [
+      'user-cccc3333',
+      'user-bbbb2222',
+      'user-aaaa1111',
+      'user-dddd4444',
+    ].forEach((userId, i) =>
+      expect(within(items[i]).getByText(userId)).toBeTruthy(),
+    );
+    expect(within(items[0]).getByText('100 requests')).toBeTruthy();
+    expect(within(items[0]).getByText('0 of 100 left')).toBeTruthy();
+  });
+
+  it('updates live from rate:summary', async () => {
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+    await card('Total users').findByText('7');
+
+    act(() =>
+      sendSummary({
+        totalUsers: 8,
+        nearLimitShare: 2 / 3,
+        refusedToday: 99,
+        counts: { ok: 2, warning: 3, exceeded: 3, paused: 0 },
+        topUsers: [{ userId: 'user-ffff6666', used: 1, limit: 100 }],
+      }),
+    );
+
+    expect(await card('Total users').findByText('8')).toBeTruthy();
+    expect(card('Near their limit').getByText('66.7%')).toBeTruthy();
+    expect(card('429s today (UTC)').getByText('99')).toBeTruthy();
+    expect(topUsers().getAllByRole('listitem')).toHaveLength(1);
+    expect(topUsers().getByText('1 request')).toBeTruthy();
+  });
+
+  it('breaks the active users down by status, showing Paused only when someone is', async () => {
+    setMockUsers([
+      userRow('user-aaaa1111', 59, 4_000),
+      userRow('user-bbbb2222', 10, 5_000),
+      userRow('user-cccc3333', 95, 8_000),
+      userRow('user-dddd4444', 100, 20_000),
+    ]);
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+    const breakdown = within(
+      await page().findByRole('region', { name: 'Status breakdown' }),
+    );
+
+    expect(
+      breakdown.getByRole('img', { name: '2 OK, 1 Warning, 1 Exceeded' }),
+    ).toBeTruthy();
+    expect(breakdown.getAllByRole('listitem')).toEqual([
+      expect.objectContaining({ textContent: 'OK · under 90% used2' }),
+      expect.objectContaining({ textContent: 'Warning · 90% or more used1' }),
+      expect.objectContaining({ textContent: 'Exceeded · all used1' }),
+    ]);
+  });
+
+  it("keeps the users table's status counts current from rate:summary, users off the page included", async () => {
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+    await page().findByRole('table', { name: 'Users' });
+
+    act(() =>
+      sendSummary({
+        totalUsers: 40,
+        nearLimitShare: 0.25,
+        refusedToday: 0,
+        counts: { ok: 28, warning: 6, exceeded: 4, paused: 2 },
+        topUsers: [],
+      }),
+    );
+
+    expect(await page().findByRole('button', { name: 'OK 28' })).toBeTruthy();
+    expect(page().getByRole('button', { name: 'Paused 2' })).toBeTruthy();
+  });
+
+  it('says when no one has requests in the current window', async () => {
+    setMockUsers([]);
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+
+    expect(
+      await topUsers().findByText('No requests in the current window yet.'),
+    ).toBeTruthy();
+    expect(card('Near their limit').getByText('0%')).toBeTruthy();
+  });
+
+  it("says when the summary couldn't load", async () => {
+    server.use(
+      http.get('/api/admin/summary', () =>
+        HttpResponse.json({ message: 'Down' }, { status: 503 }),
+      ),
+    );
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+
+    expect(
+      await card('429s today (UTC)').findByText("Couldn't load the summary"),
+    ).toBeTruthy();
   });
 });

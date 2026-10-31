@@ -30,6 +30,9 @@ export const recentKey = (userId: string) => `recent:{${userId}}`;
 /** A user's accepted (`a:<minute>`) and refused (`r:<minute>`) requests per minute; each field lives 24 hours. */
 export const historyKey = (userId: string) => `hist:{${userId}}`;
 
+/** Requests refused on one UTC day (`YYYY-MM-DD`); it lives until the end of the next UTC day. */
+export const refusedKey = (day: string) => `stats:refused:${day}`;
+
 /** The query engine index over every `user:{id}` record. */
 export const usersIndex = 'users';
 

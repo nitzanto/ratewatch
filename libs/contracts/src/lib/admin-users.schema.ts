@@ -24,11 +24,17 @@ export const userRowSchema = z.object({
 
 export type UserRow = z.infer<typeof userRowSchema>;
 
+/** How many users have each status. */
+export const statusCountsSchema = z.record(
+  userStatusSchema,
+  z.int().nonnegative(),
+);
+
 /** Body of `GET /admin/users`: one page of rows, every match's total and each status's count. */
 export const usersPageSchema = z.object({
   rows: z.array(userRowSchema),
   total: z.int().nonnegative(),
-  counts: z.record(userStatusSchema, z.int().nonnegative()),
+  counts: statusCountsSchema,
 });
 
 export type UsersPage = z.infer<typeof usersPageSchema>;

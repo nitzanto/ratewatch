@@ -5,9 +5,11 @@ import {
   defaultHourlyLimit,
   extraRequestsAmount,
   recentRequestsKept,
+  topUsersShown,
   usersQuerySchema,
   warningThreshold,
   type ActivityRange,
+  type AdminSummary,
   type RecentRequest,
   type UserDetail,
   type UserHistory,
@@ -148,6 +150,33 @@ export const usersPage = (
       exceeded: count('exceeded'),
       paused: count('paused'),
     },
+  };
+};
+
+/**
+ * `GET /admin/summary` over mock users, as the API counts it: users active in the past 24 hours, near the limit
+ * meaning Warning or Exceeded, and the top users by requests in an open window.
+ */
+export const summaryOf = (
+  rows: UserRow[],
+  refusedToday: number,
+): AdminSummary => {
+  const { counts, total } = usersPage(rows);
+  const used = (row: UserRow) => row.limit - row.requestsLeft;
+  return {
+    totalUsers: total,
+    nearLimitShare: total ? (counts.warning + counts.exceeded) / total : 0,
+    refusedToday,
+    counts,
+    topUsers: rows
+      .filter((row) => row.resetAt && used(row) > 0)
+      .sort((a, b) => used(b) - used(a))
+      .slice(0, topUsersShown)
+      .map((row) => ({
+        userId: row.userId,
+        used: used(row),
+        limit: row.limit,
+      })),
   };
 };
 

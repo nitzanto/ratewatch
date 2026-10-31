@@ -29,6 +29,16 @@ export const sizes = {
   /** The chocolate chip that marks a stage note: slightly wider than tall. */
   noteChipWidth: 18,
   noteChipHeight: 16,
+  /** The summary cards' narrowest width in their auto-fit grid. */
+  summaryCardMin: 220,
+  /** The dashboard's two columns: the users table and the side column (status breakdown, top users), each one's flex basis. */
+  mainColumnBasis: 640,
+  sideColumnBasis: 300,
+  /** The status breakdown's bar. */
+  breakdownBarHeight: 12,
+  /** A top user's rank column (their details indent past it, and the 8px gap), and their volume bar. */
+  topUserRankWidth: 16,
+  topUserBarHeight: 6,
   shellPillHeight: 32,
   statusDot: 8,
   signInForm: 380,
