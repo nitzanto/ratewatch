@@ -24,5 +24,6 @@ status: accepted
 - pnpm comes from `npm install --global <packageManager>`, not corepack, which Node removes after 24.
 - The builder excludes specs, test setup and Vitest and ESLint configs (`COPY --exclude`), but copies every app: the workspace and lockfile need all of them.
 - Vite's host and `/api` proxy target read `WEB_HOST` and `API_URL` (defaults in the root `.env`, ADR-0015), so compose can point them at the `api` service.
+- The dev services set `pull_policy: build`, so every `up` rebuilds (from cache) and a container can't keep serving a branch checked out while Watch wasn't running. Compose has no setting to make `--watch` the default; the command keeps the flag.
 - Base images are pinned by digest; bump them deliberately. Both are multi-arch (amd64 and arm64).
 - The Dockerfiles need BuildKit (bind mounts, `COPY --exclude`), so the engine needs the Buildx plugin as well as Compose 2.24.4+. Nothing else is engine-specific.

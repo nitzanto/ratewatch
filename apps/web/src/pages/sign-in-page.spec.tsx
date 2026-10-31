@@ -20,6 +20,17 @@ describe('Sign-in', () => {
     expect(screen.queryByRole('banner')).toBeNull();
   });
 
+  it('returns a signed-out visitor to the page they opened once they sign in', async () => {
+    await renderApp('/play', { signedInAs: null });
+
+    // An Admin would otherwise land on the dashboard.
+    await signInAs('Sign in as Admin');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Cookie Clicker' }),
+    ).toBeTruthy();
+  });
+
   it('signs in as a User and shows the user ID in the app bar', async () => {
     await renderApp('/', { signedInAs: null });
 
@@ -59,6 +70,17 @@ describe('Sign-in', () => {
     ).toBeTruthy();
   });
 
+  it("doesn't send the next person to the page the last one signed out from", async () => {
+    await renderApp('/play');
+
+    fireEvent.click(await appBar().findByRole('button', { name: 'Sign out' }));
+    await signInAs('Sign in as Admin');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Dashboard' }),
+    ).toBeTruthy();
+  });
+
   it("doesn't carry the last person's limit over to the next sign-in", async () => {
     server.use(
       http.post('/api/clicks', () =>
@@ -82,6 +104,31 @@ describe('Sign-in', () => {
       await screen.findByText('Click Crumb to see your requests left.'),
     ).toBeTruthy();
     expect(screen.queryByRole('timer')).toBeNull();
+  });
+
+  it('sends someone whose session ends mid-use to sign-in, then back', async () => {
+    server.use(
+      http.post('/api/clicks', () =>
+        HttpResponse.json(
+          { statusCode: 401, message: 'Unauthorized' },
+          { status: 401 },
+        ),
+      ),
+    );
+    await renderApp('/play');
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Crumb/ }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Sign in' }),
+    ).toBeTruthy();
+
+    server.resetHandlers();
+    await signInAs('Sign in as User');
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Cookie Clicker' }),
+    ).toBeTruthy();
   });
 
   it('says so when signing in fails', async () => {

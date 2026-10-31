@@ -18,7 +18,7 @@ docker compose up --watch
 | The dashboard | http://localhost:4200     |
 | The API       | http://localhost:3000/api |
 
-The first run builds the images and takes a few minutes; later runs reuse them.
+The first run builds the images and takes a few minutes. Every later `up` builds them again, so a container never runs code from an older branch, but unchanged layers come from the cache, so that takes seconds.
 
 **Hot reload.** Compose Watch copies every edit into the running containers: a dashboard change hot-reloads in the browser, an API change restarts the API, and a contract change does both. Any other change to an app, the contracts, or a root workspace file (the lockfile, a `package.json`, a `tsconfig`, `nx.json`) rebuilds the affected image instead.
 

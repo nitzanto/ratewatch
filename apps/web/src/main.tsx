@@ -2,6 +2,7 @@ import '@fontsource/ibm-plex-sans/400.css';
 import '@fontsource/ibm-plex-sans/500.css';
 import '@fontsource/ibm-plex-sans/600.css';
 import '@fontsource/ibm-plex-sans/700.css';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { StrictMode } from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
@@ -23,6 +24,8 @@ root.render(
   <StrictMode>
     <AppProviders queryClient={createQueryClient()}>
       <RouterProvider router={createBrowserRouter(routes)} />
+      {/* Renders nothing outside development, and the production build drops it. */}
+      <ReactQueryDevtools />
     </AppProviders>
   </StrictMode>,
 );

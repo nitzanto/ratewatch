@@ -41,6 +41,12 @@ const replaceSession = (client: QueryClient, session: Session | null) => {
   client.setQueryData(sessionQueryKey, session);
 };
 
+/** Any query or mutation answered 401: the session expired or was edited mid-use, so the person is signed out. */
+export const endSessionOnUnauthorized = (client: QueryClient, error: Error) => {
+  if (error instanceof ApiError && error.status === 401)
+    replaceSession(client, null);
+};
+
 export const sessionQueries = {
   // Only signing in or out changes it, and both write it directly.
   current: () =>

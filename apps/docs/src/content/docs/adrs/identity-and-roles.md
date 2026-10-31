@@ -66,12 +66,15 @@ sequenceDiagram
 - Good, because API instances share nothing but the secret, so authentication scales with them.
 - Good, because the browser sends the cookie on API calls and on the Socket.IO handshake by itself: nginx serves both on one origin, so `SameSite=Strict` never gets in the way.
 - Bad, because a session can't be revoked before it expires: signing out clears the browser's cookie, but a copy stays valid until its 24 hours are up. The fixed expiry is what limits that.
+- Good, because a session that expires or was edited mid-use ends the same way as signing out: the next request gets a 401, the web app clears the session, and the person lands on sign-in. The check sits on the query client's cache rather than the API client, because only the cache holds the session, and the API client also sees the 401 that `/auth/me` gives every signed-out visitor.
+- Good, because sign-in returns a visitor to the page they opened. That page travels in the router's state, never in a query parameter, so a link from another site can't choose where sign-in sends someone. Signing out doesn't pass it on, so the next person starts on their own landing page.
 - Bad, because changing `SESSION_SECRET` signs everyone out.
 - Bad, because anyone can sign in as the Admin. That's acceptable only while ratewatch isn't deployed publicly.
 
 ### Confirmation
 
 - API tests over HTTP cover sign-in, sign-out, a missing, edited or expired cookie (401), and an unmarked endpoint answering 401.
+- Web component tests cover returning to the opened page after sign-in, signing out without passing that page on, and a 401 mid-use sending the person to sign-in and back.
 - A Playwright journey signs in, reloads (the session survives) and signs out.
 - Revisit when ratewatch needs real people or a public deployment: then real accounts move users and custom limits to Postgres, Redis keeps the counters, and the cookie stays as it is.
 
@@ -85,4 +88,5 @@ sequenceDiagram
 - `apps/api/src/app/auth/`: `controllers/` (sign-in, sign-out and `me`), `services/auth.service.ts` (issues and reads sessions), `guards/session.guard.ts` (the global guard), and `decorators/`: `@Public()` for routes that need no session, `@CurrentSession()` for handlers that read it. `cookie-parser` checks the signature; it's registered for the whole app in `main.ts`.
 - `libs/contracts/src/lib/session.schema.ts`: the session and sign-in request shapes.
 - `apps/web/src/libs/api/session-queries.ts`: restores the session on load and signs in and out. The session is a TanStack Query entry rather than a React context, because it's server state that only signing in or out changes; signing in or out drops every other cached query, since it belonged to the last person.
-- `apps/web/src/app/app-shell.tsx`: sends anyone without a session to the sign-in page, and shows who is signed in.
+- `apps/web/src/app/app-shell.tsx`: sends anyone without a session to the sign-in page, and shows who is signed in. The page they were on travels in router state, so sign-in returns them to it; signing out doesn't pass it on, so the next person starts on their own landing page.
+- `apps/web/src/app/providers.tsx`: any query or mutation answered 401 (a session that expired or was edited mid-use) clears the session, which sends the person to sign-in the same way.
