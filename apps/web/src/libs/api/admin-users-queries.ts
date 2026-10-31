@@ -1,7 +1,13 @@
 import {
+  recentRequestsKept,
   sameWindowToleranceMs,
+  userDetailSchema,
+  userHistorySchema,
   usersPageSchema,
+  type ActivityRange,
   type RateLimitExceededEvent,
+  type RateUpdateEvent,
+  type UserDetail,
   type UserRow,
   type UsersPage,
   type UsersQuery,
@@ -14,6 +20,10 @@ import {
 import { api } from './api-client';
 
 export const adminUsersQueryKey = ['admin', 'users'] as const;
+
+// Apart from the users table's key, so its page updaters never meet a user's detail.
+const adminUserKey = ['admin', 'user'] as const;
+const adminUserHistoryKey = ['admin', 'user-history'] as const;
 
 export const getAdminUsers = (query: UsersQuery) =>
   api.get(
@@ -31,6 +41,23 @@ export const adminUsersQueries = {
     queryOptions({
       queryKey: [...adminUsersQueryKey, query],
       queryFn: () => getAdminUsers(query),
+      placeholderData: keepPreviousData,
+    }),
+  detail: (userId: string) =>
+    queryOptions({
+      queryKey: [...adminUserKey, userId],
+      queryFn: () =>
+        api.get(`/admin/users/${encodeURIComponent(userId)}`, userDetailSchema),
+    }),
+  // The other range stays on screen until this one arrives, so the switch doesn't flash empty.
+  history: (userId: string, range: ActivityRange) =>
+    queryOptions({
+      queryKey: [...adminUserHistoryKey, userId, range],
+      queryFn: () =>
+        api.get(
+          `/admin/users/${encodeURIComponent(userId)}/history?range=${range}`,
+          userHistorySchema,
+        ),
       placeholderData: keepPreviousData,
     }),
 };
@@ -69,7 +96,7 @@ const isNotOlder = (next: UserRow, current: UserRow) => {
  * page's status counts; the table never re-sorts from here.
  */
 // shortcut: only the users on screen send updates, so the counts miss status changes of users off the page until the next fetch; take the unfiltered view's counts from `rate:summary` once analytics (#57) sends it every second.
-export const applyUserRow = (client: QueryClient, next: UserRow) =>
+export const applyUserRow = (client: QueryClient, next: UserRow) => {
   client.setQueriesData<UsersPage>({ queryKey: adminUsersQueryKey }, (page) => {
     if (!page) return page;
     const counts = { ...page.counts };
@@ -81,6 +108,44 @@ export const applyUserRow = (client: QueryClient, next: UserRow) =>
     });
     return { ...page, rows, counts };
   });
+  client.setQueryData<UserDetail>([...adminUserKey, next.userId], (detail) =>
+    detail && isNotOlder(next, detail.row) ? { ...detail, row: next } : detail,
+  );
+};
+
+/**
+ * A user's update: their row everywhere, their new requests merged into their recent requests, and their activity
+ * fetched again if it's on screen. The detail may have been fetched after this batch was written, so a request it
+ * already has (same time and outcome) counts once. Batches from several API instances can arrive out of order, so
+ * the list is sorted again, newest first.
+ */
+export const applyRateUpdate = (
+  client: QueryClient,
+  { row, requests }: RateUpdateEvent,
+) => {
+  applyUserRow(client, row);
+  client.setQueryData<UserDetail>([...adminUserKey, row.userId], (detail) => {
+    if (!detail) return detail;
+    const unmatched = [...detail.recent];
+    const fresh = requests.filter(({ at, allowed }) => {
+      const same = unmatched.findIndex(
+        (known) => known.at === at && known.allowed === allowed,
+      );
+      if (same === -1) return true;
+      unmatched.splice(same, 1);
+      return false;
+    });
+    if (!fresh.length) return detail;
+    // ISO times in UTC, so later is greater as text too.
+    const recent = [...fresh, ...detail.recent].sort((a, b) =>
+      a.at < b.at ? 1 : a.at > b.at ? -1 : 0,
+    );
+    return { ...detail, recent: recent.slice(0, recentRequestsKept) };
+  });
+  void client.invalidateQueries({
+    queryKey: [...adminUserHistoryKey, row.userId],
+  });
+};
 
 /** Every users-table row in the cache, on any page. */
 const rowsOnScreen = (client: QueryClient) =>
@@ -88,16 +153,19 @@ const rowsOnScreen = (client: QueryClient) =>
     .getQueriesData<UsersPage>({ queryKey: adminUsersQueryKey })
     .flatMap(([, page]) => page?.rows ?? []);
 
-/** The users whose live updates the table needs: the rows of the page on screen, not of pages cached earlier. */
+/** The users whose live updates the dashboard needs: the rows of the page on screen, not of pages cached earlier, and the open user. */
 export const userIdsOnScreen = (client: QueryClient) => [
-  ...new Set(
-    client
+  ...new Set([
+    ...client
       .getQueriesData<UsersPage>({
         queryKey: adminUsersQueryKey,
         type: 'active',
       })
       .flatMap(([, page]) => page?.rows.map(({ userId }) => userId) ?? []),
-  ),
+    ...client
+      .getQueriesData<UserDetail>({ queryKey: adminUserKey, type: 'active' })
+      .map(([queryKey]) => String(queryKey[adminUserKey.length])),
+  ]),
 ];
 
 /** A user's first refusal in a window arrives before their next `rate:update`: show them Exceeded at once. */

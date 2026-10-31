@@ -1,8 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  type ActivityRange,
   activeWithinMs,
+  activityRanges,
   defaultHourlyLimit,
+  recentRequestsKept,
   sameWindowToleranceMs,
+  type UserDetail,
+  type UserHistory,
   type UserRow,
   type UsersPage,
   type UsersQuery,
@@ -15,7 +20,9 @@ import { redisClient } from '../../redis/constants/redis.constants';
 import { windowMs } from '../../rate-limit/constants/rate-limit.constants';
 import {
   dashboardCommandTimeoutMs,
+  historyKey,
   queryDialect,
+  recentKey,
   recordChunkSize,
   recordUserScript,
   statusQueries,
@@ -24,7 +31,7 @@ import {
   usersIndex,
   usersIndexSchema,
 } from '../constants/dashboard.constants';
-import type { Decision } from '../interfaces/decision.interface';
+import type { Activity } from '../interfaces/activity.interface';
 
 type RecordPipeline = ChainableCommander & {
   recordUser(key: string, ...args: (string | number)[]): RecordPipeline;
@@ -71,20 +78,27 @@ export class UsersService {
     await this.redis.quit().catch(() => this.redis.disconnect());
   }
 
-  /** Writes each user's latest decision, a chunk of users per pipeline. Returns each user's record after the write, or the error for that user. */
-  async record(decisions: Decision[]) {
+  /**
+   * Writes each user's activity, a chunk of users per pipeline: their record from the latest decision, their
+   * requests per minute and their recent requests. Returns each user's record after the write, or the error for that user.
+   */
+  async record(activities: Activity[]) {
     await this.ensureIndex();
     const results: (Error | UserRow)[] = [];
-    for (let i = 0; i < decisions.length; i += recordChunkSize)
+    for (let i = 0; i < activities.length; i += recordChunkSize)
       results.push(
-        ...(await this.recordChunk(decisions.slice(i, i + recordChunkSize))),
+        ...(await this.recordChunk(activities.slice(i, i + recordChunkSize))),
       );
     return results;
   }
 
-  private async recordChunk(decisions: Decision[]) {
+  private async recordChunk(activities: Activity[]) {
     const pipeline = this.redis.pipeline() as RecordPipeline;
-    for (const { userId, at, limit, used, resetAt } of decisions)
+    // Where each user's commands start in the pipeline.
+    const starts: number[] = [];
+    for (const { latest, requests, counts } of activities) {
+      const { userId, at, limit, used, resetAt } = latest;
+      starts.push(pipeline.length);
       pipeline.recordUser(
         userKey(userId),
         userId,
@@ -96,11 +110,76 @@ export class UsersService {
         sameWindowToleranceMs,
         userRecordTtlSeconds,
       );
+      for (const [field, count] of counts)
+        pipeline.hincrby(historyKey(userId), field, count);
+      // Each minute's fields expire 24 hours after they were first written.
+      pipeline.hexpire(
+        historyKey(userId),
+        userRecordTtlSeconds,
+        'NX',
+        'FIELDS',
+        counts.size,
+        ...counts.keys(),
+      );
+      // Oldest first, so the newest ends up at the head.
+      pipeline.lpush(
+        recentKey(userId),
+        ...[...requests].reverse().map((request) => JSON.stringify(request)),
+      );
+      pipeline.ltrim(recentKey(userId), 0, recentRequestsKept - 1);
+      pipeline.expire(recentKey(userId), userRecordTtlSeconds);
+    }
     const results = (await pipeline.exec()) ?? [];
     const now = Date.now();
-    return results.map(([error, flat]) =>
-      error ? error : this.toRow(toFields(flat as string[]), now),
-    );
+    return starts.map((start, i) => {
+      const own = results.slice(start, starts[i + 1]);
+      const failed = own.find(([error]) => error)?.[0];
+      return failed ?? this.toRow(toFields(own[0][1] as string[]), now);
+    });
+  }
+
+  /** One user's row, when their count last went back to zero, and their last requests; `null` with no record. */
+  async detail(userId: string): Promise<UserDetail | null> {
+    const [fields, recent] = await Promise.all([
+      this.redis.hgetall(userKey(userId)),
+      this.redis.lrange(recentKey(userId), 0, recentRequestsKept - 1),
+    ]);
+    if (!fields.id) return null;
+    const now = Date.now();
+    // A window that ended put the count back to zero, though the record moves on only with the next request.
+    const windowEnd = Number(fields.windowEnd);
+    const lastResetAt =
+      windowEnd <= now ? windowEnd : Number(fields.lastResetAt ?? 0);
+    return {
+      row: this.toRow(fields, now),
+      lastResetAt: lastResetAt ? new Date(lastResetAt).toISOString() : null,
+      recent: recent.map((json) => {
+        const { at, allowed } = JSON.parse(
+          json,
+        ) as Activity['requests'][number];
+        return { at: new Date(at).toISOString(), allowed };
+      }),
+    };
+  }
+
+  /** One user's accepted and refused requests per bucket over `range`, oldest first; the last bucket holds now. */
+  async history(userId: string, range: ActivityRange): Promise<UserHistory> {
+    const { buckets, bucketMs } = activityRanges[range];
+    const first = Math.floor(Date.now() / bucketMs) - buckets + 1;
+    const counts = Array.from({ length: buckets }, (_, i) => ({
+      start: new Date((first + i) * bucketMs).toISOString(),
+      accepted: 0,
+      refused: 0,
+    }));
+    const fields = await this.redis.hgetall(historyKey(userId));
+    for (const [field, count] of Object.entries(fields)) {
+      const [kind, minute] = field.split(':');
+      const bucket =
+        counts[Math.floor((Number(minute) * 60_000) / bucketMs) - first];
+      if (bucket)
+        bucket[kind === 'a' ? 'accepted' : 'refused'] += Number(count);
+    }
+    return { buckets: counts };
   }
 
   /** One page of the users table, and each status's count under the same search and last-active filter. */

@@ -219,12 +219,14 @@ A user whose window ended has no `ratio`, `left` or `resetAt`, so they count as 
 
 ### Reading: user detail and analytics
 
-| Endpoint                                      | Answers                                                                                                              | From                               |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `GET /api/admin/users/:id`                    | The row, `lastResetAt`, and the last 50 requests                                                                     | `user:{uid}`, `recent:{uid}`       |
-| `GET /api/admin/users/:id/history?range=hour` | 60 one-minute buckets, accepted and refused                                                                          | `hist:{uid}`                       |
-| `GET /api/admin/users/:id/history?range=day`  | 96 fifteen-minute buckets                                                                                            | `hist:{uid}`                       |
-| `GET /api/admin/summary`                      | Total users (active in 24 hours), share near the limit (Warning ÷ total), refused today (UTC), top 5 users by `used` | The index, `stats:refused:<today>` |
+| Endpoint                                      | Answers                                                                                                                   | From                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `GET /api/admin/users/:id`                    | `{ row, lastResetAt, recent }`: the row, when the count last went to zero, and the last 50 requests; 404 without a record | `user:{uid}`, `recent:{uid}`       |
+| `GET /api/admin/users/:id/history?range=hour` | `{ buckets: [{ start, accepted, refused }] }`: 60 one-minute buckets, oldest first, the last one holding now              | `hist:{uid}`                       |
+| `GET /api/admin/users/:id/history?range=day`  | 96 fifteen-minute buckets, the same way                                                                                   | `hist:{uid}`                       |
+| `GET /api/admin/summary`                      | Total users (active in 24 hours), share near the limit (Warning ÷ total), refused today (UTC), top 5 users by `used`      | The index, `stats:refused:<today>` |
+
+`lastResetAt` is the record's `windowEnd` once that has passed (the count went to zero then, though the record only moves on with the next request), and the record's `lastResetAt` before that; `null` until a first window has ended.
 
 ## Realtime
 
@@ -271,6 +273,7 @@ sequenceDiagram
 - Rows update in place in the TanStack Query cache, and flash. The table re-sorts the rows on screen only while the pointer is off it and no user is open, so nothing moves under the admin; a row never moves to another page until the page is fetched again.
 - It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change). Reset times within 5 seconds count as the same, because `rate:limit_exceeded` carries the instance's own reset time.
 - On reconnect it refetches the page and sends `rate:subscribe` again, since a new connection follows nobody. Both answers pass the same newer-or-same check, so their order doesn't matter.
+- The open user's drawer takes the same rows, and puts each update's requests at the top of its recent requests, skipping any older than the newest it has (the detail may have been fetched after that batch was written). Their activity is fetched again on each update while it's on screen.
 
 ## Admin controls
 

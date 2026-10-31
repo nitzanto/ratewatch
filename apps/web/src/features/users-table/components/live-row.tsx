@@ -9,12 +9,19 @@ import { useState, type ReactNode } from 'react';
 const flash = keyframes`from { background-color: ${palette.liveFlash} } to { background-color: transparent }`;
 const flashAgain = keyframes`0% { background-color: ${palette.liveFlash} } 100% { background-color: transparent }`;
 
-/** A row that flashes `live-flash` each time its user changes. The rows come from the query cache, which keeps an unchanged row the same object. */
+/**
+ * A row that flashes `live-flash` each time its user changes, and opens its user on a click. The rows come from the
+ * query cache, which keeps an unchanged row the same object.
+ */
 export const LiveRow = ({
   user,
+  selected,
+  onClick,
   children,
 }: {
   user: UserRow;
+  selected: boolean;
+  onClick: () => void;
   children: ReactNode;
 }) => {
   const [seen, setSeen] = useState(user);
@@ -26,14 +33,16 @@ export const LiveRow = ({
 
   return (
     <TableRow
+      hover
+      selected={selected}
+      onClick={onClick}
       data-flash={changes ? changes % 2 : undefined}
-      sx={
-        changes
-          ? {
-              animation: `${changes % 2 ? flash : flashAgain} 1.6s ease-out`,
-            }
-          : undefined
-      }
+      sx={{
+        cursor: 'pointer',
+        ...(changes && {
+          animation: `${changes % 2 ? flash : flashAgain} 1.6s ease-out`,
+        }),
+      }}
     >
       {children}
     </TableRow>

@@ -1,9 +1,15 @@
 import { sortValueOf } from '@/libs/api/admin-users-queries';
 import {
   activeWithinMs,
+  activityRanges,
   defaultHourlyLimit,
+  recentRequestsKept,
   usersQuerySchema,
   warningThreshold,
+  type ActivityRange,
+  type RecentRequest,
+  type UserDetail,
+  type UserHistory,
   type UserRow,
   type UsersPage,
   type UsersQuery,
@@ -122,4 +128,42 @@ export const usersPage = (
       paused: count('paused'),
     },
   };
+};
+
+/** A user's last requests in mock mode: one every 20 s back from their last request, the newest refused once they're Exceeded. */
+export const recentRequestsOf = (row: UserRow): RecentRequest[] =>
+  Array.from(
+    { length: Math.min(row.limit - row.requestsLeft, recentRequestsKept) },
+    (_, i) => ({
+      at: new Date(Date.parse(row.lastRequestAt) - i * 20_000).toISOString(),
+      allowed: !(row.status === 'exceeded' && i === 0),
+    }),
+  );
+
+/** `GET /admin/users/:id` for a mock user: a window that is open started 90 minutes before it ends, after the last reset. */
+export const userDetail = (row: UserRow): UserDetail => ({
+  row,
+  lastResetAt: row.resetAt
+    ? new Date(Date.parse(row.resetAt) - 90 * minuteMs).toISOString()
+    : null,
+  recent: recentRequestsOf(row),
+});
+
+/** `GET /admin/users/:id/history` for a mock user: their recent requests, counted per bucket. */
+export const userHistory = (
+  row: UserRow,
+  range: ActivityRange,
+): UserHistory => {
+  const { buckets, bucketMs } = activityRanges[range];
+  const first = Math.floor(Date.now() / bucketMs) - buckets + 1;
+  const counts = Array.from({ length: buckets }, (_, i) => ({
+    start: new Date((first + i) * bucketMs).toISOString(),
+    accepted: 0,
+    refused: 0,
+  }));
+  for (const { at, allowed } of recentRequestsOf(row)) {
+    const bucket = counts[Math.floor(Date.parse(at) / bucketMs) - first];
+    if (bucket) bucket[allowed ? 'accepted' : 'refused'] += 1;
+  }
+  return { buckets: counts };
 };

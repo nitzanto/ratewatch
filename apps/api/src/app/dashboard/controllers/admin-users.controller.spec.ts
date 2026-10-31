@@ -1,5 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
-import { usersPageSchema } from '@ratewatch/contracts';
+import {
+  userDetailSchema,
+  userHistorySchema,
+  usersPageSchema,
+} from '@ratewatch/contracts';
 import {
   RedisContainer,
   type StartedRedisContainer,
@@ -115,5 +119,65 @@ describe('GET /api/admin/users', () => {
     const res = await getUsers(await signedInCookie(baseUrl, 'user'));
 
     expect(res.status).toBe(403);
+  });
+
+  describe(':id and its history', () => {
+    const get = (cookie: string, path: string) =>
+      fetch(`${baseUrl}/admin/users/${path}`, { headers: { cookie } });
+
+    it("answers a user's row, recent requests and activity, refused ones included, once the second's batch is written", async () => {
+      const { userId, cookie } = await signedInUser(baseUrl);
+      const admin = await signedInCookie(baseUrl, 'admin');
+      await Promise.all(
+        Array.from({ length: 101 }, () => postClick(baseUrl, cookie)),
+      );
+
+      await vi.waitFor(
+        async () => {
+          const detail = userDetailSchema.parse(
+            await (await get(admin, userId)).json(),
+          );
+          expect(detail.row).toMatchObject({ userId, status: 'exceeded' });
+          expect(detail.lastResetAt).toBeNull();
+          expect(detail.recent).toHaveLength(50);
+          expect(detail.recent.filter(({ allowed }) => !allowed)).toHaveLength(
+            1,
+          );
+        },
+        { timeout: 4000, interval: 200 },
+      );
+      const hour = userHistorySchema.parse(
+        await (await get(admin, `${userId}/history?range=hour`)).json(),
+      ).buckets;
+      expect(hour).toHaveLength(60);
+      // The clicks may straddle a minute.
+      expect(hour.slice(-2).reduce((sum, b) => sum + b.accepted, 0)).toBe(100);
+      expect(hour.slice(-2).reduce((sum, b) => sum + b.refused, 0)).toBe(1);
+      const day = userHistorySchema.parse(
+        await (await get(admin, `${userId}/history?range=day`)).json(),
+      ).buckets;
+      expect(day).toHaveLength(96);
+    }, 10_000);
+
+    it('answers 404 for a user without a record', async () => {
+      const admin = await signedInCookie(baseUrl, 'admin');
+
+      expect((await get(admin, 'user-nobody')).status).toBe(404);
+    });
+
+    it('answers 400 to a range it does not offer', async () => {
+      const admin = await signedInCookie(baseUrl, 'admin');
+
+      expect((await get(admin, 'user-nobody/history?range=week')).status).toBe(
+        400,
+      );
+    });
+
+    it('answers 403 to a User', async () => {
+      const { userId, cookie } = await signedInUser(baseUrl);
+
+      expect((await get(cookie, userId)).status).toBe(403);
+      expect((await get(cookie, `${userId}/history`)).status).toBe(403);
+    });
   });
 });

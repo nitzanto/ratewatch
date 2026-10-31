@@ -3,9 +3,10 @@ import { MuiAlert } from './components/alert';
 import { MuiAppBar } from './components/app-bar';
 import { MuiButton } from './components/button';
 import { MuiChip } from './components/chip';
+import { MuiDrawer } from './components/drawer';
 import { MuiLinearProgress } from './components/linear-progress';
 import { MuiPaper } from './components/paper';
-import { MuiTable, MuiTableCell } from './components/table';
+import { MuiTable, MuiTableCell, MuiTableRow } from './components/table';
 import { palette } from './palette';
 import { typography } from './typography';
 
@@ -19,10 +20,12 @@ export const theme = createTheme({
     MuiAppBar,
     MuiButton,
     MuiChip,
+    MuiDrawer,
     MuiLinearProgress,
     MuiPaper,
     MuiTable,
     MuiTableCell,
+    MuiTableRow,
     MuiTypography: { defaultProps: { variantMapping: { countHero: 'span' } } },
   },
 });

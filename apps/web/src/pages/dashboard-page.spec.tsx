@@ -270,11 +270,16 @@ describe('Users table', () => {
       resetAt: null,
     });
     const chip = (name: string) => page().getByRole('button', { name });
-    const search = (q: string) =>
+    const type = (q: string) =>
       fireEvent.change(
         page().getByRole('searchbox', { name: 'Search user ID' }),
         { target: { value: q } },
       );
+    /** Types `q` and waits out the pause the search waits for (300 ms), so the next wait has all its time for the fetch. */
+    const search = async (q: string) => {
+      type(q);
+      await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+    };
     const header = (name: string) =>
       usersTable().getByRole('columnheader', { name });
 
@@ -285,11 +290,11 @@ describe('Users table', () => {
     });
 
     it('finds users by a prefix of their ID, or the whole ID', async () => {
-      search('user-aa');
+      await search('user-aa');
 
       await waitFor(() => expectUserIds(['user-aabb2222', 'user-aaaa1111']));
 
-      search('user-cccc3333');
+      await search('user-cccc3333');
 
       await waitFor(() => expectUserIds(['user-cccc3333']));
     });
@@ -302,7 +307,7 @@ describe('Users table', () => {
       };
       server.events.on('request:start', onRequest);
 
-      for (const q of ['u', 'us', 'user-a', 'user-aa']) search(q);
+      for (const q of ['u', 'us', 'user-a', 'user-aa']) type(q);
 
       await waitFor(() => expectUserIds(['user-aabb2222', 'user-aaaa1111']));
       server.events.removeListener('request:start', onRequest);
@@ -327,7 +332,7 @@ describe('Users table', () => {
     });
 
     it('counts under the search', async () => {
-      search('user-aa');
+      await search('user-aa');
 
       expect(await page().findByRole('button', { name: 'All 2' })).toBeTruthy();
       expect(chip('OK 1')).toBeTruthy();
@@ -421,7 +426,7 @@ describe('Users table', () => {
 
     it('says when nothing matches, and clears the filters', async () => {
       fireEvent.click(chip('Exceeded 1'));
-      search('user-aa');
+      await search('user-aa');
 
       expect(
         await page().findByText(
@@ -479,5 +484,181 @@ describe('Users table', () => {
     fireEvent.click(await page().findByRole('button', { name: 'Retry' }));
 
     expect(await page().findByRole('table', { name: 'Users' })).toBeTruthy();
+  });
+
+  describe('user detail', () => {
+    const openUser = async (userId: string) => {
+      fireEvent.click(
+        within(await page().findByRole('table', { name: 'Users' })).getByRole(
+          'button',
+          { name: userId },
+        ),
+      );
+      return screen.findByRole('dialog', { name: userId });
+    };
+    const recentRequests = (drawer: HTMLElement) =>
+      within(
+        within(drawer).getByRole('list', { name: 'Recent requests' }),
+      ).getAllByRole('listitem');
+
+    it("shows the user's stats, recent requests and activity, with the focus on the close button", async () => {
+      freezeClock();
+      setMockUsers([
+        userRow('user-aaaa1111', 59, 4_000),
+        userRow('user-bbbb2222', 10, minuteMs),
+      ]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+
+      const drawer = await openUser('user-aaaa1111');
+
+      const close = within(drawer).getByRole('button', {
+        name: 'Close user details',
+      });
+      await waitFor(() =>
+        expect(close).toHaveProperty('ownerDocument.activeElement', close),
+      );
+      expect(await within(drawer).findByText('41 / 100')).toBeTruthy();
+      expect(within(drawer).getByText('59%')).toBeTruthy();
+      expect(within(drawer).getByText('OK')).toBeTruthy();
+      expect(within(drawer).getByText('4 s ago')).toBeTruthy();
+      expect(recentRequests(drawer)).toHaveLength(50);
+      // The activity is its own request, so it may arrive after the rest.
+      expect(
+        await within(drawer).findByText(
+          '50 accepted and 0 refused in the past hour.',
+        ),
+      ).toBeTruthy();
+
+      fireEvent.click(within(drawer).getByRole('button', { name: 'Past day' }));
+
+      expect(
+        await within(drawer).findByText(
+          '50 accepted and 0 refused in the past day.',
+        ),
+      ).toBeTruthy();
+      expect(
+        within(drawer).getByRole('button', { name: 'Past day' }),
+      ).toHaveProperty('ariaPressed', 'true');
+    });
+
+    it("streams the open user's requests and numbers as they happen", async () => {
+      const user = userRow('user-aaaa1111', 10, 30_000);
+      setMockUsers([user]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-aaaa1111');
+      await waitFor(() => expect(recentRequests(drawer)).toHaveLength(10));
+
+      const at = new Date().toISOString();
+      act(() =>
+        sendRateUpdate({
+          row: { ...user, requestsLeft: 89, lastRequestAt: at },
+          requests: [{ at, allowed: false }],
+        }),
+      );
+
+      expect(await within(drawer).findByText('89 / 100')).toBeTruthy();
+      expect(recentRequests(drawer)).toHaveLength(11);
+      expect(recentRequests(drawer)[0]).toHaveProperty(
+        'textContent',
+        expect.stringContaining('Refused'),
+      );
+      expect(followedUserIds()).toContain('user-aaaa1111');
+    });
+
+    it('keeps every streamed request: two in one millisecond, and one another API instance sent late', async () => {
+      const user = userRow('user-aaaa1111', 10, 30_000);
+      setMockUsers([user]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-aaaa1111');
+      await waitFor(() => expect(recentRequests(drawer)).toHaveLength(10));
+      const now = new Date().toISOString();
+      // Between the user's last two requests, which are 20 s apart in mock mode.
+      const late = new Date(
+        Date.parse(user.lastRequestAt) - 10_000,
+      ).toISOString();
+
+      act(() =>
+        sendRateUpdate({
+          row: { ...user, requestsLeft: 88, lastRequestAt: now },
+          requests: [
+            { at: now, allowed: true },
+            { at: now, allowed: true },
+          ],
+        }),
+      );
+      act(() =>
+        sendRateUpdate({
+          row: { ...user, requestsLeft: 88, lastRequestAt: now },
+          requests: [{ at: late, allowed: false }],
+        }),
+      );
+
+      await waitFor(() => expect(recentRequests(drawer)).toHaveLength(13));
+      expect(recentRequests(drawer)[3]).toHaveProperty(
+        'textContent',
+        expect.stringContaining('Refused'),
+      );
+    });
+
+    it('closes with Esc or the close button', async () => {
+      setMockUsers([userRow('user-aaaa1111', 10, 30_000)]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+
+      fireEvent.keyDown(await openUser('user-aaaa1111'), { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+      fireEvent.click(
+        within(await openUser('user-aaaa1111')).getByRole('button', {
+          name: 'Close user details',
+        }),
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it("keeps the table's order while a user is open, then re-sorts", async () => {
+      const first = userRow('user-aaaa1111', 50, 5_000);
+      const second = userRow('user-bbbb2222', 20, minuteMs);
+      setMockUsers([first, second]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-bbbb2222');
+      await within(drawer).findByText('1 min ago');
+
+      act(() =>
+        sendRateUpdate({
+          row: { ...second, lastRequestAt: new Date().toISOString() },
+          requests: [],
+        }),
+      );
+      await within(drawer).findByText('0 s ago');
+      // The open drawer hides the page from assistive tech, as a modal dialog does.
+      expect(screen.getAllByRole('rowheader', { hidden: true })).toEqual(
+        ['user-aaaa1111', 'user-bbbb2222'].map((textContent) =>
+          expect.objectContaining({ textContent }),
+        ),
+      );
+
+      fireEvent.keyDown(drawer, { key: 'Escape' });
+
+      await waitFor(() => expectUserIds(['user-bbbb2222', 'user-aaaa1111']));
+    });
+
+    it('offers a retry when the user fails to load', async () => {
+      server.use(
+        http.get(
+          '/api/admin/users/:id',
+          () => new HttpResponse(null, { status: 503 }),
+          { once: true },
+        ),
+      );
+      setMockUsers([userRow('user-aaaa1111', 10, 30_000)]);
+      await renderApp('/dashboard', { signedInAs: 'admin' });
+      const drawer = await openUser('user-aaaa1111');
+
+      fireEvent.click(
+        await within(drawer).findByRole('button', { name: 'Retry' }),
+      );
+
+      expect(await within(drawer).findByText('90 / 100')).toBeTruthy();
+    });
   });
 });

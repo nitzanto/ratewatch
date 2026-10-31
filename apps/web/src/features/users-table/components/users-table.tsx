@@ -7,6 +7,7 @@ import {
   type UsersQuery,
 } from '@ratewatch/contracts';
 import {
+  Link,
   Table,
   TableBody,
   TableCell,
@@ -36,8 +37,12 @@ const features = tableFeatures({
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
   sortFns: { basic: sortFn_basic },
-  // When the live connection was lost, so the time cells stop moving with the data; `null` while live.
-  tableMeta: {} as { frozenAt: number | null },
+  // When the live connection was lost, so the time cells stop moving with the data; `null` while live. And how a
+  // user's ID opens them.
+  tableMeta: {} as {
+    frozenAt: number | null;
+    onOpen: (userId: string) => void;
+  },
 });
 
 const columnHelper = createColumnHelper<typeof features, UserRow>();
@@ -59,6 +64,22 @@ const columns = columnHelper.columns([
     id: 'id',
     header: 'User',
     ...sortsLikeTheApi,
+    cell: ({ getValue, table }) => (
+      <Link
+        component="button"
+        variant="body2"
+        aria-haspopup="dialog"
+        underline="hover"
+        sx={{ color: 'text.primary', fontWeight: 600 }}
+        onClick={(event) => {
+          // The row opens the user too; once is enough.
+          event.stopPropagation();
+          table.options.meta?.onOpen(getValue());
+        }}
+      >
+        {getValue()}
+      </Link>
+    ),
   }),
   columnHelper.accessor((row) => sortValueOf(row, 'left'), {
     id: 'left',
@@ -109,8 +130,9 @@ const inOrder = (rows: UserRow[], order: string[]) => {
 };
 
 /**
- * Every user's state, in the API's order: a header sorts the API's page with `onSort`. Live changes re-sort the rows
- * on screen the same way, only while the pointer is off the table.
+ * Every user's state, in the API's order: a header sorts the API's page with `onSort`, and a row opens its user with
+ * `onOpen`. Live changes re-sort the rows on screen the same way, only while the pointer is off the table and no user
+ * is open.
  */
 export const UsersTable = ({
   rows,
@@ -118,18 +140,25 @@ export const UsersTable = ({
   sort,
   order,
   onSort,
+  openUserId,
+  onOpen,
 }: {
   rows: UserRow[];
   frozenAt: number | null;
   sort: UsersQuery['sort'];
   order: UsersQuery['order'];
   onSort: (sort: UsersQuery['sort'], order: UsersQuery['order']) => void;
+  openUserId: string | null;
+  onOpen: (userId: string) => void;
 }) => {
-  // The row order on screen while the pointer is on the table, so a live change never moves a row under it.
+  // The row order on screen when the pointer came onto the table or a user opened, so a live change never moves a
+  // row under the admin. It holds while either lasts.
   const [frozenOrder, setFrozenOrder] = useState<string[] | null>(null);
+  const [pointerOn, setPointerOn] = useState(false);
+  const heldOrder = pointerOn || openUserId !== null ? frozenOrder : null;
   const data = useMemo(
-    () => (frozenOrder ? inOrder(rows, frozenOrder) : rows),
-    [rows, frozenOrder],
+    () => (heldOrder ? inOrder(rows, heldOrder) : rows),
+    [rows, heldOrder],
   );
   const sorting = [{ id: sort, desc: order === 'desc' }];
   const table = useTable({
@@ -149,10 +178,17 @@ export const UsersTable = ({
     },
     enableSortingRemoval: false,
     sortDescFirst: false,
-    manualSorting: frozenOrder !== null,
-    meta: { frozenAt },
+    manualSorting: heldOrder !== null,
+    meta: {
+      frozenAt,
+      onOpen: (userId) => {
+        freeze();
+        onOpen(userId);
+      },
+    },
   });
 
+  // Called from events only, once `table` exists.
   const freeze = () =>
     setFrozenOrder(table.getRowModel().rows.map((row) => row.id));
 
@@ -163,12 +199,15 @@ export const UsersTable = ({
         stickyHeader
         sx={{ tableLayout: 'fixed' }}
         aria-label="Users"
-        onPointerEnter={freeze}
+        onPointerEnter={() => {
+          setPointerOn(true);
+          freeze();
+        }}
         // A header click lifts the freeze; the next move takes it again, in the new order.
         onPointerMove={() => {
           if (!frozenOrder) freeze();
         }}
-        onPointerLeave={() => setFrozenOrder(null)}
+        onPointerLeave={() => setPointerOn(false)}
       >
         <TableHead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -197,7 +236,12 @@ export const UsersTable = ({
         </TableHead>
         <TableBody>
           {table.getRowModel().rows.map((row) => (
-            <LiveRow key={row.id} user={row.original}>
+            <LiveRow
+              key={row.id}
+              user={row.original}
+              selected={row.id === openUserId}
+              onClick={() => table.options.meta?.onOpen(row.id)}
+            >
               {row.getAllCells().map((cell, index) => (
                 <TableCell
                   key={cell.id}

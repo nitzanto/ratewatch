@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react';
 import { useLiveUsers } from '../hooks/use-live-users';
 import { UsersEmptyState } from './users-empty-state';
 import { UsersFilters } from './users-filters';
+import { UserDrawer } from './user-drawer';
 import { UsersTable } from './users-table';
 
 const defaultQuery = usersQuerySchema.parse({});
@@ -28,11 +29,12 @@ const defaultQuery = usersQuerySchema.parse({});
 /** The search runs once typing has paused this long, not on every keystroke. */
 const searchDelayMs = 300;
 
-/** The dashboard's users table, kept live, with its search, filters, sorting and pages, and its loading, error, empty and connection-lost states. */
+/** The dashboard's users table, kept live, with its search, filters, sorting and pages, its loading, error, empty and connection-lost states, and the open user's drawer. */
 export const LiveUsers = () => {
   const [query, setQuery] = useState(defaultQuery);
   // The search box shows each keystroke at once; the query takes it once typing pauses.
   const [search, setSearch] = useState('');
+  const [openUserId, setOpenUserId] = useState<string | null>(null);
   const { data, isPending, isError, refetch } = useAdminUsers(query);
   // Times stop moving while the connection is lost, so they read as of when it dropped.
   const lostAt = useLiveUsers();
@@ -121,6 +123,8 @@ export const LiveUsers = () => {
                 sort={query.sort}
                 order={query.order}
                 onSort={(sort, order) => change({ sort, order })}
+                openUserId={openUserId}
+                onOpen={setOpenUserId}
               />
             ) : (
               <Stack
@@ -158,6 +162,11 @@ export const LiveUsers = () => {
           </>
         )}
       </Paper>
+      <UserDrawer
+        userId={openUserId}
+        frozenAt={lostAt}
+        onClose={() => setOpenUserId(null)}
+      />
     </Stack>
   );
 };
