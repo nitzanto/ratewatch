@@ -23,6 +23,9 @@ apps/api/src/
     │   ├── modules/           #   AuthModule
     │   ├── services/          #   AuthService: issues and reads sessions
     │   └── constants/         #   cookie name, session lifetime
+    ├── clicks/controllers/    # POST /api/clicks: the cookie clicker's request
+    ├── rate-limit/            # the global RateLimitInterceptor, its Lua script and keys (specs beside it)
+    ├── redis/                 # RedisModule: one shared ioredis client, injected by the redisClient token
     ├── env.ts                 # schema for the API's environment variables
     ├── health.controller.ts   # GET /api/health
     └── health.controller.spec.ts
@@ -35,16 +38,17 @@ Each feature gets its own folder under `app/` (for example `rate-limit/`), laid 
 ```mermaid
 flowchart LR
   req[Request] --> guard["SessionGuard<br/>401 without a session"]
-  guard --> pipe["ZodValidationPipe<br/>body, query, params"]
+  guard --> limit["RateLimitInterceptor<br/>x-count, or 429 over the limit"]
+  limit --> pipe["ZodValidationPipe<br/>body, query, params"]
   pipe --> handler[Controller handler]
   handler --> ser["ZodSerializerInterceptor<br/>response shape"]
   ser --> res[Response]
 ```
 
-- **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health); routes only some roles may use are marked `@Roles(...)` (for example `@Roles('admin')`), and the same guard answers 403 to any other role. Unmarked routes are open to every signed-in role. A handler reads the signed-in person with `@CurrentSession()`; the rate limiter will read the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
+- **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health); routes only some roles may use are marked `@Roles(...)` (for example `@Roles('admin')`), and the same guard answers 403 to any other role. Unmarked routes are open to every signed-in role. A handler reads the signed-in person with `@CurrentSession()`; the rate limiter reads the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
 - **Input validation.** A global `ZodValidationPipe` validates every body, query and route parameter against its DTO. DTOs are built from the shared contracts with `createZodDto`.
 - **Output validation.** A global `ZodSerializerInterceptor` checks the response of every route marked `@ZodSerializerDto`.
-- **Rate limiting** will be an interceptor in this pipeline, ahead of the handler.
+- **Rate limiting.** A global `RateLimitInterceptor` runs after the guard, so it knows the user. It counts every request a User makes with one atomic Lua script in Redis, sets `x-count` to the requests left, and answers 429 with the reset time over the limit, before the handler runs. Public routes and the Admin are never counted. See [Rate-limit store and window](../../adrs/rate-limit-store/) and the [design doc](../../design-docs/rate-limiting-and-live-dashboard/).
 
 ## Configuration
 
@@ -52,7 +56,7 @@ Settings that vary between deploys (port, session secret, Redis URL) are environ
 
 ## Testing
 
-Unit tests use Vitest with `unplugin-swc`, so NestJS's decorator metadata survives the test transform. Controllers are tested over HTTP against the whole app, started on a free port by `startApp()` in `app/test-app.ts`, which also takes test-only controllers (for example, one that breaks its contract, or one that isn't public). The API is also covered end to end by the `api` Playwright suite.
+Unit tests use Vitest with `unplugin-swc`, so NestJS's decorator metadata survives the test transform. Controllers are tested over HTTP against the whole app, started on a free port by `startApp()` in `app/test-app.ts`, which also takes test-only controllers (for example, one that breaks its contract, or one that isn't public). It swaps Redis for `ioredis-mock`, which runs the real Lua script, unless a test passes a real client: the concurrency test starts a real Redis with Testcontainers, so it needs Docker. The API is also covered end to end by the `api` Playwright suite.
 
 ## Decisions to make
 

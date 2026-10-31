@@ -9,6 +9,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+  // Closes the server and the Redis connection cleanly when the container is stopped.
+  app.enableShutdownHooks();
   const config = app.get(ConfigService<Env, true>);
   app.use(cookieParser(config.get('SESSION_SECRET', { infer: true })));
   const port = config.get('PORT', { infer: true });

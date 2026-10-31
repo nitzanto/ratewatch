@@ -13,10 +13,12 @@ services:
       target: dev
     pull_policy: build
     environment:
-      # shortcut: no redis service yet, #46 adds it when the API first connects.
       REDIS_URL: redis://redis:6379
     ports:
       - 127.0.0.1:3000:3000
+    depends_on:
+      redis:
+        condition: service_healthy
     develop:
       watch:
         - action: sync
@@ -43,6 +45,20 @@ services:
           path: ./tsconfig.base.json
         - action: rebuild
           path: ./tsconfig.json
+
+  # The image is pinned to the one the API's concurrency test runs on (rate-limit.concurrency.spec.ts).
+  redis:
+    image: redis:8.10-alpine
+    # A full Redis refuses writes instead of evicting keys, which would silently drop a custom limit or a pause.
+    command: [redis-server, --maxmemory-policy, noeviction]
+    # Published on localhost so an API run with pnpm (and the e2e suite) reaches it too.
+    ports:
+      - 127.0.0.1:6379:6379
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   web:
     build:
