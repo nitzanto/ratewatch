@@ -90,3 +90,28 @@ describe('UsersService.record', () => {
     });
   });
 });
+
+describe('UsersService.list', () => {
+  let container: StartedRedisContainer;
+  let redis: Redis;
+  let users: UsersService;
+
+  beforeAll(async () => {
+    container = await new RedisContainer('redis:8.10-alpine').start();
+    redis = new Redis(container.getConnectionUrl());
+    users = new UsersService(redis);
+  }, 120_000);
+
+  afterAll(async () => {
+    await users?.close();
+    await redis?.quit();
+    await container?.stop();
+  });
+
+  it('creates the index again when Redis has lost it', async () => {
+    await users.list();
+    await redis.flushall();
+
+    await expect(users.list()).resolves.toMatchObject({ rows: [], total: 0 });
+  });
+});

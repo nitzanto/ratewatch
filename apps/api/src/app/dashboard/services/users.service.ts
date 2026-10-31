@@ -99,6 +99,21 @@ export class UsersService {
   /** The users table's first page: users active in the last 24 hours, latest request first, and each status's count. */
   // shortcut: one fixed page and no search, filters or sorting; the query parameters arrive with #51.
   async list(): Promise<UsersPage> {
+    try {
+      return await this.firstPage();
+    } catch (error) {
+      // Redis lost the index (a flush, or a restart or failover without its data): create it again, once.
+      if (!(
+        error instanceof Error &&
+        error.message.startsWith('SEARCH_INDEX_NOT_FOUND')
+      ))
+        throw error;
+      this.indexReady = false;
+      return this.firstPage();
+    }
+  }
+
+  private async firstPage(): Promise<UsersPage> {
     await this.ensureIndex();
     const now = Date.now();
     const active = `@lastRequest:[${now - activeWithinMs} +inf]`;
