@@ -10,7 +10,7 @@ const pageTitle = (name: string) =>
 
 describe('App', () => {
   it('shows the API health status on the dashboard and in the app bar', async () => {
-    renderApp();
+    await renderApp();
 
     expect(page().getByRole('progressbar')).toBeTruthy();
     expect(await page().findByRole('status')).toHaveProperty(
@@ -28,7 +28,7 @@ describe('App', () => {
       http.get('/api/health', () => new HttpResponse(null, { status: 503 })),
     );
 
-    renderApp();
+    await renderApp();
 
     expect(await page().findByText('API unreachable')).toBeTruthy();
     expect(appBar().getByRole('status')).toHaveProperty(
@@ -42,7 +42,7 @@ describe('App', () => {
       http.get('/api/health', () => HttpResponse.json({ status: 'down' })),
     );
 
-    renderApp();
+    await renderApp();
 
     expect(await page().findByText('API unreachable')).toBeTruthy();
   });
@@ -50,7 +50,7 @@ describe('App', () => {
 
 describe('Routing', () => {
   it('moves between the dashboard and the cookie clicker', async () => {
-    renderApp('/play');
+    await renderApp('/play');
 
     expect(await pageTitle('Cookie Clicker')).toBeTruthy();
     expect(
@@ -66,7 +66,7 @@ describe('Routing', () => {
   });
 
   it('shows a not-found page inside the shell for an unknown URL', async () => {
-    renderApp('/no-such-page');
+    await renderApp('/no-such-page');
 
     expect(await pageTitle('Page not found')).toBeTruthy();
     expect(appBar().getByRole('navigation', { name: 'Main' })).toBeTruthy();

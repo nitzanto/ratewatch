@@ -1,5 +1,7 @@
 import { expect, test } from './fixtures';
 
+test.beforeEach(({ signInPage }) => signInPage.signInAsUser());
+
 test('home shows the API health status', async ({ homePage }) => {
   await homePage.goto();
 

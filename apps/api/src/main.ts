@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app/app.module';
 import type { Env } from './app/env';
 
@@ -8,7 +9,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
-  const port = app.get(ConfigService<Env, true>).get('PORT', { infer: true });
+  const config = app.get(ConfigService<Env, true>);
+  app.use(cookieParser(config.get('SESSION_SECRET', { infer: true })));
+  const port = config.get('PORT', { infer: true });
   await app.listen(port);
   // Set when Nx waits for this server to be ready
   if (process.env.NX_READY_SIGNAL_SOCKET) {

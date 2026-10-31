@@ -3,7 +3,7 @@ import { sizes } from '../sizes';
 
 declare module '@mui/material/Button' {
   interface ButtonPropsVariantOverrides {
-    /** A full-height tab in the navy app bar; use with `component={NavLink}`, which marks the current page. */
+    /** A full-height tab or action in the navy app bar; as a tab, use with `component={NavLink}`, which marks the current page. */
     shellTab: true;
   }
 }

@@ -14,13 +14,17 @@ flowchart LR
     ui[Dashboard UI]
   end
   subgraph api["apps/api (NestJS)"]
+    guard{{"Session guard"}}
+    auth["/api/auth/*"]
     health["GET /api/health"]
   end
   contracts[["libs/contracts<br/>Zod schemas + types"]]
   e2e{{"apps/e2e<br/>Playwright"}}
 
   user --> ui
-  ui -- "/api/* (same origin)" --> health
+  ui -- "/api/* (same origin, session cookie)" --> guard
+  guard --> auth
+  guard --> health
   web -. imports .-> contracts
   api -. imports .-> contracts
   e2e -- drives --> ui
@@ -31,7 +35,11 @@ flowchart LR
 
 **Web app (`apps/web`).** A React single-page app built with Vite and styled with MUI. It calls the API with relative `/api/...` URLs: in development Vite proxies them to the API, and in production nginx serves the built files and forwards `/api` and `/socket.io` to the API, so the browser sees one origin and never needs CORS. See [Same origin through nginx](../../adrs/same-origin/). Every response is parsed with its contract before the UI uses it.
 
-**API (`apps/api`).** A NestJS service under the `/api` prefix. Today it exposes a health endpoint; rate limiting arrives as an interceptor with the rate-limiting feature.
+**API (`apps/api`).** A NestJS service under the `/api` prefix. Today it exposes a health endpoint and sign-in; rate limiting arrives as an interceptor with the rate-limiting feature.
+
+### Authentication
+
+A person signs in as a User (a new random user ID each time) or as the Admin, with no password. The API answers with a session (user ID, role, expiry) in a signed, `httpOnly`, `SameSite=Strict` cookie that lasts 24 hours from sign-in. A global guard checks the signature and expiry on every request and answers 401 without a valid session; only sign-in, sign-out and health are public. Handlers read the signed-in person from the request, which is where the rate limiter will take its user ID. The web app restores the session on load from `GET /api/auth/me` and sends anyone without one to the sign-in page. See [Identity and roles](../../adrs/identity-and-roles/).
 
 **Contracts (`libs/contracts`).** Zod schemas for every shape the two apps exchange, each with its inferred TypeScript type. See [API contracts](../../adrs/api-contracts/).
 
@@ -67,4 +75,4 @@ flowchart LR
 
 ## Not here yet
 
-The rate-limit store, the rate-limiting interceptor, realtime updates, authentication and Kubernetes deployment each arrive with the feature that needs them, along with their ADRs and an update to this page. See the [decision log](../../adrs/architecture-decisions/#decision-log) for what's proposed.
+The rate-limit store, the rate-limiting interceptor, realtime updates, admin-only access and Kubernetes deployment each arrive with the feature that needs them, along with their ADRs and an update to this page. See the [decision log](../../adrs/architecture-decisions/#decision-log) for what's proposed.

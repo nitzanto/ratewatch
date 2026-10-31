@@ -12,6 +12,10 @@ _Avoid_: Client, account, customer
 The role that watches users on the dashboard and changes their limits. An admin's own requests are never limited.
 _Avoid_: Operator, superuser
 
+**Session**:
+Who someone is signed in as (a user ID and a role), from sign-in until they sign out or 24 hours pass.
+_Avoid_: Login, account, token
+
 ## Rate limiting
 
 **Limit**:

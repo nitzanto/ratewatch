@@ -1,5 +1,7 @@
 import { expect, test } from './fixtures';
 
+test.beforeEach(({ signInPage }) => signInPage.signInAsUser());
+
 test('a deep link opens the cookie clicker, with Crumb bobbing', async ({
   playPage,
 }) => {

@@ -2,7 +2,7 @@ import { Box, ButtonBase } from '@mui/material';
 import { keyframes, useTheme, type Palette } from '@mui/material/styles';
 import { useId, type ReactNode } from 'react';
 
-/** OK has five stages (one per 20 requests used), then Warning (90% used) and Exceeded (100%), which rests halfway through the wait. `mark` is the still brand mark. */
+/** OK has five stages (one per 20 requests used), then Warning (90% used) and Exceeded (100%), which rests halfway through the wait. `mark` is the still brand mark; `waving` greets on the sign-in page. */
 export type CrumbMood =
   | 'fresh'
   | 'warming-up'
@@ -13,13 +13,15 @@ export type CrumbMood =
   | 'exceeded'
   | 'resting'
   | 'unsure'
-  | 'mark';
+  | 'mark'
+  | 'waving';
 
 type Colors = Palette['crumb'] & { white: string };
 
 const bob = keyframes`0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3%) }`;
 // Short bursts of jitter, then 2.8s still.
 const jitter = keyframes`0%, 30%, 100% { transform: rotate(0deg) } 6% { transform: rotate(-3deg) } 12% { transform: rotate(3deg) } 18% { transform: rotate(-2deg) } 24% { transform: rotate(2deg) }`;
+const wave = keyframes`0%, 60%, 100% { transform: rotate(0deg) } 10%, 30% { transform: rotate(-22deg) } 20%, 40% { transform: rotate(8deg) } 50% { transform: rotate(-6deg) }`;
 const slump = keyframes`0%, 100% { transform: translateY(2%) rotate(-5deg) } 50% { transform: translateY(3%) rotate(-7deg) }`;
 
 const calm = 'cubic-bezier(0.4, 0, 0.2, 1) infinite';
@@ -84,6 +86,34 @@ const Eyes = ({
   </g>
 );
 
+const Arm = ({
+  c,
+  d,
+  hand: [cx, cy, r],
+}: {
+  c: Colors;
+  d: string;
+  hand: [cx: number, cy: number, r: number];
+}) => (
+  <>
+    <path
+      d={d}
+      fill="none"
+      stroke={c.crust}
+      strokeWidth={16}
+      strokeLinecap="round"
+    />
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r}
+      fill={c.dough}
+      stroke={c.crust}
+      strokeWidth={4}
+    />
+  </>
+);
+
 const smile = [
   'M68 100 Q78 88 88 100',
   'M112 100 Q122 88 132 100',
@@ -97,6 +127,8 @@ const moods: Record<
     chips: number;
     animation?: string;
     face: (c: Colors) => ReactNode;
+    /** Drawn before the cookie, so it sits behind him. */
+    behind?: (c: Colors) => ReactNode;
   }
 > = {
   fresh: {
@@ -255,6 +287,33 @@ const moods: Record<
     chips: 5,
     face: (c) => <Strokes c={c} width={10} d={smile} />,
   },
+  waving: {
+    label: 'Crumb waving hello',
+    chips: 5,
+    animation: okBob,
+    face: (c) => (
+      <>
+        <Cheeks c={c} />
+        <Eyes c={c} y={98} r={8} shine={[2.5, -3, 3]} />
+        <Strokes c={c} width={7} d={['M78 120 Q100 146 122 120']} />
+      </>
+    ),
+    behind: (c) => (
+      <>
+        <Box
+          component="g"
+          sx={{
+            transformOrigin: '166px 112px',
+            animation: `${wave} 2.6s ${calm}`,
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+          }}
+        >
+          <Arm c={c} d="M166 112 L196 64" hand={[198, 58, 13]} />
+        </Box>
+        <Arm c={c} d="M20 144 L4 170" hand={[2, 174, 12]} />
+      </>
+    ),
+  },
 };
 
 const chips = [
@@ -288,7 +347,7 @@ export const Crumb = ({
   const { crumb, common } = useTheme().palette;
   const c = { ...crumb, white: common.white };
   const biteId = useId();
-  const { label, chips: chipCount, animation, face } = moods[mood];
+  const { label, chips: chipCount, animation, face, behind } = moods[mood];
   const bitten = mood === 'exceeded' || mood === 'resting';
 
   const svg = (
@@ -313,6 +372,7 @@ export const Crumb = ({
         },
       }}
     >
+      {behind?.(c)}
       {bitten && (
         // A mask is luminance: white keeps the cookie, black cuts the bite.
         <defs>
