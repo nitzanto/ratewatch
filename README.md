@@ -12,7 +12,7 @@ Docs: https://nitzanto.github.io/ratewatch/
 docker compose up --watch
 ```
 
-The dashboard is on http://localhost:4200 and the API on http://localhost:3000/api. Edits hot-reload.
+The dashboard is on http://localhost:4200 and the API on http://localhost:3000/api. Edits hot-reload, and every `up` rebuilds the images (cached), so they always match your checkout.
 
 To run the production images on one origin instead: `SESSION_SECRET=$(openssl rand -hex 32) docker compose -f compose.yaml -f compose.prod.yaml up --build`, then open http://localhost:8080.
 

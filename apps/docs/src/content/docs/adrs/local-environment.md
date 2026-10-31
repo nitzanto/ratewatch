@@ -18,7 +18,7 @@ Anyone should be able to run ratewatch from a fresh clone without installing Nod
 
 **Why:** Compose Watch copies each edit into the container instead of sharing a folder, so hot reload doesn't depend on how a Docker engine forwards file events, and `node_modules` is always built for Linux inside the container.
 
-**Trade-offs we accept:** adding a dependency rebuilds the image (a minute or two, mostly cached). Tests and mock mode still need Node on your machine. The first run downloads every package.
+**Trade-offs we accept:** adding a dependency rebuilds the image (a minute or two, mostly cached). Every `docker compose up` rebuilds the images too (`pull_policy: build`), which takes seconds when nothing changed; without it, a branch switched while Watch wasn't running left a container serving the old code. Tests and mock mode still need Node on your machine. The first run downloads every package.
 
 **How the images are built:**
 
