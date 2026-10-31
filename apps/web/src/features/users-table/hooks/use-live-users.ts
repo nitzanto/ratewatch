@@ -1,5 +1,6 @@
 import {
   applyLimitExceeded,
+  applyRateUpdate,
   applyUserRow,
   adminUsersQueryKey,
   userIdsOnScreen,
@@ -9,7 +10,7 @@ import { sessionQueryKey } from '@/libs/api/session-queries';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
-/** Keeps the users table's rows live while mounted. Returns when the connection was lost, or `null` while it isn't. */
+/** Keeps the users table's rows, and the open user, live while mounted. Returns when the connection was lost, or `null` while it isn't. */
 export const useLiveUsers = () => {
   const client = useQueryClient();
   const [lostAt, setLostAt] = useState<number | null>(null);
@@ -18,7 +19,7 @@ export const useLiveUsers = () => {
   useEffect(() => {
     let lost = false;
     const connection = connectRealtime({
-      onUpdate: ({ row }) => applyUserRow(client, row),
+      onUpdate: (event) => applyRateUpdate(client, event),
       onLimitExceeded: (event) => applyLimitExceeded(client, event),
       onRows: (rows) => rows.forEach((row) => applyUserRow(client, row)),
       // Asks the API who is signed in: once nobody is, the app shell sends the admin to sign in.

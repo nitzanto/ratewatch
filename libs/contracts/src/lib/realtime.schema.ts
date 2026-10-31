@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { userRowSchema } from './admin-users.schema.js';
+import { recentRequestSchema, userRowSchema } from './admin-users.schema.js';
 
 /** Socket.IO events between the API and an admin's web app. */
 export const realtimeEvents = {
@@ -31,7 +31,7 @@ export type RateSubscribeAck = z.infer<typeof rateSubscribeAckSchema>;
 export const rateUpdateEventSchema = z.object({
   row: userRowSchema,
   /** The user's requests since the last update, newest first. */
-  requests: z.array(z.object({ at: z.iso.datetime(), allowed: z.boolean() })),
+  requests: z.array(recentRequestSchema),
 });
 
 export type RateUpdateEvent = z.infer<typeof rateUpdateEventSchema>;

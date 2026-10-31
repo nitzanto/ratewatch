@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-**Status:** Shipped. Opening a user arrives with [User detail](../user-detail/).
+**Status:** Shipped
 
 ## Summary
 

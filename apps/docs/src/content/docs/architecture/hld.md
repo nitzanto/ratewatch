@@ -271,7 +271,7 @@ The limiter does not write dashboard data on the request path. Each API instance
 
 The API sends live updates with `@nestjs/websockets` and Socket.IO. The Socket.IO Redis adapter passes each event to all API instances, so an admin on any instance gets it. Only the Admin can connect: the handshake checks the session cookie.
 
-- **Rooms.** An admin joins one room for each row on screen (`rate:subscribe`, sent again after every reconnect) and, once user detail is built, one for the open user. A room for all admins gets `rate:limit_exceeded`, and later the summary numbers and the counts for each status (Planned). An admin gets events only for what they see, so the number of events does not grow with the number of users.
+- **Rooms.** An admin joins one room for each row on screen (`rate:subscribe`, sent again after every reconnect) and one for the open user. A room for all admins gets `rate:limit_exceeded`, and later the summary numbers and the counts for each status (Planned). An admin gets events only for what they see, so the number of events does not grow with the number of users.
 - **`rate:update`**: at most one each second for each user, with the latest numbers. If an admin is disconnected, the event is dropped, because a newer one follows.
 - **`rate:limit_exceeded`**: sent at once, one time for each user in each window.
 - **Reconnect**: the web app loads the data again, then continues with live events.

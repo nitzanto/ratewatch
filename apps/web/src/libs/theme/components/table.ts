@@ -15,3 +15,15 @@ export const MuiTableCell: Components<Theme>['MuiTableCell'] = {
     }),
   },
 };
+
+/** The open user's row: `selection` fill with an `accent` inset bar on its leading edge. */
+export const MuiTableRow: Components<Theme>['MuiTableRow'] = {
+  styleOverrides: {
+    root: ({ theme }) => ({
+      '&.Mui-selected': {
+        backgroundColor: theme.palette.action.selected,
+        boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
+      },
+    }),
+  },
+};

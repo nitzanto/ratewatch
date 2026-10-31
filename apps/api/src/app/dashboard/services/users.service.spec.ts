@@ -10,9 +10,23 @@ import {
 } from '@ratewatch/contracts';
 import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
-import { userKey } from '../constants/dashboard.constants';
+import {
+  historyKey,
+  recentKey,
+  userKey,
+} from '../constants/dashboard.constants';
+import type { Activity } from '../interfaces/activity.interface';
 import type { Decision } from '../interfaces/decision.interface';
 import { UsersService } from './users.service';
+
+/** A user's activity of one request: `latest`. */
+const activityOf = (latest: Decision): Activity => ({
+  latest,
+  requests: [{ at: latest.at, allowed: latest.allowed }],
+  counts: new Map([
+    [`${latest.allowed ? 'a' : 'r'}:${Math.floor(latest.at / 60_000)}`, 1],
+  ]),
+});
 
 // A real Redis: the record script uses hash field expiry, which ioredis-mock doesn't have. Same image as compose.yaml.
 describe('UsersService.record', () => {
@@ -50,7 +64,7 @@ describe('UsersService.record', () => {
   });
 
   const recorded = async (next: Decision) => {
-    const [row] = await users.record([next]);
+    const [row] = await users.record([activityOf(next)]);
     if (row instanceof Error) throw row;
     return row;
   };
@@ -130,7 +144,7 @@ describe('UsersService.list', () => {
   ) => {
     const now = Date.now();
     const [row] = await users.record([
-      {
+      activityOf({
         userId,
         allowed: true,
         at: now - idleMs,
@@ -138,7 +152,7 @@ describe('UsersService.list', () => {
         used,
         resetAt: now + resetInMs,
         firstRefusal: false,
-      },
+      }),
     ]);
     if (row instanceof Error) throw row;
   };
@@ -215,15 +229,17 @@ describe('UsersService.list', () => {
     const prefix = newPrefix();
     const now = Date.now();
     await users.record(
-      Array.from({ length: 26 }, (_, i) => ({
-        userId: `${prefix}-${String(i).padStart(2, '0')}`,
-        allowed: true,
-        at: now,
-        limit: 100,
-        used: 1,
-        resetAt: now + 30 * minuteMs,
-        firstRefusal: false,
-      })),
+      Array.from({ length: 26 }, (_, i) =>
+        activityOf({
+          userId: `${prefix}-${String(i).padStart(2, '0')}`,
+          allowed: true,
+          at: now,
+          limit: 100,
+          used: 1,
+          resetAt: now + 30 * minuteMs,
+          firstRefusal: false,
+        }),
+      ),
     );
 
     const page = await users.list(
@@ -261,5 +277,159 @@ describe('UsersService.list', () => {
         userIds(await users.list(query({ q: prefix, sort, order }))),
       ).toEqual(expected);
     });
+  });
+});
+
+describe('UsersService.detail and history', () => {
+  let container: StartedRedisContainer;
+  let redis: Redis;
+  let users: UsersService;
+
+  beforeAll(async () => {
+    container = await new RedisContainer('redis:8.10-alpine').start();
+    redis = new Redis(container.getConnectionUrl());
+    users = new UsersService(redis);
+  }, 120_000);
+
+  afterAll(async () => {
+    await users?.close();
+    await redis?.quit();
+    await container?.stop();
+  });
+
+  const minuteMs = 60_000;
+
+  /** Records one second's `requests` for `userId` (newest first), `used` of 100 in a window ending at `resetAt`. */
+  const record = async (
+    userId: string,
+    requests: { at: number; allowed: boolean }[],
+    { used = 1, resetAt = Date.now() + 30 * minuteMs } = {},
+  ) => {
+    const counts = new Map<string, number>();
+    for (const { at, allowed } of requests) {
+      const field = `${allowed ? 'a' : 'r'}:${Math.floor(at / minuteMs)}`;
+      counts.set(field, (counts.get(field) ?? 0) + 1);
+    }
+    const [{ at, allowed }] = requests;
+    const [row] = await users.record([
+      {
+        latest: {
+          userId,
+          allowed,
+          at,
+          limit: 100,
+          used,
+          resetAt,
+          firstRefusal: false,
+        },
+        requests,
+        counts,
+      },
+    ]);
+    if (row instanceof Error) throw row;
+  };
+
+  it("answers a user's row and their last 50 requests, newest first", async () => {
+    const userId = `user-${randomUUID()}`;
+    const start = Date.now() - 10_000;
+    const at = (i: number) => start + i * 100;
+    await record(
+      userId,
+      Array.from({ length: 30 }, (_, i) => ({ at: at(29 - i), allowed: true })),
+      { used: 30 },
+    );
+    await record(
+      userId,
+      Array.from({ length: 30 }, (_, i) => ({
+        at: at(59 - i),
+        allowed: false,
+      })),
+      { used: 30 },
+    );
+
+    const detail = await users.detail(userId);
+
+    expect(detail?.row).toMatchObject({ userId, requestsLeft: 70 });
+    expect(detail?.lastResetAt).toBeNull();
+    expect(detail?.recent).toHaveLength(50);
+    expect(detail?.recent[0]).toEqual({
+      at: new Date(at(59)).toISOString(),
+      allowed: false,
+    });
+    expect(detail?.recent[49]).toEqual({
+      at: new Date(at(10)).toISOString(),
+      allowed: true,
+    });
+  });
+
+  it('answers when the count last went back to zero: the end of the last window', async () => {
+    const userId = `user-${randomUUID()}`;
+    const firstEnd = Date.now() - 1000;
+
+    await record(userId, [{ at: firstEnd - 5 * minuteMs, allowed: true }], {
+      resetAt: firstEnd,
+    });
+    expect((await users.detail(userId))?.lastResetAt).toBe(
+      new Date(firstEnd).toISOString(),
+    );
+
+    await record(userId, [{ at: Date.now(), allowed: true }], {
+      resetAt: Date.now() + 60 * minuteMs,
+    });
+    expect((await users.detail(userId))?.lastResetAt).toBe(
+      new Date(firstEnd).toISOString(),
+    );
+  });
+
+  it('answers nothing for a user without a record', async () => {
+    await expect(users.detail(`user-${randomUUID()}`)).resolves.toBeNull();
+  });
+
+  it('counts accepted and refused requests per minute over the past hour, and per 15 minutes over the past day', async () => {
+    const userId = `user-${randomUUID()}`;
+    const now = Date.now();
+    const quarterMs = 15 * minuteMs;
+    await record(userId, [
+      { at: now, allowed: false },
+      { at: now, allowed: true },
+      { at: now - 2 * minuteMs, allowed: true },
+      { at: now - 3 * 60 * minuteMs, allowed: true },
+    ]);
+
+    const hour = (await users.history(userId, 'hour')).buckets;
+    expect(hour).toHaveLength(60);
+    expect(hour[0].start).toBe(
+      new Date((Math.floor(now / minuteMs) - 59) * minuteMs).toISOString(),
+    );
+    expect(hour[59]).toMatchObject({ accepted: 1, refused: 1 });
+    expect(hour[57]).toMatchObject({ accepted: 1, refused: 0 });
+    expect(hour.reduce((sum, { accepted }) => sum + accepted, 0)).toBe(2);
+
+    const day = (await users.history(userId, 'day')).buckets;
+    expect(day).toHaveLength(96);
+    expect(day[95].start).toBe(
+      new Date(Math.floor(now / quarterMs) * quarterMs).toISOString(),
+    );
+    expect(day[95].refused).toBe(1);
+    expect(day[83].accepted).toBe(1);
+    expect(day.reduce((sum, { accepted }) => sum + accepted, 0)).toBe(3);
+  });
+
+  it('keeps recent requests and history for 24 hours', async () => {
+    const userId = `user-${randomUUID()}`;
+    const now = Date.now();
+    await record(userId, [{ at: now, allowed: true }]);
+
+    const day = 24 * 60 * 60;
+    expect(await redis.ttl(recentKey(userId))).toBeGreaterThan(day - 10);
+    const [fieldTtl] = (await redis.call(
+      'HTTL',
+      historyKey(userId),
+      'FIELDS',
+      1,
+      `a:${Math.floor(now / minuteMs)}`,
+    )) as number[];
+    expect(fieldTtl).toBeGreaterThan(day - 10);
+    expect(fieldTtl).toBeLessThanOrEqual(day);
   });
 });

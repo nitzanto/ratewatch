@@ -53,3 +53,53 @@ export const usersQuerySchema = z.object({
 });
 
 export type UsersQuery = z.infer<typeof usersQuerySchema>;
+
+/** Path parameters of a user's admin endpoints, such as `GET /admin/users/:id`. */
+export const userParamsSchema = z.object({ id: z.string().min(1).max(64) });
+
+/** One request a user sent, and whether the limiter let it through. */
+export const recentRequestSchema = z.object({
+  at: z.iso.datetime(),
+  allowed: z.boolean(),
+});
+
+export type RecentRequest = z.infer<typeof recentRequestSchema>;
+
+/** The requests the API keeps per user, for 24 hours after their last one. */
+export const recentRequestsKept = 50;
+
+/** Body of `GET /admin/users/:id`: the user's row, when their count last went back to zero, and their last requests, newest first. */
+export const userDetailSchema = z.object({
+  row: userRowSchema,
+  /** `null` until the user's first window has ended. */
+  lastResetAt: z.iso.datetime().nullable(),
+  recent: z.array(recentRequestSchema).max(recentRequestsKept),
+});
+
+export type UserDetail = z.infer<typeof userDetailSchema>;
+
+/** The activity ranges: how many buckets each has, and how long each bucket is. */
+export const activityRanges = {
+  hour: { buckets: 60, bucketMs: 60_000 },
+  day: { buckets: 96, bucketMs: 15 * 60_000 },
+} as const;
+
+export type ActivityRange = keyof typeof activityRanges;
+
+/** Query of `GET /admin/users/:id/history`. */
+export const userHistoryQuerySchema = z.object({
+  range: z.enum(['hour', 'day']).default('hour'),
+});
+
+/** Body of `GET /admin/users/:id/history`: accepted and refused requests per bucket, oldest first, the last one holding now. */
+export const userHistorySchema = z.object({
+  buckets: z.array(
+    z.object({
+      start: z.iso.datetime(),
+      accepted: z.int().nonnegative(),
+      refused: z.int().nonnegative(),
+    }),
+  ),
+});
+
+export type UserHistory = z.infer<typeof userHistorySchema>;

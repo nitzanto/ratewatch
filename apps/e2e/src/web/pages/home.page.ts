@@ -21,6 +21,23 @@ export class HomePage {
     return this.usersTable.getByRole('row', { name: new RegExp(userId) });
   }
 
+  /** Opens the user's drawer from their ID in the table. */
+  async openUser(userId: string) {
+    await this.usersTable.getByRole('button', { name: userId }).click();
+    return this.userDrawer(userId);
+  }
+
+  userDrawer(userId: string) {
+    return this.page.getByRole('dialog', { name: userId });
+  }
+
+  /** The open drawer's recent requests, newest first. */
+  recentRequests(userId: string) {
+    return this.userDrawer(userId)
+      .getByRole('list', { name: 'Recent requests' })
+      .getByRole('listitem');
+  }
+
   tab(name: 'Dashboard' | 'Cookie Clicker') {
     return this.page
       .getByRole('navigation', { name: 'Main' })

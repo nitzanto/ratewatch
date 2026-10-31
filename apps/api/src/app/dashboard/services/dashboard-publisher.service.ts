@@ -12,18 +12,23 @@ import {
   maxRequestsPerUpdate,
 } from '../constants/dashboard.constants';
 import { RealtimeGateway } from '../gateways/realtime.gateway';
+import type { Activity } from '../interfaces/activity.interface';
 import type { Decision } from '../interfaces/decision.interface';
 import { UsersService } from './users.service';
 
-/** A request as `rate:update` sends it. */
-type PendingRequest = { at: number; allowed: boolean };
+/** The history field a request counts in: `a:<minute>` accepted, `r:<minute>` refused. */
+const historyField = ({ at, allowed }: Decision) =>
+  `${allowed ? 'a' : 'r'}:${Math.floor(at / 60_000)}`;
 
-/** A user's latest decision and their requests since the last update, newest first. */
-type Pending = { latest: Decision; requests: PendingRequest[] };
+/** `from`'s counts added into `into`. */
+const addCounts = (into: Map<string, number>, from: Map<string, number>) => {
+  for (const [field, count] of from)
+    into.set(field, (into.get(field) ?? 0) + count);
+};
 
 /**
  * Collects the limiter's decisions in memory, so the request path does no I/O, and once a second writes each
- * changed user's record in one pipeline, then sends each one's `rate:update` with the row as written. A first
+ * changed user's record, history and recent requests in one pipeline, then sends each one's `rate:update` with the row as written. A first
  * refusal is sent to admins at once. While Redis is down it keeps the latest numbers (the oldest users go
  * first past `maxPendingUsers`) and writes them once Redis is back.
  */
@@ -31,7 +36,7 @@ type Pending = { latest: Decision; requests: PendingRequest[] };
 export class DashboardPublisher implements OnModuleInit, OnApplicationShutdown {
   private readonly logger = new Logger(DashboardPublisher.name);
   // In order of last change, oldest first, so the oldest are the ones dropped.
-  private pending = new Map<string, Pending>();
+  private pending = new Map<string, Activity>();
   private timer?: NodeJS.Timeout;
   private lastLoggedAt = -Infinity;
 
@@ -60,12 +65,15 @@ export class DashboardPublisher implements OnModuleInit, OnApplicationShutdown {
   record(decision: Decision) {
     const older = this.pending.get(decision.userId);
     this.pending.delete(decision.userId);
+    const counts = new Map(older?.counts);
+    addCounts(counts, new Map([[historyField(decision), 1]]));
     this.pending.set(decision.userId, {
       latest: decision,
       requests: [
         { at: decision.at, allowed: decision.allowed },
         ...(older?.requests ?? []),
       ].slice(0, maxRequestsPerUpdate),
+      counts,
     });
     this.dropOldest();
     if (decision.firstRefusal)
@@ -83,7 +91,7 @@ export class DashboardPublisher implements OnModuleInit, OnApplicationShutdown {
     this.pending = new Map();
     let results: (Error | UserRow)[];
     try {
-      results = await this.users.record(batch.map(({ latest }) => latest));
+      results = await this.users.record(batch);
     } catch (error) {
       results = batch.map(() =>
         error instanceof Error ? error : new Error(String(error)),
@@ -106,15 +114,18 @@ export class DashboardPublisher implements OnModuleInit, OnApplicationShutdown {
   }
 
   /** Puts a batch entry that failed back, behind anything newer recorded since. */
-  private restore(entry: Pending, error: Error) {
+  // shortcut: a batch that timed out after Redis applied it is written again, so its requests count twice in the
+  // history and the recent list; fine for a dashboard, and an idempotent write (a batch ID) fixes it if it matters.
+  private restore(entry: Activity, error: Error) {
     const { userId } = entry.latest;
     const newer = this.pending.get(userId);
-    if (newer)
+    if (newer) {
       newer.requests = [...newer.requests, ...entry.requests].slice(
         0,
         maxRequestsPerUpdate,
       );
-    else this.pending.set(userId, entry);
+      addCounts(newer.counts, entry.counts);
+    } else this.pending.set(userId, entry);
     this.dropOldest();
     this.logFailure(error);
   }

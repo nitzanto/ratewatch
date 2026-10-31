@@ -24,6 +24,12 @@ export const maxRequestsPerUpdate = 50;
 /** A user record lives this long after the user's last request. */
 export const userRecordTtlSeconds = 24 * 60 * 60;
 
+/** A user's last requests (`recentRequestsKept` of them), as JSON, newest first. */
+export const recentKey = (userId: string) => `recent:{${userId}}`;
+
+/** A user's accepted (`a:<minute>`) and refused (`r:<minute>`) requests per minute; each field lives 24 hours. */
+export const historyKey = (userId: string) => `hist:{${userId}}`;
+
 /** The query engine index over every `user:{id}` record. */
 export const usersIndex = 'users';
 

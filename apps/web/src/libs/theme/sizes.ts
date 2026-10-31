@@ -18,6 +18,14 @@ export const sizes = {
   searchWidth: 260,
   /** The users table's scroll box: about seven rows under the header. */
   usersTableHeight: 560,
+  /** The user drawer, from the right. */
+  drawerWidth: 460,
+  /** The user drawer's activity bars, the gap between them, and the legend's colour keys. */
+  activityChartHeight: 72,
+  activityBarGap: 1,
+  legendKey: 10,
+  /** The time column of the user drawer's recent requests. */
+  recentTimeWidth: 84,
   /** The chocolate chip that marks a stage note: slightly wider than tall. */
   noteChipWidth: 18,
   noteChipHeight: 16,

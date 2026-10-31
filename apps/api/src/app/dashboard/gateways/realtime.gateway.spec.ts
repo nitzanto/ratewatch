@@ -102,6 +102,13 @@ describe('realtime', () => {
     );
   });
 
+  it('follows a full page of 100 users plus the open user', async () => {
+    const socket = await adminSocket();
+    const userIds = Array.from({ length: 101 }, (_, i) => `user-${i}`);
+
+    await expect(subscribe(socket, userIds)).resolves.toEqual({ rows: [] });
+  });
+
   it('refuses a rate:subscribe that follows too many users', async () => {
     const socket = await adminSocket();
     const userIds = Array.from({ length: 102 }, (_, i) => `user-${i}`);
