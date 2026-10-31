@@ -10,7 +10,7 @@ const pageTitle = (name: string) =>
 
 describe('App', () => {
   it('shows the API health status on the dashboard and in the app bar', async () => {
-    await renderApp();
+    await renderApp('/dashboard', { signedInAs: 'admin' });
 
     expect(page().getByRole('progressbar')).toBeTruthy();
     expect(await page().findByRole('status')).toHaveProperty(
@@ -28,7 +28,7 @@ describe('App', () => {
       http.get('/api/health', () => new HttpResponse(null, { status: 503 })),
     );
 
-    await renderApp();
+    await renderApp('/dashboard', { signedInAs: 'admin' });
 
     expect(await page().findByText('API unreachable')).toBeTruthy();
     expect(appBar().getByRole('status')).toHaveProperty(
@@ -42,15 +42,24 @@ describe('App', () => {
       http.get('/api/health', () => HttpResponse.json({ status: 'down' })),
     );
 
-    await renderApp();
+    await renderApp('/dashboard', { signedInAs: 'admin' });
 
     expect(await page().findByText('API unreachable')).toBeTruthy();
   });
 });
 
 describe('Routing', () => {
+  it.each([
+    ['a User', 'user', 'Cookie Clicker'],
+    ['the Admin', 'admin', 'Dashboard'],
+  ] as const)('opens %s on their start page', async (_, role, title) => {
+    await renderApp('/', { signedInAs: role });
+
+    expect(await pageTitle(title)).toBeTruthy();
+  });
+
   it('moves between the dashboard and the cookie clicker', async () => {
-    await renderApp('/play');
+    await renderApp('/play', { signedInAs: 'admin' });
 
     expect(await pageTitle('Cookie Clicker')).toBeTruthy();
     expect(
@@ -65,14 +74,30 @@ describe('Routing', () => {
     ).toBeTruthy();
   });
 
+  it('hides the Dashboard tab from a User', async () => {
+    await renderApp('/play');
+
+    expect(
+      await appBar().findByRole('link', { name: 'Cookie Clicker' }),
+    ).toBeTruthy();
+    expect(appBar().queryByRole('link', { name: 'Dashboard' })).toBeNull();
+  });
+
+  it("shows a User who opens the dashboard a not-found page, so it doesn't reveal admin pages", async () => {
+    await renderApp('/dashboard');
+
+    expect(await pageTitle('Page not found')).toBeTruthy();
+    expect(page().queryByRole('status')).toBeNull();
+  });
+
   it('shows a not-found page inside the shell for an unknown URL', async () => {
     await renderApp('/no-such-page');
 
     expect(await pageTitle('Page not found')).toBeTruthy();
     expect(appBar().getByRole('navigation', { name: 'Main' })).toBeTruthy();
 
-    fireEvent.click(page().getByRole('link', { name: 'Go to the dashboard' }));
+    fireEvent.click(page().getByRole('link', { name: 'Go to the start page' }));
 
-    expect(await pageTitle('Dashboard')).toBeTruthy();
+    expect(await pageTitle('Cookie Clicker')).toBeTruthy();
   });
 });

@@ -15,10 +15,10 @@ export class SignInPage {
     await this.page.getByRole('button', { name: `Sign in as ${role}` }).click();
   }
 
-  /** Signs in as a new User from a fresh page, as a person would, for tests about signed-in pages. */
-  async signInAsUser() {
+  /** Signs in from a fresh page, as a person would, and waits for the role's start page; for tests about signed-in pages. */
+  async signIn(role: 'User' | 'Admin') {
     await this.goto();
-    await this.signInAs('User');
-    await this.page.waitForURL('/play');
+    await this.signInAs(role);
+    await this.page.waitForURL(role === 'Admin' ? '/dashboard' : '/play');
   }
 }

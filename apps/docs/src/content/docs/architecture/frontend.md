@@ -57,17 +57,19 @@ Pages are routed by **React Router** in data mode. Why is in [Routing](../../adr
 
 ```mermaid
 flowchart TD
-  shell["AppShell (root layout)<br/>app bar, tabs, API status"] --> dashboard["/<br/>DashboardPage"]
+  shell["AppShell (root layout)<br/>app bar, tabs, API status"] --> home["/<br/>RoleLanding: the role's start page"]
+  shell --> admin["AdminRoute (layout)<br/>not-found page for a User"] --> dashboard["/dashboard<br/>DashboardPage"]
   shell --> play["/play<br/>PlayPage"]
   shell --> notFound["anything else<br/>NotFoundPage"]
 ```
 
 - **One route table**, `app/routes.tsx`. The app shell is a pathless layout route, so every page, the not-found page included, renders inside it. `main.tsx` builds the browser router from the table; tests build a memory router from the same table.
 - **URLs are constants.** `ROUTES` in `app/route-paths.ts` holds every page's URL. The route table, the app bar's tabs and every link read it, so changing a URL is a one-line change and a typo doesn't compile.
-- **Tabs are links.** The app bar's tabs are `NavLink`s, so the current page gets `aria-current="page"` and its underline from that attribute.
+- **Tabs are links.** The app bar's tabs are `NavLink`s, so the current page gets `aria-current="page"` and its underline from that attribute. A tab with `roles` shows only to those roles, like `@Roles` on the API, so Users don't see the Dashboard tab.
+- **Roles are routes.** `/` (`RoleLanding`) sends the Admin to the dashboard and a User to the cookie clicker. Admin pages sit under `AdminRoute`, a pathless layout route that shows a User the not-found page instead, so the web app never reveals they exist (both in `app/route-guards.tsx`). The API answers 403 to a User anyway.
 - **Deep links work in production.** nginx answers any path that isn't a file or `/api` with `index.html`, and the router takes it from there.
 
-To add a page: add its URL to `ROUTES`, its component to `pages/`, and a route to the table; add a tab in `app-shell.tsx` if it belongs in the app bar.
+To add a page: add its URL to `ROUTES`, its component to `pages/`, and a route to the table (under `AdminRoute` if it's for the Admin); add a tab in `app-shell.tsx` if it belongs in the app bar.
 
 ## Talking to the API
 

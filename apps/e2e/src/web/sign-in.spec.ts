@@ -24,10 +24,30 @@ test('a signed-out visitor signs in as a User, sees their user ID, and signs out
   await expect(signInPage.heading).toBeVisible();
 });
 
-test('signs in as the Admin', async ({ page, signInPage }) => {
+test('signs in as the Admin and lands on the dashboard', async ({
+  page,
+  signInPage,
+}) => {
   await signInPage.goto();
 
   await signInPage.signInAs('Admin');
 
+  await expect(page).toHaveURL('/dashboard');
   await expect(page.getByRole('banner').getByText('Admin')).toBeVisible();
+});
+
+test('a User signs in on the clicker and finds no dashboard', async ({
+  page,
+  signInPage,
+  playPage,
+}) => {
+  await signInPage.goto();
+
+  await signInPage.signInAs('User');
+  await expect(playPage.heading).toBeVisible();
+
+  await page.goto('/dashboard');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Page not found' }),
+  ).toBeVisible();
 });

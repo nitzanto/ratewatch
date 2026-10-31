@@ -16,7 +16,7 @@ apps/api/src/
     ├── app.module.ts          # root module: config, global validation
     ├── auth/                  # a feature module, one folder per kind of file:
     │   ├── controllers/       #   sign-in, sign-out, me (spec beside it)
-    │   ├── decorators/        #   @Public(), @CurrentSession()
+    │   ├── decorators/        #   @Public(), @Roles(), @CurrentSession()
     │   ├── dto/               #   Zod DTOs from the shared contracts
     │   ├── guards/            #   the global SessionGuard (spec beside it)
     │   ├── interfaces/        #   SessionRequest
@@ -41,7 +41,7 @@ flowchart LR
   ser --> res[Response]
 ```
 
-- **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health). A handler reads the signed-in person with `@CurrentSession()`; the rate limiter will read the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
+- **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health); routes only some roles may use are marked `@Roles(...)` (for example `@Roles('admin')`), and the same guard answers 403 to any other role. Unmarked routes are open to every signed-in role. A handler reads the signed-in person with `@CurrentSession()`; the rate limiter will read the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
 - **Input validation.** A global `ZodValidationPipe` validates every body, query and route parameter against its DTO. DTOs are built from the shared contracts with `createZodDto`.
 - **Output validation.** A global `ZodSerializerInterceptor` checks the response of every route marked `@ZodSerializerDto`.
 - **Rate limiting** will be an interceptor in this pipeline, ahead of the handler.

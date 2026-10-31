@@ -9,7 +9,7 @@ import { Navigate, type Path, useLocation } from 'react-router';
 
 /**
  * A split page: the navy welcome panel with Crumb waving, and the two demo sign-in buttons. Once signed
- * in, it returns to the page the app shell sent the visitor from, else to the role's landing page.
+ * in, it returns to the page the app shell sent the visitor from, else home, which picks the role's start page.
  */
 export const SignInPage = () => {
   const { data: session, isPending } = useSession();
@@ -18,13 +18,7 @@ export const SignInPage = () => {
   const from: Path | undefined = useLocation().state?.from;
 
   if (isPending) return null;
-  if (session)
-    return (
-      <Navigate
-        to={from ?? (session.role === 'admin' ? ROUTES.dashboard : ROUTES.play)}
-        replace
-      />
-    );
+  if (session) return <Navigate to={from ?? ROUTES.home} replace />;
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex' }}>
