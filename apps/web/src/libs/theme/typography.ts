@@ -4,9 +4,11 @@ import type { CSSProperties } from 'react';
 declare module '@mui/material/styles' {
   interface TypographyVariants {
     countHero: CSSProperties;
+    metric: CSSProperties;
   }
   interface TypographyVariantsOptions {
     countHero?: CSSProperties;
+    metric?: CSSProperties;
   }
 }
 
@@ -14,6 +16,8 @@ declare module '@mui/material/Typography' {
   interface TypographyPropsVariantOverrides {
     /** The clicker's big number: requests left, or the countdown. */
     countHero: true;
+    /** A summary card's number. */
+    metric: true;
   }
 }
 
@@ -29,6 +33,13 @@ export const typography: TypographyVariantsOptions = {
   h5: heading,
   h6: { ...heading, lineHeight: 1.4 },
   button: { fontWeight: 600, textTransform: 'none' },
+  metric: {
+    fontSize: '2rem',
+    fontWeight: 600,
+    lineHeight: 1.2,
+    letterSpacing: '-0.01em',
+    fontVariantNumeric: 'tabular-nums',
+  },
   countHero: {
     fontSize: '3.75rem',
     fontWeight: 600,

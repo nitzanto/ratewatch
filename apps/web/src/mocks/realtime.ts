@@ -3,8 +3,14 @@ import type {
   RealtimeListeners,
 } from '@/libs/realtime/realtime-client';
 import { afterRequest } from '@/mocks/data/users';
-import { getMockUsers, setMockUsers } from '@/mocks/handlers/admin-users';
+import {
+  addMockRefusal,
+  getMockSummary,
+  getMockUsers,
+  setMockUsers,
+} from '@/mocks/handlers/admin-users';
 import type {
+  AdminSummary,
   RateLimitExceededEvent,
   RateUpdateEvent,
 } from '@ratewatch/contracts';
@@ -37,6 +43,9 @@ export const sendRateUpdate = (event: RateUpdateEvent) =>
 export const sendLimitExceeded = (event: RateLimitExceededEvent) =>
   connections.forEach(({ onLimitExceeded }) => onLimitExceeded(event));
 
+export const sendSummary = (summary: AdminSummary) =>
+  connections.forEach(({ onSummary }) => onSummary(summary));
+
 /** The connection drops, and every open page waits for it to come back. */
 export const dropRealtime = () => {
   online = false;
@@ -54,28 +63,35 @@ export const restoreRealtime = () => {
   connections.forEach(({ onStatus }) => onStatus('live'));
 };
 
-/** Mock mode's traffic: about one request a second from a random user, through the mock API's users. */
+/** One request from a random mock user, sent to followers as the API would. */
+const sendRandomRequest = () => {
+  const users = getMockUsers();
+  const user = users[Math.floor(Math.random() * users.length)];
+  if (!user) return;
+  const at = new Date().toISOString();
+  // A refused request changes nothing but the last request, and the API still sends it to the user's followers.
+  if (user.status === 'exceeded') {
+    addMockRefusal();
+    sendLimitExceeded({
+      userId: user.userId,
+      limit: user.limit,
+      resetAt: user.resetAt ?? at,
+      at,
+    });
+    const next = { ...user, lastRequestAt: at };
+    setMockUsers(users.map((row) => (row === user ? next : row)));
+    sendRateUpdate({ row: next, requests: [{ at, allowed: false }] });
+    return;
+  }
+  const next = afterRequest(user, at);
+  setMockUsers(users.map((row) => (row === user ? next : row)));
+  sendRateUpdate({ row: next, requests: [{ at, allowed: true }] });
+};
+
+/** Mock mode's traffic: about one request a second from a random user, through the mock API's users, then the summary, as the API sends it every second. */
 export const simulateTraffic = () =>
   setInterval(() => {
     if (!online) return;
-    const users = getMockUsers();
-    const user = users[Math.floor(Math.random() * users.length)];
-    if (!user) return;
-    const at = new Date().toISOString();
-    // A refused request changes nothing but the last request, and the API still sends it to the user's followers.
-    if (user.status === 'exceeded') {
-      sendLimitExceeded({
-        userId: user.userId,
-        limit: user.limit,
-        resetAt: user.resetAt ?? at,
-        at,
-      });
-      const next = { ...user, lastRequestAt: at };
-      setMockUsers(users.map((row) => (row === user ? next : row)));
-      sendRateUpdate({ row: next, requests: [{ at, allowed: false }] });
-      return;
-    }
-    const next = afterRequest(user, at);
-    setMockUsers(users.map((row) => (row === user ? next : row)));
-    sendRateUpdate({ row: next, requests: [{ at, allowed: true }] });
+    sendRandomRequest();
+    sendSummary(getMockSummary());
   }, 1000);

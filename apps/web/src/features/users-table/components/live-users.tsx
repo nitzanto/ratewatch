@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { debounce } from '@mui/material/utils';
 import { useMemo, useState } from 'react';
-import { useLiveUsers } from '../hooks/use-live-users';
+import { useLiveDashboard } from '@/hooks/api/use-live-dashboard';
 import { SelectionToolbar } from './selection-toolbar';
 import { UsersEmptyState } from './users-empty-state';
 import { UsersFilters } from './users-filters';
@@ -39,7 +39,7 @@ export const LiveUsers = () => {
   const [selected, setSelected] = useState<string[]>([]);
   const { data, isPending, isError, refetch } = useAdminUsers(query);
   // Times stop moving while the connection is lost, so they read as of when it dropped.
-  const lostAt = useLiveUsers();
+  const lostAt = useLiveDashboard();
 
   // A new search, filter or sort starts again from the first page.
   const change = (changes: Partial<UsersQuery>) =>

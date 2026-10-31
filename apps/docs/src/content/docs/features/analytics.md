@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-**Status:** Planned
+**Status:** Shipped.
 
 ## Summary
 
@@ -16,19 +16,16 @@ Summary numbers at the top of the dashboard, so an admin sees the overall pictur
 - As an admin, I can see summary cards for:
   - the total number of users;
   - the percentage of users near their limit;
-  - how many requests were refused for being over the limit today.
-- As an admin, I can see the top users by requests in the current hour.
+  - how many requests were refused for being over the limit today (UTC).
+- As an admin, I can see the top 5 users by requests in their current window.
 
 ## Rules
 
-- "Near their limit" means the Warning status: 90% or more of the allowance used.
-- The numbers update live.
+- The total counts users with a request in the past 24 hours.
+- "Near their limit" means the Warning or Exceeded status: 90% or more of the allowance used.
+- "Today" is the UTC day, from midnight to midnight UTC, so every admin sees the same number; the card says "429s today (UTC)".
+- The numbers update live, every second.
 
 ## Out of scope
 
 - Charts over weeks or months.
-
-## Open questions
-
-- When does "today" start and end: midnight in which time zone?
-- How many users does the top-users list show?

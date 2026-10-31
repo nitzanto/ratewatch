@@ -6,7 +6,7 @@ status: accepted
 
 # Socket.IO with the Redis adapter, events only for what an admin sees
 
-Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapter, so an event from any API instance reaches admins on every instance. Only the Admin can connect (the handshake checks the session cookie). An admin joins one room per user row on screen (at most 100) plus the open user, and an `admins` room. `rate:update` is sent at most once per second per user per instance, as a plain (not volatile) emit; `rate:limit_exceeded` is sent at once, exactly once per user per window. Events therefore scale with what admins look at, not with the number of users.
+Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapter, so an event from any API instance reaches admins on every instance. Only the Admin can connect (the handshake checks the session cookie). An admin joins one room per user row on screen (at most 100) plus the open user, and an `admins` room. `rate:update` is sent at most once per second per user per instance, as a plain (not volatile) emit; `rate:limit_exceeded` is sent at once, exactly once per user per window. `rate:summary` is the one exception to cross-instance fan-out: once a second, each instance with admins connected reads the summary from Redis after its batch and emits it to its own `admins` sockets only (`server.local`), so it never goes through the adapter. Events therefore scale with what admins look at, not with the number of users.
 
 ## Considered Options
 
@@ -17,6 +17,7 @@ Live updates use `@nestjs/websockets` with Socket.IO and its sharded Redis adapt
 
 ## Consequences
 
+- Every instance with admins reads the summary once a second (five `FT.SEARCH` and one `GET`), so that cost grows with instances that have admins, not with users. An admin's summary can lag writes made by other instances by up to a second. Publishing one summary through the adapter instead would need one instance elected to compute it ([#57](https://github.com/nitzanto/ratewatch/issues/57)).
 - The web app connects over WebSocket only, so several API instances need no sticky sessions; a network that blocks WebSockets gets no live updates.
 - The sharded adapter publishes a room's event even when no socket is in it, so until updates are published only for followed users (measured with #41), Redis pub/sub traffic grows with active users even though deliveries don't.
 - An admin sees live changes only for rows on screen; other pages are fresh when opened.

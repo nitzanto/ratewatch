@@ -10,6 +10,7 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import {
+  type AdminSummary,
   type RateLimitExceededEvent,
   type RateSubscribeAck,
   rateSubscribeSchema,
@@ -112,5 +113,15 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
 
   sendLimitExceeded(event: RateLimitExceededEvent) {
     this.server.to(adminsRoom).emit(realtimeEvents.limitExceeded, event);
+  }
+
+  /** Whether an admin is connected to this instance; the room list is this instance's own, whatever the adapter. */
+  hasLocalAdmins() {
+    return !!this.server?.sockets.adapter.rooms.get(adminsRoom)?.size;
+  }
+
+  /** To this instance's admins only: every instance with admins sends its own, so none goes through Redis. */
+  sendSummary(summary: AdminSummary) {
+    this.server.local.to(adminsRoom).emit(realtimeEvents.summary, summary);
   }
 }

@@ -5,7 +5,7 @@ test.beforeEach(({ signInPage }) => signInPage.signIn('Admin'));
 test('home shows the API health status', async ({ homePage }) => {
   await homePage.goto();
 
-  await expect(homePage.apiStatus).toHaveText('API status: ok');
+  await expect(homePage.apiStatus).toHaveText('OK');
   // The dashboard holds the live connection, so the pill reports it too.
   await expect(homePage.appBarStatus).toHaveText('Live · API OK');
 });
@@ -27,5 +27,5 @@ test('the tabs move between the dashboard and the cookie clicker', async ({
 
   await homePage.tab('Dashboard').click();
   await expect(page).toHaveURL('/dashboard');
-  await expect(homePage.apiStatus).toHaveText('API status: ok');
+  await expect(homePage.apiStatus).toHaveText('OK');
 });

@@ -28,7 +28,8 @@ const addCounts = (into: Map<string, number>, from: Map<string, number>) => {
 
 /**
  * Collects the limiter's decisions in memory, so the request path does no I/O, and once a second writes each
- * changed user's record, history and recent requests in one pipeline, then sends each one's `rate:update` with the row as written. A first
+ * changed user's record, history and recent requests in one pipeline, then sends each one's `rate:update` with the row as written,
+ * and this instance's admins the summary. A first
  * refusal is sent to admins at once. While Redis is down it keeps the latest numbers (the oldest users go
  * first past `maxPendingUsers`) and writes them once Redis is back.
  */
@@ -47,9 +48,19 @@ export class DashboardPublisher implements OnModuleInit, OnApplicationShutdown {
 
   onModuleInit() {
     this.timer = setInterval(
-      () => void this.flush().catch((error) => this.logFailure(error)),
+      () =>
+        void this.flush()
+          .catch((error) => this.logFailure(error))
+          .then(() => this.sendSummary()),
       flushEveryMs,
     );
+  }
+
+  /** After the second's records are written, so the summary counts them. Skipped while Redis is down, like `rate:update`. */
+  private async sendSummary() {
+    if (!this.gateway.hasLocalAdmins()) return;
+    const summary = await this.users.summary().catch(() => null);
+    if (summary) this.gateway.sendSummary(summary);
   }
 
   /**
@@ -115,7 +126,7 @@ export class DashboardPublisher implements OnModuleInit, OnApplicationShutdown {
 
   /** Puts a batch entry that failed back, behind anything newer recorded since. */
   // shortcut: a batch that timed out after Redis applied it is written again, so its requests count twice in the
-  // history and the recent list; fine for a dashboard, and an idempotent write (a batch ID) fixes it if it matters.
+  // history, the recent list and the refused-today count; fine for a dashboard, and an idempotent write (a batch ID) fixes it if it matters.
   private restore(entry: Activity, error: Error) {
     const { userId } = entry.latest;
     const newer = this.pending.get(userId);

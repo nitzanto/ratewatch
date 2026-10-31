@@ -4,6 +4,7 @@ import {
   afterPause,
   afterReset,
   mockUsers,
+  summaryOf,
   userDetail,
   userHistory,
   usersPage,
@@ -32,7 +33,24 @@ export const setMockUsers = (rows: UserRow[]) => {
   users = rows;
 };
 
-export const resetUsers = () => setMockUsers(mockUsers());
+/** Mock mode opens on a day that has already seen some refusals. */
+const refusedBefore = 37;
+let refusedToday = refusedBefore;
+
+/** Sets the requests refused today. */
+export const setMockRefusedToday = (count: number) => {
+  refusedToday = count;
+};
+
+/** One more request refused today, as the mock traffic sends one. */
+export const addMockRefusal = () => {
+  refusedToday += 1;
+};
+
+export const resetUsers = () => {
+  setMockUsers(mockUsers());
+  refusedToday = refusedBefore;
+};
 
 /** The users, with every pause that has run out ended, as the API's records drop them. */
 const endPauses = () => {
@@ -44,6 +62,9 @@ const endPauses = () => {
   );
   return users;
 };
+
+/** The summary the mock API answers, and the mock realtime connection sends. */
+export const getMockSummary = () => summaryOf(endPauses(), refusedToday);
 
 /** Applies `next` to these users as an admin change, and answers as the API does. */
 const changeUsers = (userIds: string[], next: (row: UserRow) => UserRow) => {
@@ -57,6 +78,7 @@ const changeUsers = (userIds: string[], next: (row: UserRow) => UserRow) => {
 };
 
 export const adminUserHandlers = [
+  http.get('/api/admin/summary', () => HttpResponse.json(getMockSummary())),
   http.get('/api/admin/users', ({ request }) =>
     HttpResponse.json(
       usersPage(

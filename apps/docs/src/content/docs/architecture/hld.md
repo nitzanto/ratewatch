@@ -262,16 +262,17 @@ The limiter does not write dashboard data on the request path. Each API instance
 
 - **User record**: one Redis hash for each user, with the limit, the count, the reset time, the pause end and the last request. It keeps numbers only. The **status** (OK, Warning, Exceeded or Paused) comes from these numbers and the current time when the API reads them, so a window that ended never shows a stale status.
 - **Search index**: the Redis 8 query engine indexes the user records. One query answers the users table: search by user ID, the status and last-active filters, sort by any column, and pages of up to 100 rows, with the count for each status. If Redis loses the index (a restart or a failover without its data), the API creates it again on the next read, and Redis indexes the records again in the background.
-- **History (Planned)**: accepted and refused requests for the past hour and day, kept 24 hours.
-- **Refused requests today (Planned)**: one counter for each UTC day. It expires at the end of the day.
+- **History**: accepted and refused requests for the past hour and day, kept 24 hours.
+- **Refused requests today**: one counter for each UTC day. It expires at the end of the next UTC day, so the whole of today is always there.
 
 ### Realtime delivery
 
 The API sends live updates with `@nestjs/websockets` and Socket.IO. The Socket.IO Redis adapter passes each event to all API instances, so an admin on any instance gets it. Only the Admin can connect: the handshake checks the session cookie.
 
-- **Rooms.** An admin joins one room for each row on screen (`rate:subscribe`, sent again after every reconnect) and one for the open user. A room for all admins gets `rate:limit_exceeded`, and later the summary numbers and the counts for each status (Planned). An admin gets events only for what they see, so the number of events does not grow with the number of users.
+- **Rooms.** An admin joins one room for each row on screen (`rate:subscribe`, sent again after every reconnect) and one for the open user. A room for all admins gets `rate:limit_exceeded` and, once a second, the summary numbers and the counts for each status. An admin gets events only for what they see, so the number of events does not grow with the number of users.
 - **`rate:update`**: at most one each second for each user, with the latest numbers. If an admin is disconnected, the event is dropped, because a newer one follows.
 - **`rate:limit_exceeded`**: sent at once, one time for each user in each window.
+- **`rate:summary`**: once a second, each API instance that has admins connected reads the summary from Redis after writing its batch, and sends it to its own admins only. It does not pass through the Redis adapter, because every instance sends its own.
 - **Reconnect**: the web app loads the data again, then continues with live events.
 
 ### Admin controls

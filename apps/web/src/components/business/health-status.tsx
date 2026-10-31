@@ -1,14 +1,38 @@
+import { MetricCard } from '@/components/ui/metric-card';
 import { useHealth } from '@/hooks/api/use-health';
-import { Alert, CircularProgress } from '@mui/material';
+import { ExceededIcon, OkIcon } from '@/libs/theme/status-icons';
+import { CircularProgress } from '@mui/material';
 
+/** The API health summary card. `/health` never checks Redis, so OK means the API answers, not that limits are counted. */
 export const HealthStatus = () => {
-  const { data, isPending, isError } = useHealth();
+  const { isPending, isError } = useHealth();
 
-  if (isPending) return <CircularProgress aria-label="Loading" />;
-  if (isError) return <Alert severity="error">API unreachable</Alert>;
+  if (isPending)
+    return (
+      <MetricCard
+        label="API health"
+        value="—"
+        caption="Checking the API"
+        icon={<CircularProgress size={20} aria-label="Loading" />}
+      />
+    );
+  if (isError)
+    return (
+      <MetricCard
+        label="API health"
+        value="Down"
+        caption="API unreachable"
+        icon={<ExceededIcon sx={{ color: 'error.main' }} />}
+        live
+      />
+    );
   return (
-    <Alert severity="success" role="status">
-      API status: {data.status}
-    </Alert>
+    <MetricCard
+      label="API health"
+      value="OK"
+      caption="The API answers"
+      icon={<OkIcon sx={{ color: 'success.main' }} />}
+      live
+    />
   );
 };
