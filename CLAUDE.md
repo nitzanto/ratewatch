@@ -14,6 +14,10 @@ Built production-grade: every significant decision needs an ADR with its trade-o
 - ESLint stays on 9: `eslint-plugin-react` (used by Nx's React lint config) crashes on ESLint 10. Upgrade once it supports 10.
 - Work is tracked in GitHub Issues and built in vertical slices.
 
+## Running the app and e2e
+
+- **Start clean, leave clean.** Before serving the app or running e2e, check what listens on 3000 (API), 4200 (web) and 6379 (Redis): Playwright reuses whatever answers there, so a developer's mock-mode web server turns e2e red at sign-in. Ask the developer about anything you didn't start. Start what you need fresh with Docker Compose (`docker compose up -d --wait redis` for e2e), and when done tear down everything you started: `docker compose down` plus any dev server.
+
 ## Git workflow
 
 - **Always use [Conventional Commits](https://www.conventionalcommits.org/)**: `<type>(<optional scope>): <description>`, for example `feat(rate-limit): enforce limit with atomic Lua script`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `build`, `perf`, `style`, `revert`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer.
