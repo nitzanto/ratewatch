@@ -17,4 +17,4 @@ A good design doc covers:
 
 Each decision the design makes gets an [ADR](../../adrs/writing-an-adr/) and a row in the [decision log](../../adrs/architecture-decisions/#decision-log). The design doc links to them, and to the [feature spec](../../features/) it implements.
 
-The first design docs arrive with the rate-limiting and dashboard features.
+The first is [Rate limiting and live dashboard](../rate-limiting-and-live-dashboard/).
