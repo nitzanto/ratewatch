@@ -49,6 +49,9 @@ export default defineConfig(() => ({
     environment: 'jsdom',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     setupFiles: ['src/test-setup.ts'],
+    // A file's first test pays for transforming and importing the whole app (1.2 s here, past 6 s on a 2-core CI
+    // runner beside the API's tests), so the 5 s default times it out; a render that never comes still fails.
+    testTimeout: 15_000,
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
