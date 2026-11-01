@@ -64,9 +64,11 @@ export const clickMutations = {
               ? last.requestsLeft
               : undefined,
         })),
-      // Only a refusal changes the limit; any other failure leaves the last known state.
+      // Only an hourly refusal changes the limit. A burst refusal counted nothing, so it leaves the count as it was,
+      // like any other failure.
       onError: (error, _variables, _result, { client }) => {
-        if (!(error instanceof RateLimitedError)) return;
+        if (!(error instanceof RateLimitedError) || error.reason === 'burst')
+          return;
         const refused: RateLimit = {
           kind: 'refused',
           message: error.message,

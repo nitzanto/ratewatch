@@ -7,4 +7,5 @@ export const rateLimited = (retryAt: Date) =>
   ({
     message: "You've used all your requests for this hour.",
     retryAt: retryAt.toISOString(),
+    reason: 'hourly',
   }) satisfies RateLimitedResponse;

@@ -49,6 +49,9 @@ export const CookieClicker = () => {
   const view = clickerView(
     useRateLimit(),
     click.isError && !(click.error instanceof RateLimitedError),
+    click.error instanceof RateLimitedError && click.error.reason === 'burst'
+      ? click.error.message
+      : undefined,
   );
   // Never retried: each attempt would spend another request.
   const onClick = () => click.mutate();

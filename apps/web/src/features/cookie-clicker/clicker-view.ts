@@ -10,6 +10,7 @@ import {
 export type ClickerNote =
   | { kind: 'refused'; message: string; waiting: boolean }
   | { kind: 'failed' }
+  | { kind: 'slow-down'; message: string }
   | { kind: 'welcome-back' }
   | { kind: 'almost-out'; requestsLeft: number }
   | { kind: 'stage'; stage: number }
@@ -67,11 +68,13 @@ const crumbMood = (
 /** The note while clicking, most urgent first. */
 const clickingNote = (
   failed: boolean,
+  slowDown: string | undefined,
   status: RateLimitStatus | undefined,
   left: number | undefined,
   before: number | undefined,
 ): ClickerNote => {
   if (failed) return { kind: 'failed' };
+  if (slowDown !== undefined) return { kind: 'slow-down', message: slowDown };
   if (left === undefined) return { kind: 'hint' };
   if (status === 'warning') return { kind: 'almost-out', requestsLeft: left };
   if (status === 'exceeded') return { kind: 'last-request' };
@@ -86,6 +89,8 @@ export const clickerView = (
   limit: RateLimit | undefined,
   /** The last click failed some other way (server error, broken contract). */
   failed: boolean,
+  /** The last click got a burst 429: its message. Nothing was counted, so the count stays. */
+  slowDown?: string,
 ): ClickerView | ClickerWait => {
   if (limit?.kind === 'refused') {
     if (limit.retryAt > limit.refusedAt) return { ...limit, phase: 'waiting' };
@@ -119,6 +124,6 @@ export const clickerView = (
     unavailable,
     status,
     mood: crumbMood(status, left, unavailable),
-    note: clickingNote(failed, status, left, limit?.before),
+    note: clickingNote(failed, slowDown, status, left, limit?.before),
   };
 };

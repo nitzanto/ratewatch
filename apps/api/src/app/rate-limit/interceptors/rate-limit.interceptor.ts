@@ -19,14 +19,16 @@ import type { SessionRequest } from '../../auth/interfaces/session-request.inter
 import { DashboardPublisher } from '../../dashboard/services/dashboard-publisher.service';
 import { redisClient } from '../../redis/constants/redis.constants';
 import {
+  burstLimit,
   uncountedLogEveryMs,
   rateLimitKeys,
   rateLimitScript,
   windowMs,
 } from '../constants/rate-limit.constants';
+import type { BurstLimit } from '../interfaces/burst-limit.interface';
 
-/** `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal]`, see `rateLimitScript`. */
-type RateLimitReply = [number, number, number, number, number, number];
+/** `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal, msUntilToken]`, see `rateLimitScript`. */
+type RateLimitReply = [number, number, number, number, number, number, number];
 
 type RateLimitRedis = Redis & {
   rateLimit(
@@ -35,12 +37,16 @@ type RateLimitRedis = Redis & {
     pause: string,
     defaultLimit: number,
     windowMs: number,
+    now: number,
+    capacity: number,
+    tokensPerMs: number,
   ): Promise<RateLimitReply>;
 };
 
 /**
  * Counts each request to the routes it's applied to (only `POST /clicks`) against the User's limit, and reports
- * the requests left in `x-count`. Runs after `SessionGuard`, so the session is known; the Admin is never counted.
+ * the requests left in `x-count`. A request must also pass the burst limit, a token bucket that refuses requests
+ * sent faster than a person clicks. Runs after `SessionGuard`, so the session is known; the Admin is never counted.
  * Fails open: when Redis can't answer, the request goes through uncounted and without `x-count`.
  */
 @Injectable()
@@ -52,6 +58,7 @@ export class RateLimitInterceptor implements NestInterceptor {
   constructor(
     @Inject(redisClient) redis: Redis,
     private readonly dashboard: DashboardPublisher,
+    @Inject(burstLimit) private readonly burst: BurstLimit,
   ) {
     // Runs as EVALSHA, and ioredis resends the script when Redis has lost its script cache.
     redis.defineCommand('rateLimit', { numberOfKeys: 3, lua: rateLimitScript });
@@ -64,20 +71,30 @@ export class RateLimitInterceptor implements NestInterceptor {
     const { session } = context.switchToHttp().getRequest<SessionRequest>();
     if (session.role === 'admin') return next.handle();
 
+    const at = Date.now();
     let reply: RateLimitReply;
     try {
       reply = await this.redis.rateLimit(
         ...rateLimitKeys(session.userId),
         defaultHourlyLimit,
         windowMs,
+        at,
+        this.burst.capacity,
+        this.burst.refillPerSecond / 1000,
       );
     } catch (error) {
       this.failOpen(error);
       return next.handle();
     }
-    const [allowed, requestsLeft, msUntilReset, limit, used, firstRefusal] =
-      reply;
-    const at = Date.now();
+    const [
+      allowed,
+      requestsLeft,
+      msUntilReset,
+      limit,
+      used,
+      firstRefusal,
+      msUntilToken,
+    ] = reply;
     const resetAt = at + msUntilReset;
     // In memory only: the dashboard writes it to Redis with the rest of the second's decisions.
     this.dashboard.record({
@@ -92,11 +109,16 @@ export class RateLimitInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse<Response>();
 
     if (!allowed) {
-      response.setHeader('Retry-After', Math.ceil(msUntilReset / 1000));
+      const burst = msUntilToken > 0;
+      const msUntilRetry = burst ? msUntilToken : msUntilReset;
+      response.setHeader('Retry-After', Math.ceil(msUntilRetry / 1000));
       throw new HttpException(
         {
-          message: "You've used all your requests for this hour.",
-          retryAt: new Date(resetAt).toISOString(),
+          message: burst
+            ? 'Too many requests at once. Slow down a little.'
+            : "You've used all your requests for this hour.",
+          retryAt: new Date(at + msUntilRetry).toISOString(),
+          reason: burst ? 'burst' : 'hourly',
         } satisfies RateLimitedResponse,
         HttpStatus.TOO_MANY_REQUESTS,
       );

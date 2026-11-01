@@ -45,6 +45,12 @@ const Note = ({ note }: { note: ClickerNote }) => {
           Crumb's click didn't go through. Try again.
         </Alert>
       );
+    case 'slow-down':
+      return (
+        <Alert severity="info" role="status">
+          {note.message}
+        </Alert>
+      );
     case 'welcome-back':
       return (
         <Alert severity="success" role="status">

@@ -24,20 +24,30 @@ describe('rateLimitHeadersSchema', () => {
 });
 
 describe('rateLimitedResponseSchema', () => {
-  it('accepts a message and a retry time', () => {
-    const body = {
-      message: 'Too many requests',
-      retryAt: '2026-10-30T18:00:00.000Z',
-    };
+  it.each(['hourly', 'burst'])(
+    'accepts a message, a retry time and the %s reason',
+    (reason) => {
+      const body = {
+        message: 'Too many requests',
+        retryAt: '2026-10-30T18:00:00.000Z',
+        reason,
+      };
 
-    expect(rateLimitedResponseSchema.parse(body)).toEqual(body);
-  });
+      expect(rateLimitedResponseSchema.parse(body)).toEqual(body);
+    },
+  );
 
   it.each([
     {},
     { message: 'Too many requests' },
-    { message: 'Too many requests', retryAt: 'soon' },
-    { retryAt: '2026-10-30T18:00:00.000Z' },
+    { message: 'Too many requests', retryAt: 'soon', reason: 'hourly' },
+    { retryAt: '2026-10-30T18:00:00.000Z', reason: 'hourly' },
+    { message: 'Too many requests', retryAt: '2026-10-30T18:00:00.000Z' },
+    {
+      message: 'Too many requests',
+      retryAt: '2026-10-30T18:00:00.000Z',
+      reason: 'daily',
+    },
     null,
   ])('rejects %j', (body) => {
     expect(rateLimitedResponseSchema.safeParse(body).success).toBe(false);

@@ -25,6 +25,7 @@ The [cookie clicker](../cookie-clicker/) is the way to see this from a user's si
 - Users are identified by their user ID, never by IP address or device.
 - When many requests arrive at the same moment, the limit still holds exactly: no request slips past it.
 - A request over the limit is refused with a "too many requests" response, a message, and the time the user can try again.
+- Requests sent all at once can't spend the whole hour: after about 20 in a burst, the user is asked to slow down and can try again in under a second. A refused request never uses up the allowance. A person clicking, even quickly, is never slowed down.
 - Admins can change a user's allowance (see [Admin controls](../admin-controls/)).
 
 ## Out of scope

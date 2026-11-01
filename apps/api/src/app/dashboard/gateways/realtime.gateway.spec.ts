@@ -15,6 +15,7 @@ import {
 import Redis from 'ioredis';
 import { io, type Socket } from 'socket.io-client';
 import {
+  noBurstLimit,
   postClick,
   signedInCookie,
   signedInUser,
@@ -33,6 +34,8 @@ describe('realtime', () => {
     ({ app, baseUrl } = await startApp(
       [],
       new Redis(container.getConnectionUrl()),
+      // These tests click in bulk to reach a status or a refusal, not to test the burst limit.
+      noBurstLimit,
     ));
   }, 120_000);
 
@@ -165,7 +168,11 @@ describe('realtime', () => {
   });
 
   it('sends rate:update to an admin on another API instance', async () => {
-    const other = await startApp([], new Redis(container.getConnectionUrl()));
+    const other = await startApp(
+      [],
+      new Redis(container.getConnectionUrl()),
+      noBurstLimit,
+    );
     try {
       const { userId, cookie } = await signedInUser(baseUrl);
       const socket = await adminSocket(other.baseUrl);
@@ -262,4 +269,47 @@ describe('realtime', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(events).toHaveLength(1);
   });
+
+  it('counts burst refusals in the 429s today, but never sends rate:limit_exceeded for them', async () => {
+    // An instance with the burst limit on, sharing the Redis.
+    const burst = await startApp([], new Redis(container.getConnectionUrl()));
+    try {
+      const admin = await signedInCookie(baseUrl, 'admin');
+      const refusedToday = async () =>
+        adminSummarySchema.parse(
+          await (
+            await fetch(`${baseUrl}/admin/summary`, {
+              headers: { cookie: admin },
+            })
+          ).json(),
+        ).refusedToday;
+      const before = await refusedToday();
+      const { cookie } = await signedInUser(burst.baseUrl);
+      const socket = await adminSocket();
+      const events: RateLimitExceededEvent[] = [];
+      socket.on(realtimeEvents.limitExceeded, (event: RateLimitExceededEvent) =>
+        events.push(event),
+      );
+
+      const responses = await Promise.all(
+        Array.from({ length: 40 }, () => postClick(burst.baseUrl, cookie)),
+      );
+      const refused = responses.filter((res) => res.status === 429);
+
+      expect(refused.length).toBeGreaterThan(0);
+      expect(
+        rateLimitedResponseSchema.parse(await refused[0].json()).reason,
+      ).toBe('burst');
+      await vi.waitFor(
+        async () =>
+          expect(await refusedToday()).toBeGreaterThanOrEqual(
+            before + refused.length,
+          ),
+        { timeout: 3000 },
+      );
+      expect(events).toHaveLength(0);
+    } finally {
+      await burst.app.close();
+    }
+  }, 10_000);
 });

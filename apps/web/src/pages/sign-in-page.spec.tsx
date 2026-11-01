@@ -101,6 +101,7 @@ describe('Sign-in', () => {
           {
             message: 'Too many requests.',
             retryAt: new Date(Date.now() + 60_000).toISOString(),
+            reason: 'hourly',
           },
           { status: 429 },
         ),

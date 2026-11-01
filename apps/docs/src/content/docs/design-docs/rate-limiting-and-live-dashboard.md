@@ -88,17 +88,30 @@ local paused = redis.call('EXISTS', KEYS[3]) == 1
 if count >= limit and not paused then
   -- Refused: write nothing except "announced", so the limit isn't used up.
   local first = redis.call('HSETNX', KEYS[1], 'notified', 1)
-  return {0, 0, redis.call('PTTL', KEYS[1]), limit, count, first}
+  return {0, 0, redis.call('PTTL', KEYS[1]), limit, count, first, 0}
+end
+
+-- Burst limit: a token bucket in the window's hash. ARGV: now (ms), capacity, tokens per ms.
+if not paused then
+  local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or ARGV[4])
+  local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or ARGV[3])
+  tokens = math.min(tonumber(ARGV[4]), tokens + math.max(tonumber(ARGV[3]) - tokensAt, 0) * tonumber(ARGV[5]))
+  if tokens < 1 then
+    -- Refused: nothing written, so the bucket keeps refilling from its last spend.
+    return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
+      math.ceil((1 - tokens) / tonumber(ARGV[5]))}
+  end
+  redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', ARGV[3])
 end
 
 count = redis.call('HINCRBY', KEYS[1], 'count', 1)
 if count == 1 then
   redis.call('PEXPIRE', KEYS[1], ARGV[2])
 end
-return {1, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0}
+return {1, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0, 0}
 ```
 
-It returns `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal]`. The API turns `msUntilReset` into the reset time with its own clock; API clocks are kept in sync by NTP, so the error is milliseconds.
+It returns `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal, msUntilToken]`; `msUntilToken` is above 0 only when the burst limit refused the request. The bucket (20 tokens, 5 back per second) only limits how fast clicks arrive; see [Burst limit](../../adrs/burst-limit/). The API turns `msUntilReset` into the reset time with its own clock; API clocks are kept in sync by NTP, so the error is milliseconds.
 
 - **Refused requests don't count:** the refused branch writes only `notified`, never `count`.
 - **The expiry is set once,** when `count` becomes 1. Setting it on every request would push the reset time back forever.
@@ -107,11 +120,12 @@ It returns `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal]`. 
 
 ### Responses
 
-| Outcome      | Response                                                                                                                                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Allowed      | The handler runs. `x-count: <requests left>` is set before it runs.                                                                                                                                                 |
-| Refused      | `429`, body from the shared contract `rateLimitedResponseSchema`: `{ "message": "You've used all your requests for this hour.", "retryAt": "<ISO time>" }`, plus `Retry-After` in seconds. The handler doesn't run. |
-| Redis failed | The handler runs without `x-count`. See [Failing open](#failing-open).                                                                                                                                              |
+| Outcome      | Response                                                                                                                                                                                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Allowed      | The handler runs. `x-count: <requests left>` is set before it runs.                                                                                                                                                                       |
+| Refused      | `429`, body from the shared contract `rateLimitedResponseSchema`: `{ "message": "You've used all your requests for this hour.", "retryAt": "<reset time>", "reason": "hourly" }`, plus `Retry-After` in seconds. The handler doesn't run. |
+| Too fast     | `429` with `{ "message": "Too many requests at once. Slow down a little.", "retryAt": "<next token>", "reason": "burst" }` and `Retry-After: 1`. Counts toward the 429s today; never sends `rate:limit_exceeded`.                         |
+| Redis failed | The handler runs without `x-count`. See [Failing open](#failing-open).                                                                                                                                                                    |
 
 Every decision, allowed or refused, is handed to the dashboard publisher in memory (`DashboardPublisher.record(decision)`): no I/O on the request path.
 
