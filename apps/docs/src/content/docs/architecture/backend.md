@@ -24,7 +24,7 @@ apps/api/src/
     │   ├── services/          #   AuthService: issues and reads sessions
     │   └── constants/         #   cookie name, session lifetime
     ├── clicks/controllers/    # POST /api/clicks: the cookie clicker's request
-    ├── rate-limit/            # the global RateLimitInterceptor, its Lua script and keys (specs beside it)
+    ├── rate-limit/            # RateLimitInterceptor (applied to clicks), its Lua script and keys (specs beside it)
     ├── redis/                 # RedisModule: one shared, fail-fast ioredis client (built in providers/), injected by the redisClient token
     ├── test-utils/            # shared test helpers: startApp(), sign-in and click helpers, a fake Redis
     ├── env.ts                 # schema for the API's environment variables
@@ -39,7 +39,7 @@ Each feature gets its own folder under `app/` (for example `rate-limit/`), laid 
 ```mermaid
 flowchart LR
   req[Request] --> guard["SessionGuard<br/>401 without a session"]
-  guard --> limit["RateLimitInterceptor<br/>x-count, or 429 over the limit"]
+  guard --> limit["RateLimitInterceptor, clicks only<br/>x-count, or 429 over the limit"]
   limit --> pipe["ZodValidationPipe<br/>body, query, params"]
   pipe --> handler[Controller handler]
   handler --> ser["ZodSerializerInterceptor<br/>response shape"]
@@ -49,7 +49,7 @@ flowchart LR
 - **Authentication.** A global `SessionGuard` reads the signed `session` cookie and answers 401 when it's missing, edited or expired. Routes that need no session are marked `@Public()` (sign-in, sign-out, health); routes only some roles may use are marked `@Roles(...)` (for example `@Roles('admin')`), and the same guard answers 403 to any other role. Unmarked routes are open to every signed-in role. A handler reads the signed-in person with `@CurrentSession()`; the rate limiter reads the user ID from the same place. See [Identity and roles](../../adrs/identity-and-roles/).
 - **Input validation.** A global `ZodValidationPipe` validates every body, query and route parameter against its DTO. DTOs are built from the shared contracts with `createZodDto`.
 - **Output validation.** A global `ZodSerializerInterceptor` checks the response of every route marked `@ZodSerializerDto`.
-- **Rate limiting.** A global `RateLimitInterceptor` runs after the guard, so it knows the user. It counts every request a User makes with one atomic Lua script in Redis, sets `x-count` to the requests left, and answers 429 with the reset time over the limit, before the handler runs. Public routes and the Admin are never counted. When Redis can't answer within about 50 ms, the request goes through without `x-count` (fail open), the interceptor logs at most once every 10 seconds, and the Redis client logs when the connection fails and when it's back. `GET /api/health` never checks Redis, so an outage doesn't take the API out of service. See [Rate-limit store and window](../../adrs/rate-limit-store/), [Failure mode](../../adrs/failure-mode/) and the [design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+- **Rate limiting.** `RateLimitInterceptor` applies only to `POST /api/clicks` (`@UseInterceptors` on the clicks controller). It runs after the guard, so it knows the user. It counts each click with one atomic Lua script in Redis, sets `x-count` to the requests left, and answers 429 with the reset time over the limit, before the handler runs. Every other route, including `GET /api/auth/me`, and every Admin request is never counted, so a User over the limit can still load the app. When Redis can't answer within about 50 ms, the request goes through without `x-count` (fail open), the interceptor logs at most once every 10 seconds, and the Redis client logs when the connection fails and when it's back. `GET /api/health` never checks Redis, so an outage doesn't take the API out of service. See [Rate-limit store and window](../../adrs/rate-limit-store/), [Failure mode](../../adrs/failure-mode/) and the [design doc](../../design-docs/rate-limiting-and-live-dashboard/).
 
 ## Configuration
 

@@ -8,7 +8,6 @@ import {
   Logger,
   type NestInterceptor,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import {
   defaultHourlyLimit,
   type RateLimitedResponse,
@@ -16,7 +15,6 @@ import {
 } from '@ratewatch/contracts';
 import type { Response } from 'express';
 import type Redis from 'ioredis';
-import { isPublicKey } from '../../auth/decorators/public.decorator';
 import type { SessionRequest } from '../../auth/interfaces/session-request.interface';
 import { DashboardPublisher } from '../../dashboard/services/dashboard-publisher.service';
 import { redisClient } from '../../redis/constants/redis.constants';
@@ -41,8 +39,8 @@ type RateLimitRedis = Redis & {
 };
 
 /**
- * Global: counts every request a User makes against their limit, and reports the requests left in `x-count`.
- * Runs after `SessionGuard`, so the session is known; public routes and the Admin are never counted.
+ * Counts each request to the routes it's applied to (only `POST /clicks`) against the User's limit, and reports
+ * the requests left in `x-count`. Runs after `SessionGuard`, so the session is known; the Admin is never counted.
  * Fails open: when Redis can't answer, the request goes through uncounted and without `x-count`.
  */
 @Injectable()
@@ -52,7 +50,6 @@ export class RateLimitInterceptor implements NestInterceptor {
   private lastLoggedAt = -Infinity;
 
   constructor(
-    private readonly reflector: Reflector,
     @Inject(redisClient) redis: Redis,
     private readonly dashboard: DashboardPublisher,
   ) {
@@ -64,12 +61,8 @@ export class RateLimitInterceptor implements NestInterceptor {
   async intercept(context: ExecutionContext, next: CallHandler) {
     if (context.getType() !== 'http') return next.handle();
 
-    const isPublic = this.reflector.getAllAndOverride<boolean>(isPublicKey, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
     const { session } = context.switchToHttp().getRequest<SessionRequest>();
-    if (isPublic || session.role === 'admin') return next.handle();
+    if (session.role === 'admin') return next.handle();
 
     let reply: RateLimitReply;
     try {

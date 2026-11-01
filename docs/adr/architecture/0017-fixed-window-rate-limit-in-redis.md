@@ -6,7 +6,7 @@ status: accepted
 
 # Fixed window from the first request, counted in Redis by one atomic script
 
-The limit is checked by a NestJS interceptor in every API instance, against Redis shared by all of them. A user's window is one hour from their first request; one Lua script per request reads the pause, the limit and the window, refuses without writing when nothing is left, and otherwise increments and sets the one-hour expiry only when it opens the window. All of a user's keys carry the `{userId}` hash tag, so the script stays on one Redis Cluster slot. A refused request writes nothing, so it can't use up the limit, and two concurrent requests can't both take the last one.
+The limit is checked by a NestJS interceptor in every API instance, against Redis shared by all of them. It applies only to `POST /clicks` (#77): other routes, such as `GET /auth/me`, never count, so a User over the limit can still load the app. A user's window is one hour from their first request; one Lua script per request reads the pause, the limit and the window, refuses without writing when nothing is left, and otherwise increments and sets the one-hour expiry only when it opens the window. All of a user's keys carry the `{userId}` hash tag, so the script stays on one Redis Cluster slot. A refused request writes nothing, so it can't use up the limit, and two concurrent requests can't both take the last one.
 
 ## Considered Options
 

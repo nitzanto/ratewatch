@@ -67,10 +67,9 @@ The API creates the index (`FT.CREATE`) the first time it writes or reads a reco
 
 ### Where it runs
 
-`RateLimitInterceptor` is a global interceptor (`APP_INTERCEPTOR`) in the API's rate-limit module. Interceptors run after guards, so the session guard has already checked the session. The interceptor skips:
+`RateLimitInterceptor` lives in the API's rate-limit module, which exports it. It applies only to `POST /clicks`: the clicks controller uses it with `@UseInterceptors`. Every other route, including `GET /auth/me`, is never counted and never answers 429, so a User over the limit can still load the app and see when to try again. Interceptors run after guards, so the session guard has already checked the session. The interceptor skips:
 
 - anything that isn't HTTP (`context.getType() !== 'http'`);
-- routes marked `@Public()` (sign-in, sign-out, health), read with the same `isPublicKey` metadata as the guard;
 - the Admin role.
 
 It runs before `next.handle()`, so its order with the response serializer doesn't matter.
@@ -316,15 +315,15 @@ A pause running out sends no `rate:update`: nothing changes in Redis but a key e
 
 ## Testing
 
-| Level                       | What                                                                                                                                             | With                                                  |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| Unit: the interceptor       | The window, refused requests not counting, custom limit, extra requests, pause, failing open on an error and a timeout, skipped routes and Admin | ioredis-mock, Vitest fake timers                      |
-| API over HTTP               | `x-count` going down, the 429 body, public and admin routes not counted, admin endpoints answering 403 to Users                                  | The full app, Redis provider swapped for ioredis-mock |
-| Integration: concurrency    | 150 simultaneous requests for one user, exactly 100 succeed                                                                                      | Testcontainers Redis                                  |
-| Integration: dashboard data | The record script's ordering, field expiry, each status filter, sorting and paging, the summary                                                  | Testcontainers Redis 8                                |
-| API: realtime               | Admin-only handshake, `rate:subscribe`, throttled `rate:update`, `rate:limit_exceeded` once per window                                           | Socket.IO client                                      |
-| Web                         | "Limit unavailable"; rows updating in place; filters, counts and paging                                                                          | The app render helper with MSW                        |
-| End-to-end                  | A User clicks and sees requests left fall; an Admin sees that row change live                                                                    | Playwright `web`                                      |
+| Level                       | What                                                                                                                                               | With                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Unit: the interceptor       | The window, refused requests not counting, custom limit, extra requests, pause, failing open on an error and a timeout, uncounted routes and Admin | ioredis-mock, Vitest fake timers                      |
+| API over HTTP               | `x-count` going down, the 429 body, routes other than clicks not counted, admin endpoints answering 403 to Users                                   | The full app, Redis provider swapped for ioredis-mock |
+| Integration: concurrency    | 150 simultaneous requests for one user, exactly 100 succeed                                                                                        | Testcontainers Redis                                  |
+| Integration: dashboard data | The record script's ordering, field expiry, each status filter, sorting and paging, the summary                                                    | Testcontainers Redis 8                                |
+| API: realtime               | Admin-only handshake, `rate:subscribe`, throttled `rate:update`, `rate:limit_exceeded` once per window                                             | Socket.IO client                                      |
+| Web                         | "Limit unavailable"; rows updating in place; filters, counts and paging                                                                            | The app render helper with MSW                        |
+| End-to-end                  | A User clicks and sees requests left fall; an Admin sees that row change live                                                                      | Playwright `web`                                      |
 
 ioredis-mock has no query engine, so everything that reads the index is tested against a real Redis.
 

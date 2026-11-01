@@ -36,14 +36,17 @@ describe('rate limit', () => {
     expect(second.headers.get('x-count')).toBe('98');
   });
 
-  it('never counts sign-in, health or the Admin', async () => {
+  it('counts only clicks: never sign-in, health, the session or the Admin', async () => {
     const cookie = await signedIn();
     const health = await fetch(`${baseUrl}/health`, { headers: { cookie } });
+    const me = await fetch(`${baseUrl}/auth/me`, { headers: { cookie } });
     const admin = await click(await signedIn('admin'));
 
     const userClick = await click(cookie);
 
     expect(health.headers.get('x-count')).toBeNull();
+    expect(me.status).toBe(200);
+    expect(me.headers.get('x-count')).toBeNull();
     expect(admin.status).toBe(200);
     expect(admin.headers.get('x-count')).toBeNull();
     expect(userClick.headers.get('x-count')).toBe('99');
