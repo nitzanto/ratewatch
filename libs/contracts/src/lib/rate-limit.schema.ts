@@ -16,11 +16,15 @@ export const rateLimitHeadersSchema = z.object({
 
 export type RateLimitHeaders = z.infer<typeof rateLimitHeadersSchema>;
 
-/** Body of a 429 response: the request was over the user's limit. */
+/**
+ * Body of a 429 response. `reason` says which limit refused it: `hourly` when the user has used their requests
+ * for this hour, `burst` when they sent too many at once and only need to wait for the next token.
+ */
 export const rateLimitedResponseSchema = z.object({
   message: z.string(),
   /** ISO 8601 time the user can send requests again. */
   retryAt: z.iso.datetime(),
+  reason: z.enum(['hourly', 'burst']),
 });
 
 export type RateLimitedResponse = z.infer<typeof rateLimitedResponseSchema>;

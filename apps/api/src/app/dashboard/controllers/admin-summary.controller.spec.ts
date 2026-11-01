@@ -6,6 +6,7 @@ import {
 } from '@testcontainers/redis';
 import Redis from 'ioredis';
 import {
+  noBurstLimit,
   postClick,
   signedInCookie,
   signedInUser,
@@ -23,6 +24,8 @@ describe('GET /api/admin/summary', () => {
     ({ app, baseUrl } = await startApp(
       [],
       new Redis(container.getConnectionUrl()),
+      // These tests click in bulk to reach a status or a refusal, not to test the burst limit.
+      noBurstLimit,
     ));
   }, 120_000);
 

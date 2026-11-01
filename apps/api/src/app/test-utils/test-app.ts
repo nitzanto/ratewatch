@@ -8,7 +8,18 @@ import RedisMock from 'ioredis-mock';
 import { AppModule } from '../app.module';
 import { RedisIoAdapter } from '../dashboard/adapters/redis-io.adapter';
 import type { Env } from '../env';
+import {
+  burstLimit,
+  defaultBurstLimit,
+} from '../rate-limit/constants/rate-limit.constants';
+import type { BurstLimit } from '../rate-limit/interfaces/burst-limit.interface';
 import { redisClient } from '../redis/constants/redis.constants';
+
+/** For specs that click in bulk on purpose to test something else: a bucket no test can empty. */
+export const noBurstLimit: BurstLimit = {
+  capacity: 1_000_000,
+  refillPerSecond: 1_000_000,
+};
 
 /**
  * Starts the whole API on a free port with `main.ts`'s setup (keep the two in step), plus any test-only
@@ -18,6 +29,7 @@ import { redisClient } from '../redis/constants/redis.constants';
 export const startApp = async (
   controllers: Type[] = [],
   redis: Redis = new RedisMock(),
+  burst: BurstLimit = defaultBurstLimit,
 ) => {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
@@ -25,6 +37,8 @@ export const startApp = async (
   })
     .overrideProvider(redisClient)
     .useValue(redis)
+    .overrideProvider(burstLimit)
+    .useValue(burst)
     .compile();
   const app: INestApplication = moduleRef.createNestApplication();
   app.setGlobalPrefix('api');

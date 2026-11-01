@@ -1,4 +1,7 @@
-import { rateLimitedResponseSchema } from '@ratewatch/contracts';
+import {
+  type RateLimitedResponse,
+  rateLimitedResponseSchema,
+} from '@ratewatch/contracts';
 
 /** A non-2xx API response. `body` is the parsed JSON, or `undefined` if it wasn't JSON. */
 export class ApiError extends Error {
@@ -12,12 +15,16 @@ export class ApiError extends Error {
   }
 }
 
-/** A 429: the user is over their limit until `retryAt`. */
+/**
+ * A 429: refused until `retryAt`. `reason` is `hourly` when the user has used their requests for this hour, `burst`
+ * when they only sent too many at once.
+ */
 export class RateLimitedError extends ApiError {
   constructor(
     body: unknown,
     message: string,
     readonly retryAt: Date,
+    readonly reason: RateLimitedResponse['reason'],
   ) {
     super(429, body, message);
     this.name = 'RateLimitedError';
@@ -34,6 +41,7 @@ export const toApiError = async (res: Response): Promise<ApiError> => {
         body,
         limited.data.message,
         new Date(limited.data.retryAt),
+        limited.data.reason,
       )
     : new ApiError(res.status, body);
 };

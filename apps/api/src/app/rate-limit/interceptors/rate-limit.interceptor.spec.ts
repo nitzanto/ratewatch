@@ -3,6 +3,7 @@ import { rateLimitedResponseSchema, type Role } from '@ratewatch/contracts';
 import type Redis from 'ioredis';
 import RedisMock from 'ioredis-mock';
 import {
+  noBurstLimit,
   postClick,
   signedInCookie,
   signedInUser,
@@ -52,11 +53,72 @@ describe('rate limit', () => {
     expect(userClick.headers.get('x-count')).toBe('99');
   });
 
+  describe('in a burst', () => {
+    const start = new Date('2026-11-02T10:00:00.000Z');
+
+    // Only Date is faked: the HTTP server and fetch keep real timers, and the bucket refills by Date.now().
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(start);
+    });
+
+    afterEach(() => vi.useRealTimers());
+
+    const clicks = (cookie: string, n: number) =>
+      Promise.all(Array.from({ length: n }, () => click(cookie)));
+
+    it('lets 20 simultaneous clicks through and refuses the 21st with a burst 429, until the next token', async () => {
+      const cookie = await signedIn();
+
+      const statuses = (await clicks(cookie, 21)).map((res) => res.status);
+      const refused = await click(cookie);
+
+      expect(statuses.filter((status) => status === 200)).toHaveLength(20);
+      expect(statuses.filter((status) => status === 429)).toHaveLength(1);
+      expect(refused.status).toBe(429);
+      expect(refused.headers.get('retry-after')).toBe('1');
+      expect(await refused.json()).toEqual({
+        message: 'Too many requests at once. Slow down a little.',
+        retryAt: '2026-11-02T10:00:00.200Z',
+        reason: 'burst',
+      });
+    });
+
+    it('never counts a burst refusal, and gives a token back every 200 ms', async () => {
+      const cookie = await signedIn();
+      await clicks(cookie, 20);
+      await clicks(cookie, 5);
+
+      vi.setSystemTime(new Date('2026-11-02T10:00:00.200Z'));
+      const next = await click(cookie);
+      const tooSoon = await click(cookie);
+      vi.setSystemTime(new Date('2026-11-02T10:00:01.400Z'));
+      const afterSix = await clicks(cookie, 7);
+
+      expect(next.status).toBe(200);
+      expect(next.headers.get('x-count')).toBe('79');
+      expect(tooSoon.status).toBe(429);
+      expect(afterSix.filter((res) => res.status === 200)).toHaveLength(6);
+    });
+
+    it("never burst-limits a paused user's clicks", async () => {
+      const { userId, cookie } = await signedInUser(baseUrl);
+      await redis.set(rateLimitKeys(userId)[2], start.getTime() + 60_000);
+
+      const statuses = (await clicks(cookie, 30)).map((res) => res.status);
+
+      expect(statuses.every((status) => status === 200)).toBe(true);
+    });
+  });
+
   describe('over the limit', () => {
     const start = new Date('2026-11-02T10:00:00.000Z');
 
     // Only Date is faked: the HTTP server and fetch keep real timers, and ioredis-mock expires keys by Date.now().
-    beforeEach(() => {
+    // These tests use up the hour in one frozen instant, so the burst limit is lifted.
+    beforeEach(async () => {
+      await app.close();
+      ({ app, baseUrl } = await startApp([], redis, noBurstLimit));
       vi.useFakeTimers({ toFake: ['Date'] });
       vi.setSystemTime(start);
     });
@@ -79,6 +141,7 @@ describe('rate limit', () => {
       expect(await refused.json()).toEqual({
         message: "You've used all your requests for this hour.",
         retryAt: '2026-11-02T11:00:00.000Z',
+        reason: 'hourly',
       });
     });
 

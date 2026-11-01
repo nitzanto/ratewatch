@@ -100,6 +100,36 @@ describe('Cookie Clicker', () => {
     expect(await page().findByText('Limit unavailable')).toBeTruthy();
   });
 
+  it('asks the user to slow down on a burst refusal, keeping the count and clicking on', async () => {
+    let clicks = 0;
+    server.use(
+      http.post('/api/clicks', () =>
+        ++clicks === 1
+          ? HttpResponse.json(click(), { headers: { 'x-count': '99' } })
+          : HttpResponse.json(
+              {
+                message: 'Too many requests at once. Slow down a little.',
+                retryAt: new Date(Date.now() + 200).toISOString(),
+                reason: 'burst',
+              },
+              { status: 429 },
+            ),
+      ),
+    );
+    await renderApp('/play');
+
+    await clickCrumb();
+    expect(await page().findByText('99')).toBeTruthy();
+    await clickCrumb();
+
+    expect(
+      await page().findByText('Too many requests at once. Slow down a little.'),
+    ).toBeTruthy();
+    expect(page().getByText('99')).toBeTruthy();
+    expect(page().queryByRole('timer')).toBeNull();
+    expect(crumb()).toHaveProperty('disabled', false);
+  });
+
   describe('at the limit', () => {
     beforeEach(() => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -114,6 +144,7 @@ describe('Cookie Clicker', () => {
             {
               message: 'Too many requests.',
               retryAt: '2026-10-30T18:01:30.000Z',
+              reason: 'hourly',
             },
             { status: 429 },
           ),
@@ -152,7 +183,7 @@ describe('Cookie Clicker', () => {
       server.use(
         http.post('/api/clicks', () =>
           HttpResponse.json(
-            { message: 'Too many requests.', retryAt },
+            { message: 'Too many requests.', retryAt, reason: 'hourly' },
             { status: 429 },
           ),
         ),
@@ -201,6 +232,7 @@ describe('Cookie Clicker', () => {
             {
               message: 'Too many requests.',
               retryAt: '2026-10-30T17:59:00.000Z',
+              reason: 'hourly',
             },
             { status: 429 },
           ),

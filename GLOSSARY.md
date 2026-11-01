@@ -32,7 +32,11 @@ _Avoid_: Bonus, top-up, credits
 
 **Window**:
 The one hour that starts with a user's first request; when it ends the user's count starts again from zero.
-_Avoid_: Period, bucket
+_Avoid_: Period
+
+**Burst limit**:
+How fast a user's requests may arrive, on top of their limit: a token bucket of 20 that refills at 5 per second. A request refused by it counts nothing and only has to wait for the next token; it never makes a user Exceeded.
+_Avoid_: Throttle, rate cap, cooldown
 
 **Requests left**:
 How many more requests a user may make in the current window.
