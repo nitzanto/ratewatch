@@ -227,7 +227,7 @@ A global guard checks the signature and the end time on each request. It answers
 
 ### Rate-limit interceptor (built)
 
-The interceptor runs after the guard, so it knows the user ID. It skips public endpoints and all Admin requests.
+The interceptor runs after the guard, so it knows the user ID. It applies only to clicks (`POST /api/clicks`): other endpoints, such as loading the session, never use up the limit, so a user over the limit can still open the app. It skips all Admin requests.
 
 **Algorithm: a fixed window that starts at the first request.** The first request of a user opens a **window** of one hour. The user can send up to their limit in that window. When the window ends, the count starts again from zero.
 

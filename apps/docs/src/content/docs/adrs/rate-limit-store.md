@@ -64,9 +64,11 @@ Which window:
 
 Chosen options: **an interceptor in every API instance, against a shared Redis**, and **a fixed window from the user's first request**, counted by **one Lua script per request**. Only the API can verify the session and knows the admin rules, so it's the one place that decides; a shared store makes the limit global. The fixed window is the only one that gives the product a single count and a single reset time.
 
+The limit counts clicks only (`POST /api/clicks`). Other requests, such as loading the session, never count and never answer 429, so a user over the limit can still open the app and see when to try again.
+
 ```mermaid
 flowchart TB
-  start([Request from a User]):::person --> read["Read pause, custom limit or 100,<br/>count and extra requests"]:::step
+  start([Click from a User]):::person --> read["Read pause, custom limit or 100,<br/>count and extra requests"]:::step
   read --> check{"Not paused and<br/>count ≥ limit + extra?"}:::decision
   check -- yes --> refuse["Write nothing.<br/>Return refused + time left"]:::refused
   check -- no --> incr["count + 1"]:::step
