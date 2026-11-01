@@ -16,7 +16,7 @@ Summary numbers at the top of the dashboard, so an admin sees the overall pictur
 - As an admin, I can see summary cards for:
   - the total number of users;
   - the percentage of users near their limit;
-  - how many requests were refused for being over the limit today (UTC).
+  - how many requests were refused today (UTC), whether for being over the limit or for arriving too fast.
 - As an admin, I can see the top 5 users by requests in their current window.
 
 ## Rules

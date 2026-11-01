@@ -229,22 +229,25 @@ A global guard checks the signature and the end time on each request. It answers
 
 The interceptor runs after the guard, so it knows the user ID. It applies only to clicks (`POST /api/clicks`): other endpoints, such as loading the session, never use up the limit, so a user over the limit can still open the app. It skips all Admin requests.
 
-**Algorithm: a fixed window that starts at the first request.** The first request of a user opens a **window** of one hour. The user can send up to their limit in that window. When the window ends, the count starts again from zero.
+**Algorithm: a fixed window that starts at the first request, with a token bucket on top.** The first request of a user opens a **window** of one hour. The user can send up to their limit in that window. When the window ends, the count starts again from zero. A token bucket, the **burst limit**, also caps how fast requests can arrive; it's described after the script below.
 
 **Keys in Redis.** All keys for one user contain the user ID in braces, for example `rl:{user-3f9a1c2e}:window`. Redis Cluster puts keys with the same braces on the same shard, so one script can use all of them.
 
-| Key          | Holds                            | Expires                                          |
-| ------------ | -------------------------------- | ------------------------------------------------ |
-| Window       | The count and the extra requests | One hour after the first request: the reset time |
-| Custom limit | The custom limit                 | Never (an admin removes it)                      |
-| Pause        | That the limit is paused         | When the pause ends                              |
+| Key          | Holds                                                      | Expires                                          |
+| ------------ | ---------------------------------------------------------- | ------------------------------------------------ |
+| Window       | The count, the extra requests and the burst limit's tokens | One hour after the first request: the reset time |
+| Custom limit | The custom limit                                           | Never (an admin removes it)                      |
+| Pause        | That the limit is paused                                   | When the pause ends                              |
 
 **One atomic script for each request.** Redis runs a Lua script as one step, so two requests can never both pass the check for the last request left. The script:
 
 1. Reads the pause, the custom limit (or 100) and the window.
 2. If the user is not paused and has no requests left: returns "refused" and the reset time. It writes nothing.
-3. Else: adds 1 to the count. If this request opened the window, it sets the expiry to one hour.
-4. Returns the requests left and the reset time.
+3. If the user is not paused: refills the burst limit's bucket for the time since its last spend. With no token left, it returns "too fast" and the time of the next token. It writes nothing.
+4. Else: spends a token and adds 1 to the count. If this request opened the window, it sets the expiry to one hour.
+5. Returns the requests left and the reset time.
+
+**Burst limit: a token bucket on top of the window.** The window decides how many requests a user gets each hour; the bucket decides how fast they can arrive. It holds 20 tokens and gets 5 back each second, so a person clicking is never refused, while 100 requests sent at once spend only 20 of the hour. A request refused as too fast gets a 429 with a retry time under a second away, and counts nothing. See [Burst limit](../../adrs/burst-limit/).
 
 The script sets the expiry one time only, when the window opens. A new expiry on each request would move the reset time later and later.
 
@@ -331,16 +334,16 @@ ratewatch has one service, and only the API can verify the session cookie. A lim
 
 ### Trade-offs of the main decisions
 
-The full trade-offs are in [Rate-limit store and window](../../adrs/rate-limit-store/), [Failure mode](../../adrs/failure-mode/), [Dashboard data](../../adrs/dashboard-data/), [Realtime delivery](../../adrs/realtime-delivery/) and [Redis client](../../adrs/redis-client/). The keys, scripts, endpoints and events are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+The full trade-offs are in [Rate-limit store and window](../../adrs/rate-limit-store/), [Burst limit](../../adrs/burst-limit/), [Failure mode](../../adrs/failure-mode/), [Dashboard data](../../adrs/dashboard-data/), [Realtime delivery](../../adrs/realtime-delivery/) and [Redis client](../../adrs/redis-client/). The keys, scripts, endpoints and events are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).
 
-| Decision             | We chose                                   | Other options                                              | Why                                                                                             | Cost                                                                                     |
-| -------------------- | ------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Where the check runs | Interceptor in each API instance           | API gateway; a separate limiter service                    | Only the API knows the user ID and the admin controls. The shared store makes the limit global. | Refused requests reach the API.                                                          |
-| Algorithm            | Fixed window from the first request        | Window on the clock hour; sliding window; token bucket     | Gives "requests left" and a reset time, as the product needs. One small key for each user.      | A user can send their limit at the end of one window and again at the start of the next. |
-| Store                | Redis                                      | A database; memory of each API instance                    | Fast atomic scripts, shared by all instances. Keys expire by themselves.                        | Data is in memory. A failover can lose the last counts.                                  |
-| Store failure        | Fail open                                  | Fail closed                                                | A store failure does not stop the product.                                                      | No limit during the failure.                                                             |
-| Dashboard reads      | Redis 8 query engine on user records       | Sorted sets for each column; load all users in the browser | One query does search, filters, sort, pages and counts. No index code to maintain.              | Redis 8 licence (RSALv2, SSPLv1 or AGPLv3). Each write updates the index.                |
-| Realtime             | Socket.IO with the Redis adapter, in rooms | Plain WebSockets; server-sent events; polling              | Reconnect, rooms and events across instances are built in.                                      | Sticky sessions when there are many instances.                                           |
+| Decision             | We chose                                                                                       | Other options                                                | Why                                                                                                                                                                  | Cost                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Where the check runs | Interceptor in each API instance                                                               | API gateway; a separate limiter service                      | Only the API knows the user ID and the admin controls. The shared store makes the limit global.                                                                      | Refused requests reach the API.                                                                                   |
+| Algorithm            | Fixed window from the first request, plus a token bucket burst limit (20 tokens, 5 per second) | Window on the clock hour; sliding window; token bucket alone | The window gives "requests left" and a reset time, as the product needs; the bucket stops requests sent at once from spending the hour. One small key for each user. | A user can still send a limit before a window ends and another after it: 200 requests in about 32 seconds, not 2. |
+| Store                | Redis                                                                                          | A database; memory of each API instance                      | Fast atomic scripts, shared by all instances. Keys expire by themselves.                                                                                             | Data is in memory. A failover can lose the last counts.                                                           |
+| Store failure        | Fail open                                                                                      | Fail closed                                                  | A store failure does not stop the product.                                                                                                                           | No limit during the failure.                                                                                      |
+| Dashboard reads      | Redis 8 query engine on user records                                                           | Sorted sets for each column; load all users in the browser   | One query does search, filters, sort, pages and counts. No index code to maintain.                                                                                   | Redis 8 licence (RSALv2, SSPLv1 or AGPLv3). Each write updates the index.                                         |
+| Realtime             | Socket.IO with the Redis adapter, in rooms                                                     | Plain WebSockets; server-sent events; polling                | Reconnect, rooms and events across instances are built in.                                                                                                           | Sticky sessions when there are many instances.                                                                    |
 
 ## Step 5: Measure
 
