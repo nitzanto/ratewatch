@@ -25,6 +25,7 @@ The actions an admin can take on a user's limit, from the user's detail page, an
 - Extra requests last only until the user's count next resets, and only exist while the user has an hour running.
 - No limit, custom or with extra requests, goes above 1,000 requests.
 - A custom limit applies from the user's next request and in every hour after, until an admin sets it back to 100. Extra requests in the current hour stay on top of it. The users table marks each user who has one.
+- The custom limit and extra requests stay two separate controls: one is lasting, the other is a grant for this hour only. If adding requests changed the custom limit, the grant would carry into every later hour. While a user has extra requests, a note under the limit field shows how this hour's limit splits, for example "110 this hour = 100 limit + 10 extra, until 14:00". Saving the custom limit never removes extra requests; **Reset limit** clears them at once.
 - While a user is paused, their requests still count but none is refused, and their status reads Paused until the time shown, in the admin's own time zone. The pause ends by itself; unlocking ends it early.
 - Ticking users swaps the filters for a selection bar of the same height, so the table never moves. A bulk reset takes at most the 100 users of one page.
 - Only admins can use these controls.
