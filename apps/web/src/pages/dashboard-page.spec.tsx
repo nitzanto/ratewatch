@@ -1,5 +1,6 @@
 import { renderApp } from '@/libs/test-utils/render-app';
 import { userRow } from '@/mocks/data/users';
+import { formatHourMinute } from '@/libs/utils/format-time';
 import {
   setMockRefusedToday,
   setMockUsers,
@@ -868,7 +869,7 @@ describe('Users table', () => {
 
     describe('custom limit', () => {
       const limitField = (drawer: HTMLElement) =>
-        within(drawer).getByRole('spinbutton', { name: 'Limit per hour' });
+        within(drawer).getByRole('spinbutton', { name: 'Limit every hour' });
       const saveLimit = (drawer: HTMLElement) =>
         within(drawer).getByRole('button', { name: 'Save limit' });
       const typeLimit = (drawer: HTMLElement, value: string) =>
@@ -929,6 +930,32 @@ describe('Users table', () => {
         expect(within(drawer).getByRole('alert')).toHaveProperty(
           'textContent',
           expect.stringContaining('their next one will be refused'),
+        );
+      });
+
+      it("splits this hour's limit into the limit every hour and the extra requests", async () => {
+        const resetAt = new Date(Date.now() + 30 * minuteMs);
+        const drawer = await openWith(
+          userRow('user-aaaa1111', 60, 4_000, {
+            limit: 110,
+            baseLimit: 100,
+            resetAt: resetAt.toISOString(),
+          }),
+          '50 / 110',
+        );
+        const split = `110 this hour = 100 limit + 10 extra, until ${formatHourMinute(resetAt)}.`;
+
+        // The field holds the limit every hour, so there's nothing to save: Reset limit is the way to drop the extra.
+        expect(within(drawer).getByRole('status')).toHaveProperty(
+          'textContent',
+          `${split} Reset limit clears the extra requests now.`,
+        );
+        expect(saveLimit(drawer)).toHaveProperty('disabled', true);
+
+        typeLimit(drawer, '150');
+        expect(within(drawer).getByRole('status')).toHaveProperty(
+          'textContent',
+          split,
         );
       });
 

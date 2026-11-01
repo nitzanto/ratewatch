@@ -6,6 +6,7 @@ import {
 } from '@ratewatch/contracts';
 import { Alert, Button, Stack, TextField } from '@mui/material';
 import { useState, type SubmitEvent } from 'react';
+import { formatHourMinute } from '@/libs/utils/format-time';
 
 /** Why `limit` can't be saved, or `undefined` when it can; `extra` is the window's extra requests, kept on top. */
 const problemWith = (limit: number | null, extra: number) => {
@@ -14,6 +15,18 @@ const problemWith = (limit: number | null, extra: number) => {
   if (!canSetLimit(limit, extra))
     return `With ${extra} extra requests this hour, the limit can't go above ${(maxLimit - extra).toLocaleString('en')}.`;
   return undefined;
+};
+
+/**
+ * How this hour's limit splits into the limit every hour and the extra requests on top, or `undefined` without extra
+ * requests. Typing the limit it already has points to Reset limit, the one way to drop the extra requests early.
+ */
+const splitNote = (row: UserRow, limit: number | null, extra: number) => {
+  if (extra <= 0 || row.resetAt === null) return undefined;
+  const split = `${row.limit.toLocaleString('en')} this hour = ${row.baseLimit.toLocaleString('en')} limit + ${extra} extra, until ${formatHourMinute(new Date(row.resetAt))}.`;
+  return limit === row.baseLimit
+    ? `${split} Reset limit clears the extra requests now.`
+    : split;
 };
 
 /**
@@ -35,6 +48,7 @@ export const CustomLimitForm = ({
   const limit = parsed.success ? parsed.data : null;
   const extra = row.limit - row.baseLimit;
   const problem = problemWith(limit, extra);
+  const note = splitNote(row, limit, extra);
   // The next request is refused once what's used reaches the new limit plus this window's extra requests.
   const refusesNext =
     limit !== null && row.resetAt !== null && row.used >= limit + extra;
@@ -50,7 +64,7 @@ export const CustomLimitForm = ({
         <TextField
           size="small"
           type="number"
-          label="Limit per hour"
+          label="Limit every hour"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           error={problem !== undefined}
@@ -67,6 +81,12 @@ export const CustomLimitForm = ({
           Save limit
         </Button>
       </Stack>
+      {!problem && note && (
+        // A status, not an alert: it explains the limit, nothing is wrong.
+        <Alert severity="info" role="status">
+          {note}
+        </Alert>
+      )}
       {!problem && refusesNext && (
         <Alert severity="warning">
           {row.userId} has already used {row.used.toLocaleString('en')} requests

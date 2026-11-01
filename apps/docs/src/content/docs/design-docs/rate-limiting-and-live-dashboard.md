@@ -302,7 +302,7 @@ All under `/api/admin/users/:id`, Admin only. Each change runs one script on the
 
 The rule that extra requests stop at 1,000 is `canAddExtraRequests` in `libs/contracts`, so the drawer disables the button where the API would refuse. The custom limit's rules are `limitSchema` (a whole number from 1 to 1,000) and `canSetLimit` (with the window's extra requests, still 1,000 or under), which the drawer's field and the API both apply.
 
-In the drawer, Save limit is the one primary action. It warns inline when the user's next request would be refused under the new limit: when `used` reaches it plus this window's extra requests. For a paused user, the warning says the refusals start once the pause ends.
+In the drawer, Save limit is the one primary action. It warns inline when the user's next request would be refused under the new limit: when `used` reaches it plus this window's extra requests. For a paused user, the warning says the refusals start once the pause ends. While the window has extra requests, an info note under the field splits `limit` into `baseLimit` and the extra requests, with the reset time. When the field holds `baseLimit`, so Save limit is disabled, it adds that Reset limit clears the extra requests.
 
 A pause running out sends no `rate:update`: nothing changes in Redis but a key expiring. So the users table and the open user are fetched again when the first pause on screen ends (TanStack Query's `refetchInterval`), and the record's `pausedUntil` field has expired by then.
 
