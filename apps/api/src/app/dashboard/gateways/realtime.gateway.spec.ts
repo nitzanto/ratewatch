@@ -217,17 +217,19 @@ describe('realtime', () => {
       Array.from({ length: 150 }, () => postClick(baseUrl, cookie)),
     );
 
-    // More than any other user in this spec, so first.
+    // More than any other user in this spec, so first. The 100th accepted request and the last refusals can land in
+    // different seconds' batches, so both are waited for.
     await vi.waitFor(
-      () =>
+      () => {
         expect(summaries.at(-1)?.topUsers[0]).toEqual({
           userId,
           used: 100,
           limit: 100,
-        }),
+        });
+        expect(summaries.at(-1)?.refusedToday).toBeGreaterThanOrEqual(50);
+      },
       { timeout: 3000 },
     );
-    expect(summaries.at(-1)?.refusedToday).toBeGreaterThanOrEqual(50);
     const count = summaries.length;
     await new Promise((resolve) => setTimeout(resolve, 2100));
     expect(summaries.length - count).toBeGreaterThanOrEqual(2);
