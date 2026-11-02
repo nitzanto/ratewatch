@@ -1,4 +1,5 @@
 import { userRow } from '@/mocks/data/users';
+import { formatHourMinute } from '@/utils/format-time';
 import { buildSplitNote, getLimitProblem } from './custom-limit';
 
 describe('getLimitProblem', () => {
@@ -21,6 +22,8 @@ describe('getLimitProblem', () => {
 
 describe('buildSplitNote', () => {
   const resetAt = new Date(2026, 10, 2, 14, 30).toISOString();
+  // The reset time reads in the machine's locale (14:30, or 02:30 PM).
+  const resetTime = formatHourMinute(new Date(resetAt));
   const withExtra = userRow('user-aaaa1111', 10, 0, {
     limit: 110,
     baseLimit: 100,
@@ -29,13 +32,13 @@ describe('buildSplitNote', () => {
 
   it("splits this hour's limit into the limit and the extra requests", () => {
     expect(buildSplitNote(withExtra, 200, 10)).toBe(
-      '110 this hour = 100 limit + 10 extra, until 14:30.',
+      `110 this hour = 100 limit + 10 extra, until ${resetTime}.`,
     );
   });
 
   it('points to Reset limit when the field holds the limit the user already has', () => {
     expect(buildSplitNote(withExtra, 100, 10)).toBe(
-      '110 this hour = 100 limit + 10 extra, until 14:30. Reset limit clears the extra requests now.',
+      `110 this hour = 100 limit + 10 extra, until ${resetTime}. Reset limit clears the extra requests now.`,
     );
   });
 
