@@ -1,4 +1,4 @@
-import { Paper, Stack, Typography } from '@mui/material';
+import { Paper, Skeleton, Stack, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 
 type MetricCardProps = {
@@ -9,6 +9,8 @@ type MetricCardProps = {
   icon: ReactNode;
   /** Announced when the value changes, as a status. */
   live?: boolean;
+  /** Before the first value: placeholders for the value and caption, announced as loading. */
+  loading?: boolean;
 };
 
 /** One summary number on the dashboard: a named region that reads "label, value, caption". */
@@ -18,6 +20,7 @@ export const MetricCard = ({
   caption,
   icon,
   live,
+  loading,
 }: MetricCardProps) => (
   <Paper
     variant="card"
@@ -34,15 +37,24 @@ export const MetricCard = ({
       </Typography>
       {icon}
     </Stack>
-    <Typography
-      variant="metric"
-      component="p"
-      role={live ? 'status' : undefined}
-    >
-      {value}
-    </Typography>
-    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-      {caption}
-    </Typography>
+    {loading ? (
+      <Stack role="progressbar" aria-label={`Loading ${label}`} aria-busy>
+        <Skeleton variant="text" width={72} sx={{ typography: 'metric' }} />
+        <Skeleton variant="text" width="70%" sx={{ typography: 'caption' }} />
+      </Stack>
+    ) : (
+      <>
+        <Typography
+          variant="metric"
+          component="p"
+          role={live ? 'status' : undefined}
+        >
+          {value}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          {caption}
+        </Typography>
+      </>
+    )}
   </Paper>
 );

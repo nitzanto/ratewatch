@@ -9,7 +9,6 @@ import {
 import {
   Alert,
   Button,
-  CircularProgress,
   Paper,
   Stack,
   TablePagination,
@@ -21,6 +20,7 @@ import { useMemo, useState } from 'react';
 import { useLiveDashboard } from '@/hooks/api/use-live-dashboard';
 import { SelectionToolbar } from './selection-toolbar';
 import { UsersEmptyState } from './users-empty-state';
+import { UsersTableSkeleton } from './users-table-skeleton';
 import { UsersFilters } from './users-filters';
 import { UserDrawer } from './user-drawer';
 import { UsersTable } from './users-table';
@@ -69,7 +69,7 @@ export const LiveUsers = () => {
     !!query.status ||
     query.activeWithin !== defaultQuery.activeWithin;
 
-  if (isPending) return <CircularProgress aria-label="Loading users" />;
+  if (isPending) return <UsersTableSkeleton />;
 
   if (isError)
     return (

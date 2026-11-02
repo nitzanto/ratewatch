@@ -1,3 +1,4 @@
+import { LoadingPlaceholder } from '@/components/ui/loading-placeholder';
 import { useAdminUserHistory } from '@/hooks/api/use-admin-user';
 import { sizes } from '@/libs/theme/sizes';
 import { formatClockTime } from '@/libs/utils/format-time';
@@ -6,7 +7,7 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
+  Skeleton,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -46,7 +47,23 @@ export const ActivityChart = ({ userId }: { userId: string }) => {
 
   const chart = () => {
     if (isPending)
-      return <CircularProgress aria-label="Loading the activity" />;
+      return (
+        <LoadingPlaceholder label="Loading the activity">
+          <Skeleton variant="rectangular" height={sizes.activityChartHeight} />
+          <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+            <Skeleton
+              variant="text"
+              width={48}
+              sx={{ typography: 'caption' }}
+            />
+            <Skeleton
+              variant="text"
+              width={32}
+              sx={{ typography: 'caption' }}
+            />
+          </Stack>
+        </LoadingPlaceholder>
+      );
 
     if (isError)
       return (

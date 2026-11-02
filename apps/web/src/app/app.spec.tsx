@@ -12,7 +12,9 @@ describe('App', () => {
   it('shows the API health status on the dashboard and in the app bar', async () => {
     await renderApp('/dashboard', { signedInAs: 'admin' });
 
-    expect(page().getByRole('progressbar', { name: 'Loading' })).toBeTruthy();
+    expect(
+      page().getByRole('progressbar', { name: 'Loading API health' }),
+    ).toBeTruthy();
     expect(await page().findByRole('status')).toHaveProperty(
       'textContent',
       'OK',

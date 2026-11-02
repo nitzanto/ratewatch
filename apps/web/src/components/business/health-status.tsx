@@ -1,7 +1,6 @@
 import { MetricCard } from '@/components/ui/metric-card';
 import { useHealth } from '@/hooks/api/use-health';
 import { ExceededIcon, OkIcon } from '@/libs/theme/status-icons';
-import { CircularProgress } from '@mui/material';
 
 /** The API health summary card. `/health` never checks Redis, so OK means the API answers, not that limits are counted. */
 export const HealthStatus = () => {
@@ -13,7 +12,8 @@ export const HealthStatus = () => {
         label="API health"
         value="—"
         caption="Checking the API"
-        icon={<CircularProgress size={20} aria-label="Loading" />}
+        icon={<OkIcon sx={{ color: 'neutralFill' }} />}
+        loading
       />
     );
 

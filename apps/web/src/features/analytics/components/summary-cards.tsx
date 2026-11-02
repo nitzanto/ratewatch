@@ -15,7 +15,9 @@ const formatShare = (share: number) =>
 
 /** The dashboard's four summary numbers, kept live by `rate:summary`; each shows a dash until the first summary arrives. */
 export const SummaryCards = () => {
-  const { data, isError } = useAdminSummary();
+  const { data, isPending, isError } = useAdminSummary();
+  // Placeholders until the first summary; after an error the dashes and caption say what's wrong instead.
+  const loading = isPending && !isError;
   const waiting = isError ? "Couldn't load the summary" : 'Waiting for the API';
 
   return (
@@ -33,6 +35,7 @@ export const SummaryCards = () => {
         value={data ? formatCount(data.totalUsers) : '—'}
         caption={data ? 'Active in the past 24 hours' : waiting}
         icon={<PeopleIcon sx={{ color: 'text.secondary' }} />}
+        loading={loading}
       />
       <MetricCard
         label="Near their limit"
@@ -43,12 +46,14 @@ export const SummaryCards = () => {
             : waiting
         }
         icon={<WarningIcon sx={{ color: 'warning.dark' }} />}
+        loading={loading}
       />
       <MetricCard
         label="429s today (UTC)"
         value={data ? formatCount(data.refusedToday) : '—'}
         caption={data ? 'Requests refused since midnight UTC' : waiting}
         icon={<ExceededIcon sx={{ color: 'error.main' }} />}
+        loading={loading}
       />
       <HealthStatus />
     </Box>

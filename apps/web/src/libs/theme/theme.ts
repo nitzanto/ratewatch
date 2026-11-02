@@ -6,6 +6,7 @@ import { MuiChip } from './components/chip';
 import { MuiDrawer } from './components/drawer';
 import { MuiLinearProgress } from './components/linear-progress';
 import { MuiPaper } from './components/paper';
+import { MuiSkeleton } from './components/skeleton';
 import { MuiTable, MuiTableCell, MuiTableRow } from './components/table';
 import { palette } from './palette';
 import { typography } from './typography';
@@ -23,6 +24,7 @@ export const theme = createTheme({
     MuiDrawer,
     MuiLinearProgress,
     MuiPaper,
+    MuiSkeleton,
     MuiTable,
     MuiTableCell,
     MuiTableRow,
