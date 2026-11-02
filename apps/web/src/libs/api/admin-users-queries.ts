@@ -28,8 +28,10 @@ const adminUserHistoryKey = ['admin', 'user-history'] as const;
 export const getAdminUsers = (query: UsersQuery) =>
   api.get(
     `/admin/users?${new URLSearchParams(
-      Object.entries(query).flatMap(([name, value]) =>
-        value === undefined || value === '' ? [] : [[name, String(value)]],
+      Object.entries(query).flatMap(([paramName, paramValue]) =>
+        paramValue === undefined || paramValue === ''
+          ? []
+          : [[paramName, String(paramValue)]],
       ),
     )}`,
     usersPageSchema,
@@ -40,18 +42,18 @@ export const getAdminUsers = (query: UsersQuery) =>
  * pause runs out, since nothing changes in Redis but a key expiring. `false` with no pause on screen.
  */
 export const getMsUntilFirstPauseEnds = (rows: UserRow[] = []) => {
-  const ends = rows.flatMap(({ pausedUntil }) =>
+  const pauseEnds = rows.flatMap(({ pausedUntil }) =>
     pausedUntil ? [Date.parse(pausedUntil)] : [],
   );
 
   // A moment after the end, so the API has dropped the pause by then.
-  return ends.length
-    ? Math.max(Math.min(...ends) - Date.now(), 0) + 500
+  return pauseEnds.length
+    ? Math.max(Math.min(...pauseEnds) - Date.now(), 0) + 500
     : false;
 };
 
 export const adminUsersQueries = {
-  // A new search, filter, sort or page keeps the last page on screen until its own arrives.
+  // A new search, filter, sort or page shouldReplaceRow the last page on screen until its own arrives.
   list: (query: UsersQuery) =>
     queryOptions({
       queryKey: [...adminUsersQueryKey, query],
@@ -112,18 +114,19 @@ const isNotOlder = (incomingUserRow: UserRow, current: UserRow) => {
 };
 
 /**
- * The page with `incomingUserRow` written over the same user's row, if `keeps` says so, and the user moved between
+ * The page with `incomingUserRow` written over the same user's row, if `shouldReplaceRow` says so, and the user moved between
  * the page's status counts. The same page when the user isn't on it or the update is older.
  */
 export const applyRowToPage = (
   page: UsersPage,
   incomingUserRow: UserRow,
-  keeps: (current: UserRow) => boolean,
+  shouldReplaceRow: (current: UserRow) => boolean,
 ): UsersPage => {
   const counts = { ...page.counts };
   let changed = false;
   const rows = page.rows.map((row) => {
-    if (row.userId !== incomingUserRow.userId || !keeps(row)) return row;
+    if (row.userId !== incomingUserRow.userId || !shouldReplaceRow(row))
+      return row;
 
     counts[row.status] -= 1;
     counts[incomingUserRow.status] += 1;
@@ -146,7 +149,7 @@ export const applyUserRow = (
   incomingUserRow: UserRow,
   byAdmin = false,
 ): boolean => {
-  const keeps = (current: UserRow) =>
+  const shouldReplaceRow = (current: UserRow) =>
     byAdmin || isNotOlder(incomingUserRow, current);
   let isRowWritten = false;
 
@@ -154,7 +157,7 @@ export const applyUserRow = (
   client.setQueriesData<UsersPage>({ queryKey: adminUsersQueryKey }, (page) => {
     if (!page) return page;
 
-    const updatedPage = applyRowToPage(page, incomingUserRow, keeps);
+    const updatedPage = applyRowToPage(page, incomingUserRow, shouldReplaceRow);
 
     // `applyRowToPage` returns the same page when the user isn't on it or the update is older.
     if (updatedPage !== page) isRowWritten = true;
@@ -166,7 +169,7 @@ export const applyUserRow = (
   client.setQueryData<UserDetail>(
     [...adminUserKey, incomingUserRow.userId],
     (detail) => {
-      if (!detail || !keeps(detail.row)) return detail;
+      if (!detail || !shouldReplaceRow(detail.row)) return detail;
 
       isRowWritten = true;
 
@@ -186,23 +189,24 @@ export const mergeNewRequests = (
   recent: UserDetail['recent'],
   requests: RateUpdateEvent['requests'],
 ): UserDetail['recent'] => {
-  const unmatched = [...recent];
-  const fresh = requests.filter(({ at, allowed }) => {
-    const same = unmatched.findIndex(
-      (known) => known.at === at && known.allowed === allowed,
+  const unmatchedRecent = [...recent];
+  const newRequests = requests.filter(({ at, allowed }) => {
+    const matchIndex = unmatchedRecent.findIndex(
+      (recentRequest) =>
+        recentRequest.at === at && recentRequest.allowed === allowed,
     );
 
-    if (same === -1) return true;
+    if (matchIndex === -1) return true;
 
-    unmatched.splice(same, 1);
+    unmatchedRecent.splice(matchIndex, 1);
 
     return false;
   });
 
-  if (!fresh.length) return recent;
+  if (!newRequests.length) return recent;
 
   // ISO times in UTC, so later is greater as text too.
-  return [...fresh, ...recent]
+  return [...newRequests, ...recent]
     .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
     .slice(0, recentRequestsKept);
 };

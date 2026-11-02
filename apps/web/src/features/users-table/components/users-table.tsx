@@ -177,11 +177,12 @@ const columns = columnHelper.columns([
 ]);
 
 /** `rows` in `order` (user IDs); rows not in it go last. */
-const inOrder = (rows: UserRow[], order: string[]) => {
-  const rank = new Map(order.map((userId, index) => [userId, index]));
-  const rankOf = (row: UserRow) => rank.get(row.userId) ?? order.length;
+const sortByHeldOrder = (rows: UserRow[], order: string[]) => {
+  const rankByUserId = new Map(order.map((userId, index) => [userId, index]));
+  const getRank = (row: UserRow) =>
+    rankByUserId.get(row.userId) ?? order.length;
 
-  return [...rows].sort((a, b) => rankOf(a) - rankOf(b));
+  return [...rows].sort((a, b) => getRank(a) - getRank(b));
 };
 
 /**
@@ -216,7 +217,7 @@ export const UsersTable = ({
   const [pointerOn, setPointerOn] = useState(false);
   const heldOrder = pointerOn || openUserId !== null ? frozenOrder : null;
   const data = useMemo(
-    () => (heldOrder ? inOrder(rows, heldOrder) : rows),
+    () => (heldOrder ? sortByHeldOrder(rows, heldOrder) : rows),
     [rows, heldOrder],
   );
   const sorting = [{ id: sort, desc: order === 'desc' }];

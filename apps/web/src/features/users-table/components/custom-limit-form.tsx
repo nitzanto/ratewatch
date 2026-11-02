@@ -46,8 +46,8 @@ export const CustomLimitForm = ({
   saving: boolean;
   onSave: (limit: number) => void;
 }) => {
-  const [value, setValue] = useState(String(row.baseLimit));
-  const parsed = limitSchema.safeParse(Number(value));
+  const [limitInput, setLimitInput] = useState(String(row.baseLimit));
+  const parsed = limitSchema.safeParse(Number(limitInput));
   // An empty field is 0, so it fails the 1 to 1,000 rule too.
   const limit = parsed.success ? parsed.data : null;
   const extra = row.limit - row.baseLimit;
@@ -70,8 +70,8 @@ export const CustomLimitForm = ({
           size="small"
           type="number"
           label="Limit every hour"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
+          value={limitInput}
+          onChange={(event) => setLimitInput(event.target.value)}
           error={problem !== undefined}
           helperText={problem}
           slotProps={{ htmlInput: { min: 1, max: maxLimit, step: 1 } }}

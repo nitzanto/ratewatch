@@ -59,11 +59,14 @@ export const ActivityChart = ({ userId }: { userId: string }) => {
       );
 
     const { buckets } = data;
-    const sum = (key: 'accepted' | 'refused') =>
-      buckets.reduce((total, each) => total + each[key], 0);
-    const [accepted, refused] = [sum('accepted'), sum('refused')];
-    const tallest = Math.max(1, ...buckets.map((b) => b.accepted + b.refused));
-    const share = (count: number) => `${(100 * count) / tallest}%`;
+    const getTotal = (key: 'accepted' | 'refused') =>
+      buckets.reduce((total, bucket) => total + bucket[key], 0);
+    const [accepted, refused] = [getTotal('accepted'), getTotal('refused')];
+    const tallest = Math.max(
+      1,
+      ...buckets.map((bucket) => bucket.accepted + bucket.refused),
+    );
+    const getBarHeight = (count: number) => `${(100 * count) / tallest}%`;
 
     return (
       <>
@@ -79,15 +82,23 @@ export const ActivityChart = ({ userId }: { userId: string }) => {
             borderColor: 'border',
           }}
         >
-          {buckets.map((each) => (
+          {buckets.map((bucket) => (
             <Stack
-              key={each.start}
+              key={bucket.start}
               sx={{ flex: '1 1 0', height: '100%', justifyContent: 'flex-end' }}
             >
               <Box
-                sx={{ height: share(each.refused), bgcolor: 'error.main' }}
+                sx={{
+                  height: getBarHeight(bucket.refused),
+                  bgcolor: 'error.main',
+                }}
               />
-              <Box sx={{ height: share(each.accepted), bgcolor: 'dataBar' }} />
+              <Box
+                sx={{
+                  height: getBarHeight(bucket.accepted),
+                  bgcolor: 'dataBar',
+                }}
+              />
             </Stack>
           ))}
         </Box>
@@ -123,11 +134,13 @@ export const ActivityChart = ({ userId }: { userId: string }) => {
           size="small"
           aria-label="Activity range"
           value={range}
-          onChange={(_, next: ActivityRange | null) => next && setRange(next)}
+          onChange={(_, selectedRange: ActivityRange | null) =>
+            selectedRange && setRange(selectedRange)
+          }
         >
-          {(Object.keys(ranges) as ActivityRange[]).map((each) => (
-            <ToggleButton key={each} value={each}>
-              {ranges[each].label}
+          {(Object.keys(ranges) as ActivityRange[]).map((rangeOption) => (
+            <ToggleButton key={rangeOption} value={rangeOption}>
+              {ranges[rangeOption].label}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>

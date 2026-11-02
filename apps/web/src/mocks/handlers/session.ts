@@ -8,11 +8,11 @@ import { http, HttpResponse } from 'msw';
 import { resetClicks } from './clicks';
 
 // shortcut: kept in memory, so a reload in mock mode signs you out; the real API keeps it in a cookie.
-let current: Session | null = null;
+let mockSession: Session | null = null;
 
 /** Signs the mock in as `role`, or out with `null`; tests use it to start a page signed in. */
 export const setMockSession = (role: Role | null) => {
-  current = role && session(role);
+  mockSession = role && session(role);
 };
 
 export const sessionHandlers = [
@@ -24,7 +24,7 @@ export const sessionHandlers = [
 
     setMockSession(role);
 
-    return HttpResponse.json(current, { status: 201 });
+    return HttpResponse.json(mockSession, { status: 201 });
   }),
   http.post('/api/auth/sign-out', () => {
     setMockSession(null);
@@ -32,8 +32,8 @@ export const sessionHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
   http.get('/api/auth/me', () =>
-    current
-      ? HttpResponse.json(current)
+    mockSession
+      ? HttpResponse.json(mockSession)
       : HttpResponse.json(
           { statusCode: 401, message: 'Unauthorized' },
           { status: 401 },

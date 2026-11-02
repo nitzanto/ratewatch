@@ -32,9 +32,9 @@ export const applySummary = (client: QueryClient, summary: AdminSummary) => {
     {
       queryKey: adminUsersQueryKey,
       predicate: ({ queryKey }) => {
-        const query = queryKey[adminUsersQueryKey.length] as UsersQuery;
+        const pageQuery = queryKey[adminUsersQueryKey.length] as UsersQuery;
 
-        return !query.q && query.activeWithin === summaryActiveWithin;
+        return !pageQuery.q && pageQuery.activeWithin === summaryActiveWithin;
       },
     },
     (page) => page && { ...page, counts: summary.counts },

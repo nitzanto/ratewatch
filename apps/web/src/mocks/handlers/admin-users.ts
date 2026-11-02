@@ -68,17 +68,20 @@ const endPauses = () => {
 /** The summary the mock API answers, and the mock realtime connection sends. */
 export const getMockSummary = () => summaryOf(endPauses(), refusedToday);
 
-/** Applies `next` to these users as an admin change, and answers as the API does. */
-const changeUsers = (userIds: string[], next: (row: UserRow) => UserRow) => {
-  const after = users
+/** Applies `applyChange` to these users as an admin change, and answers as the API does. */
+const changeUsers = (
+  userIds: string[],
+  applyChange: (row: UserRow) => UserRow,
+) => {
+  const changedUsers = users
     .filter(({ userId }) => userIds.includes(userId))
-    .map(next);
+    .map(applyChange);
 
   users = users.map(
-    (row) => after.find(({ userId }) => userId === row.userId) ?? row,
+    (row) => changedUsers.find(({ userId }) => userId === row.userId) ?? row,
   );
 
-  return HttpResponse.json({ rows: after } satisfies AdminChange);
+  return HttpResponse.json({ rows: changedUsers } satisfies AdminChange);
 };
 
 export const adminUserHandlers = [

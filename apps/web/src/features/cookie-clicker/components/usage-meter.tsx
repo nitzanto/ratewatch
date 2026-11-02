@@ -1,6 +1,6 @@
 import { StatusChip } from '@/components/business/status-chip';
 import {
-  usedShare,
+  getUsedShare,
   type RateLimitStatus,
 } from '@/libs/rate-limit/rate-limit-status';
 import { sizes } from '@/libs/theme/sizes';
@@ -20,7 +20,7 @@ export const UsageMeter = ({
   status: RateLimitStatus | undefined;
   left: number | undefined;
 }) => {
-  const percent = left === undefined ? 0 : Math.round(usedShare(left) * 100);
+  const percent = left === undefined ? 0 : Math.round(getUsedShare(left) * 100);
 
   return (
     <Stack

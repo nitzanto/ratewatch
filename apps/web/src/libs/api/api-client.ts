@@ -30,8 +30,8 @@ type Call<Options> = {
 };
 
 /** 204 No Content never has a body, and some servers send other empty responses with `Content-Length: 0`. */
-const hasNoBody = (res: Response) =>
-  res.status === 204 || res.headers.get('Content-Length') === '0';
+const hasNoBody = (response: Response) =>
+  response.status === 204 || response.headers.get('Content-Length') === '0';
 
 /**
  * Every call takes the response's schema and returns what it parses, so no
@@ -48,7 +48,7 @@ export const createApiClient = ({
     { body, responseHeaders }: CallOptions = {},
   ) => {
     try {
-      const res = await fetch(`${baseUrl}${path}`, {
+      const response = await fetch(`${baseUrl}${path}`, {
         method,
         ...(body !== undefined && {
           headers: { 'Content-Type': 'application/json' },
@@ -56,17 +56,21 @@ export const createApiClient = ({
         }),
       });
 
-      if (!res.ok) throw await toApiError(res);
+      if (!response.ok) throw await toApiError(response);
 
       // The API is a trust boundary for the browser too: parse, don't cast. An empty response's
       // body is `undefined`, so a caller expecting one passes `z.undefined()`.
-      const data = schema.parse(hasNoBody(res) ? undefined : await res.json());
+      const parsedBody = schema.parse(
+        hasNoBody(response) ? undefined : await response.json(),
+      );
 
-      if (!responseHeaders) return data;
+      if (!responseHeaders) return parsedBody;
 
       return {
-        data,
-        responseHeaders: responseHeaders.parse(Object.fromEntries(res.headers)),
+        data: parsedBody,
+        responseHeaders: responseHeaders.parse(
+          Object.fromEntries(response.headers),
+        ),
       };
     } catch (error) {
       onError?.(error);

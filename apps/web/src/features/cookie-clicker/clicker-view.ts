@@ -1,8 +1,8 @@
 import type { CrumbMood } from '@/components/ui/crumb';
 import type { RateLimit } from '@/libs/api/click-queries';
 import {
-  rateLimitStatus,
-  usedShare,
+  getRateLimitStatus,
+  getUsedShare,
   type RateLimitStatus,
 } from '@/libs/rate-limit/rate-limit-status';
 
@@ -52,7 +52,7 @@ const crumbStages: CrumbMood[] = [
 const stageOf = (left: number) =>
   Math.min(
     crumbStages.length - 1,
-    Math.floor(usedShare(left) * crumbStages.length),
+    Math.floor(getUsedShare(left) * crumbStages.length),
   );
 
 const crumbMood = (
@@ -126,7 +126,7 @@ export const clickerView = (
 
   const left = limit?.requestsLeft ?? undefined;
   const unavailable = limit?.requestsLeft === null;
-  const status = left === undefined ? undefined : rateLimitStatus(left);
+  const status = left === undefined ? undefined : getRateLimitStatus(left);
 
   return {
     phase: 'clicking',
