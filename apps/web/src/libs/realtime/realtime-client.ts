@@ -27,8 +27,11 @@ export type RealtimeListeners = {
 };
 
 export type RealtimeConnection = {
-  /** Follows these users from now on, instead of the ones before; the API sends updates only for followed users. */
-  follow: (userIds: string[]) => void;
+  /**
+   * Follows these users from now on, instead of the ones before; the API sends updates only for followed users.
+   * Returns whether the followed users changed.
+   */
+  follow: (userIds: string[]) => boolean;
   close: () => void;
 };
 
@@ -54,10 +57,13 @@ const connectSocket: ConnectRealtime = ({
   onStatus,
   onRefused,
 }) => {
+  // Step 1: open the socket.
   const socket = io({ transports: ['websocket'] });
   let followed: string[] = [];
-  // A new connection follows nobody, so every connect sends the subscription again.
-  const subscribe = () =>
+
+  // Step 2: tell the API who to follow, and hand on their current rows. A new connection follows nobody, so every
+  // connect sends the subscription again.
+  const sendSubscription = () =>
     socket
       .timeout(subscribeTimeoutMs)
       .emitWithAck(realtimeEvents.subscribe, { userIds: followed })
@@ -70,9 +76,10 @@ const connectSocket: ConnectRealtime = ({
 
   socket.on('connect', () => {
     onStatus('live');
-    void subscribe();
+    void sendSubscription();
   });
-  // The API ends the connection itself when the admin's session does, and refuses it at the handshake from
+
+  // Step 3: report the status. The API ends the connection itself when the admin's session does, and refuses it at the handshake from
   // then on. Neither is retried, unlike a network failure.
   socket.on('disconnect', (reason) => {
     onStatus('lost');
@@ -84,7 +91,8 @@ const connectSocket: ConnectRealtime = ({
 
     if (!socket.active) onRefused();
   });
-  // The API is a trust boundary here too: parse, don't cast.
+
+  // Step 4: parse each event and hand it on. The API is a trust boundary here too: parse, don't cast.
   socket.on(realtimeEvents.update, (payload) =>
     onUpdate(rateUpdateEventSchema.parse(payload)),
   );
@@ -95,31 +103,40 @@ const connectSocket: ConnectRealtime = ({
     onSummary(adminSummarySchema.parse(payload)),
   );
 
+  // Step 5: let the page change who it follows, and close the connection.
   return {
     follow: (userIds) => {
-      if (userIds.join() === followed.join()) return;
+      if (userIds.join() === followed.join()) return false;
 
       followed = userIds;
 
-      if (socket.connected) void subscribe();
+      if (socket.connected) void sendSubscription();
+
+      return true;
     },
     close: () => socket.disconnect(),
   };
 };
 
-let connect = connectSocket;
+// A module-level singleton on purpose: which connector every page uses, set once at startup (`replaceRealtime` in
+// tests and mock mode) before anything connects. Not React state: nothing re-renders on it, and code outside
+// components reads it too.
+let openConnection = connectSocket;
 
 /** Swaps in a fake (tests and mock mode): every connection from now on goes to `fake` instead of the API. */
 export const replaceRealtime = (fake: ConnectRealtime) => {
-  connect = fake;
+  openConnection = fake;
 };
 
 let status: RealtimeStatus | null = null;
 const statusListeners = new Set<() => void>();
 
-const setStatus = (next: RealtimeStatus | null) => {
-  status = next;
+/** Stores the status and tells the app bar; returns the status now shown. */
+const publishStatus = (connectionStatus: RealtimeStatus | null) => {
+  status = connectionStatus;
   statusListeners.forEach((listener) => listener());
+
+  return status;
 };
 
 /** The open connection's status for the app bar, or `null` while no page holds one. For `useSyncExternalStore`. */
@@ -133,11 +150,11 @@ export const realtimeStatusStore = {
 };
 
 export const connectRealtime: ConnectRealtime = (listeners) => {
-  const connection = connect({
+  const connection = openConnection({
     ...listeners,
-    onStatus: (next) => {
-      setStatus(next);
-      listeners.onStatus(next);
+    onStatus: (connectionStatus) => {
+      publishStatus(connectionStatus);
+      listeners.onStatus(connectionStatus);
     },
   });
 
@@ -145,7 +162,7 @@ export const connectRealtime: ConnectRealtime = (listeners) => {
     ...connection,
     close: () => {
       connection.close();
-      setStatus(null);
+      publishStatus(null);
     },
   };
 };

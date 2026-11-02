@@ -39,7 +39,7 @@ export const LiveUsers = () => {
   const [selected, setSelected] = useState<string[]>([]);
   const { data, isPending, isError, refetch } = useAdminUsers(query);
   // Times stop moving while the connection is lost, so they read as of when it dropped.
-  const lostAt = useLiveDashboard();
+  const connectionLostAt = useLiveDashboard();
 
   // A new search, filter or sort starts again from the first page.
   const change = (changes: Partial<UsersQuery>) =>
@@ -87,10 +87,10 @@ export const LiveUsers = () => {
 
   return (
     <Stack sx={{ gap: 2 }}>
-      {lostAt !== null && (
+      {connectionLostAt !== null && (
         <Alert severity="info">
           Connection lost. Showing the users as of{' '}
-          {formatClockTime(new Date(lostAt))}; reconnecting…
+          {formatClockTime(new Date(connectionLostAt))}; reconnecting…
         </Alert>
       )}
       <Paper variant="outlined">
@@ -136,7 +136,7 @@ export const LiveUsers = () => {
             {data.rows.length ? (
               <UsersTable
                 rows={data.rows}
-                frozenAt={lostAt}
+                frozenAt={connectionLostAt}
                 sort={query.sort}
                 order={query.order}
                 onSort={(sort, order) => change({ sort, order })}
@@ -183,7 +183,7 @@ export const LiveUsers = () => {
       </Paper>
       <UserDrawer
         userId={openUserId}
-        frozenAt={lostAt}
+        frozenAt={connectionLostAt}
         onClose={() => setOpenUserId(null)}
       />
     </Stack>

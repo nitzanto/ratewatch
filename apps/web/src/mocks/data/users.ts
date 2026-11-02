@@ -1,4 +1,4 @@
-import { sortValueOf } from '@/libs/api/admin-users-queries';
+import { getSortValue } from '@/libs/api/admin-users-queries';
 import {
   activeWithinMs,
   activityRanges,
@@ -138,7 +138,7 @@ export const usersPage = (
   const shown = matching
     .filter((row) => !status || row.status === status)
     .sort((a, b) => {
-      const [x, y] = [sortValueOf(a, sort), sortValueOf(b, sort)];
+      const [x, y] = [getSortValue(a, sort), getSortValue(b, sort)];
 
       if (x === undefined || y === undefined)
         return Number(x === undefined) - Number(y === undefined);

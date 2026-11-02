@@ -39,7 +39,7 @@ export const getAdminUsers = (query: UsersQuery) =>
  * How long until the first of these rows' pauses ends, so the query is fetched again then: no update arrives when a
  * pause runs out, since nothing changes in Redis but a key expiring. `false` with no pause on screen.
  */
-export const untilFirstPauseEnds = (rows: UserRow[] = []) => {
+export const getMsUntilFirstPauseEnds = (rows: UserRow[] = []) => {
   const ends = rows.flatMap(({ pausedUntil }) =>
     pausedUntil ? [Date.parse(pausedUntil)] : [],
   );
@@ -57,7 +57,8 @@ export const adminUsersQueries = {
       queryKey: [...adminUsersQueryKey, query],
       queryFn: () => getAdminUsers(query),
       placeholderData: keepPreviousData,
-      refetchInterval: ({ state }) => untilFirstPauseEnds(state.data?.rows),
+      refetchInterval: ({ state }) =>
+        getMsUntilFirstPauseEnds(state.data?.rows),
     }),
   detail: (userId: string) =>
     queryOptions({
@@ -65,7 +66,7 @@ export const adminUsersQueries = {
       queryFn: () =>
         api.get(`/admin/users/${encodeURIComponent(userId)}`, userDetailSchema),
       refetchInterval: ({ state }) =>
-        untilFirstPauseEnds(state.data && [state.data.row]),
+        getMsUntilFirstPauseEnds(state.data && [state.data.row]),
     }),
   // The other range stays on screen until this one arrives, so the switch doesn't flash empty.
   history: (userId: string, range: ActivityRange) =>
@@ -84,7 +85,7 @@ export const adminUsersQueries = {
  * A row's value for one of the API's sort keys. A user whose window ended has no requests left, share used or reset
  * time, so sorts last either way, as the API does.
  */
-export const sortValueOf = (row: UserRow, sort: UsersQuery['sort']) =>
+export const getSortValue = (row: UserRow, sort: UsersQuery['sort']) =>
   ({
     id: row.userId,
     left: row.resetAt ? row.requestsLeft : undefined,
@@ -93,53 +94,117 @@ export const sortValueOf = (row: UserRow, sort: UsersQuery['sort']) =>
     lastRequest: row.lastRequestAt,
   })[sort];
 
-const used = (row: UserRow) => row.limit - row.requestsLeft;
-const windowEnd = (row: UserRow) => (row.resetAt ? Date.parse(row.resetAt) : 0);
+const getUsed = (row: UserRow) => row.limit - row.requestsLeft;
+const getWindowEnd = (row: UserRow) =>
+  row.resetAt ? Date.parse(row.resetAt) : 0;
 
 /**
  * An update is kept only when it isn't older than the row on screen: a later window, or the same window with at
  * least as many requests used. Reset times a few ms apart are the same window: `rate:limit_exceeded` carries one
  * instance's own, rows carry the record's.
  */
-const isNotOlder = (next: UserRow, current: UserRow) => {
-  const gap = windowEnd(next) - windowEnd(current);
+const isNotOlder = (incomingUserRow: UserRow, current: UserRow) => {
+  const gap = getWindowEnd(incomingUserRow) - getWindowEnd(current);
 
   return Math.abs(gap) < sameWindowToleranceMs
-    ? used(next) >= used(current)
+    ? getUsed(incomingUserRow) >= getUsed(current)
     : gap > 0;
+};
+
+/**
+ * The page with `incomingUserRow` written over the same user's row, if `keeps` says so, and the user moved between
+ * the page's status counts. The same page when the user isn't on it or the update is older.
+ */
+export const applyRowToPage = (
+  page: UsersPage,
+  incomingUserRow: UserRow,
+  keeps: (current: UserRow) => boolean,
+): UsersPage => {
+  const counts = { ...page.counts };
+  let changed = false;
+  const rows = page.rows.map((row) => {
+    if (row.userId !== incomingUserRow.userId || !keeps(row)) return row;
+
+    counts[row.status] -= 1;
+    counts[incomingUserRow.status] += 1;
+    changed = true;
+
+    return incomingUserRow;
+  });
+
+  return changed ? { ...page, rows, counts } : page;
 };
 
 /**
  * Writes a live row over the same user's row in place, on every page that shows it, and moves the user between the
  * page's status counts; the table never re-sorts from here. An admin's change (`byAdmin`) always wins, though a
- * reset row looks older: it has no window.
+ * reset row looks older: it has no window. Returns whether any page or the open user took it.
  */
 // shortcut: only the users on screen send updates, so under a search or a last-active filter the counts miss status changes of users off the page until the next fetch (`applySummary` corrects the default view every second); a per-query count event fixes it if admins need it.
 export const applyUserRow = (
   client: QueryClient,
-  next: UserRow,
+  incomingUserRow: UserRow,
   byAdmin = false,
-) => {
-  const keeps = (current: UserRow) => byAdmin || isNotOlder(next, current);
+): boolean => {
+  const keeps = (current: UserRow) =>
+    byAdmin || isNotOlder(incomingUserRow, current);
+  let isRowWritten = false;
 
+  // Step 1: every cached page that shows the user.
   client.setQueriesData<UsersPage>({ queryKey: adminUsersQueryKey }, (page) => {
     if (!page) return page;
 
-    const counts = { ...page.counts };
-    const rows = page.rows.map((row) => {
-      if (row.userId !== next.userId || !keeps(row)) return row;
+    const updatedPage = applyRowToPage(page, incomingUserRow, keeps);
 
-      counts[row.status] -= 1;
-      counts[next.status] += 1;
+    // `applyRowToPage` returns the same page when the user isn't on it or the update is older.
+    if (updatedPage !== page) isRowWritten = true;
 
-      return next;
-    });
-
-    return { ...page, rows, counts };
+    return updatedPage;
   });
-  client.setQueryData<UserDetail>([...adminUserKey, next.userId], (detail) =>
-    detail && keeps(detail.row) ? { ...detail, row: next } : detail,
+
+  // Step 2: the open user, if it's them.
+  client.setQueryData<UserDetail>(
+    [...adminUserKey, incomingUserRow.userId],
+    (detail) => {
+      if (!detail || !keeps(detail.row)) return detail;
+
+      isRowWritten = true;
+
+      return { ...detail, row: incomingUserRow };
+    },
   );
+
+  return isRowWritten;
+};
+
+/**
+ * The recent requests with the new ones merged in: a request already there (same time and outcome) counts once,
+ * the list is sorted newest first, since batches from several API instances can arrive out of order, and capped.
+ * The same list when nothing is new.
+ */
+export const mergeNewRequests = (
+  recent: UserDetail['recent'],
+  requests: RateUpdateEvent['requests'],
+): UserDetail['recent'] => {
+  const unmatched = [...recent];
+  const fresh = requests.filter(({ at, allowed }) => {
+    const same = unmatched.findIndex(
+      (known) => known.at === at && known.allowed === allowed,
+    );
+
+    if (same === -1) return true;
+
+    unmatched.splice(same, 1);
+
+    return false;
+  });
+
+  if (!fresh.length) return recent;
+
+  // ISO times in UTC, so later is greater as text too.
+  return [...fresh, ...recent]
+    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
+    .slice(0, recentRequestsKept);
 };
 
 /**
@@ -151,57 +216,51 @@ export const applyUserRow = (
 export const applyRateUpdate = (
   client: QueryClient,
   { row, requests, byAdmin }: RateUpdateEvent,
-) => {
+): UserRow => {
+  // Step 1: the row, everywhere it shows.
   applyUserRow(client, row, byAdmin);
+
+  // Step 2: the new requests, into the open user's recent requests.
   client.setQueryData<UserDetail>([...adminUserKey, row.userId], (detail) => {
     if (!detail) return detail;
 
-    const unmatched = [...detail.recent];
-    const fresh = requests.filter(({ at, allowed }) => {
-      const same = unmatched.findIndex(
-        (known) => known.at === at && known.allowed === allowed,
-      );
+    const recent = mergeNewRequests(detail.recent, requests);
 
-      if (same === -1) return true;
-
-      unmatched.splice(same, 1);
-
-      return false;
-    });
-
-    if (!fresh.length) return detail;
-
-    // ISO times in UTC, so later is greater as text too.
-    const recent = [...fresh, ...detail.recent].sort((a, b) =>
-      a.at < b.at ? 1 : a.at > b.at ? -1 : 0,
-    );
-
-    return { ...detail, recent: recent.slice(0, recentRequestsKept) };
+    return recent === detail.recent ? detail : { ...detail, recent };
   });
+
+  // Step 3: their activity chart, fetched again if it's on screen.
   void client.invalidateQueries({
     queryKey: [...adminUserHistoryKey, row.userId],
   });
+
+  return row;
 };
 
 /**
  * An admin's change, as its answer has it: each changed row everywhere, and the user's detail fetched again, since a
  * reset moves their last reset time too.
  */
-export const applyAdminChange = (client: QueryClient, rows: UserRow[]) => {
+export const applyAdminChange = (
+  client: QueryClient,
+  rows: UserRow[],
+): UserRow[] => {
   for (const row of rows) {
     applyUserRow(client, row, true);
     void client.invalidateQueries({ queryKey: [...adminUserKey, row.userId] });
   }
+
+  return rows;
 };
 
 /** Every users-table row in the cache, on any page. */
-const rowsOnScreen = (client: QueryClient) =>
+const getRowsOnScreen = (client: QueryClient) =>
   client
     .getQueriesData<UsersPage>({ queryKey: adminUsersQueryKey })
     .flatMap(([, page]) => page?.rows ?? []);
 
 /** The users whose live updates the dashboard needs: the rows of the page on screen, not of pages cached earlier, and the open user. */
-export const userIdsOnScreen = (client: QueryClient) => [
+export const getUserIdsOnScreen = (client: QueryClient) => [
   ...new Set([
     ...client
       .getQueriesData<UsersPage>({
@@ -215,24 +274,37 @@ export const userIdsOnScreen = (client: QueryClient) => [
   ]),
 ];
 
-/** A user's first refusal in a window arrives before their next `rate:update`: show them Exceeded at once. */
+/** The row on screen as Exceeded, from a first refusal: nothing left, and the refusal's limit, reset and time. */
+export const buildExceededRow = (
+  row: UserRow,
+  { limit, resetAt, at }: RateLimitExceededEvent,
+): UserRow => ({
+  ...row,
+  limit,
+  used: Math.max(row.used, limit),
+  requestsLeft: 0,
+  resetAt,
+  status: 'exceeded',
+  lastRequestAt: at,
+});
+
+/**
+ * A user's first refusal in a window arrives before their next `rate:update`: show them Exceeded at once. Returns
+ * the row written, or `undefined` when the user isn't on screen.
+ */
 export const applyLimitExceeded = (
   client: QueryClient,
-  { userId, limit, resetAt, at }: RateLimitExceededEvent,
-) => {
-  const row = rowsOnScreen(client).find(
-    (candidate) => candidate.userId === userId,
+  event: RateLimitExceededEvent,
+): UserRow | undefined => {
+  const row = getRowsOnScreen(client).find(
+    (candidate) => candidate.userId === event.userId,
   );
 
-  if (!row) return;
+  if (!row) return undefined;
 
-  applyUserRow(client, {
-    ...row,
-    limit,
-    used: Math.max(row.used, limit),
-    requestsLeft: 0,
-    resetAt,
-    status: 'exceeded',
-    lastRequestAt: at,
-  });
+  const exceeded = buildExceededRow(row, event);
+
+  applyUserRow(client, exceeded);
+
+  return exceeded;
 };

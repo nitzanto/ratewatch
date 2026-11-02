@@ -26,7 +26,11 @@ export const connectFakeRealtime: ConnectRealtime = (listeners) => {
 
   return {
     follow: (userIds) => {
+      const changed = userIds.join() !== followed.join();
+
       followed = userIds;
+
+      return changed;
     },
     close: () => {
       connections.delete(listeners);
@@ -82,18 +86,18 @@ const sendRandomRequest = () => {
       resetAt: user.resetAt ?? at,
       at,
     });
-    const next = { ...user, lastRequestAt: at };
+    const updatedUser = { ...user, lastRequestAt: at };
 
-    setMockUsers(users.map((row) => (row === user ? next : row)));
-    sendRateUpdate({ row: next, requests: [{ at, allowed: false }] });
+    setMockUsers(users.map((row) => (row === user ? updatedUser : row)));
+    sendRateUpdate({ row: updatedUser, requests: [{ at, allowed: false }] });
 
     return;
   }
 
-  const next = afterRequest(user, at);
+  const updatedUser = afterRequest(user, at);
 
-  setMockUsers(users.map((row) => (row === user ? next : row)));
-  sendRateUpdate({ row: next, requests: [{ at, allowed: true }] });
+  setMockUsers(users.map((row) => (row === user ? updatedUser : row)));
+  sendRateUpdate({ row: updatedUser, requests: [{ at, allowed: true }] });
 };
 
 /** Mock mode's traffic: about one request a second from a random user, through the mock API's users, then the summary, as the API sends it every second. */

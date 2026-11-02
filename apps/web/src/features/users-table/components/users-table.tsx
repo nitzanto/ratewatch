@@ -1,5 +1,5 @@
 import { StatusChip } from '@/components/business/status-chip';
-import { sortValueOf } from '@/libs/api/admin-users-queries';
+import { getSortValue } from '@/libs/api/admin-users-queries';
 import { sizes } from '@/libs/theme/sizes';
 import {
   defaultHourlyLimit,
@@ -135,13 +135,13 @@ const columns = columnHelper.columns([
       </>
     ),
   }),
-  columnHelper.accessor((row) => sortValueOf(row, 'left'), {
+  columnHelper.accessor((row) => getSortValue(row, 'left'), {
     id: 'left',
     header: 'Requests left',
     ...sortsLikeTheApi,
     cell: ({ row }) => <RequestsLeftCell user={row.original} />,
   }),
-  columnHelper.accessor((row) => sortValueOf(row, 'resetAt'), {
+  columnHelper.accessor((row) => getSortValue(row, 'resetAt'), {
     id: 'resetAt',
     header: 'Resets',
     ...sortsLikeTheApi,
@@ -153,7 +153,7 @@ const columns = columnHelper.columns([
     ),
   }),
   // The API sorts status by the share of the limit used.
-  columnHelper.accessor((row) => sortValueOf(row, 'ratio'), {
+  columnHelper.accessor((row) => getSortValue(row, 'ratio'), {
     id: 'ratio',
     header: 'Status',
     ...sortsLikeTheApi,
