@@ -10,7 +10,7 @@ import {
   mutationOptions,
   type MutationFunctionContext,
 } from '@tanstack/react-query';
-import { applyAdminChange } from '../admin-users/admin-users-queries';
+import { applyAdminChange } from '../users/users-queries';
 import { api } from '../api-client';
 
 const userPath = (userId: string) =>

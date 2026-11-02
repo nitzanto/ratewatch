@@ -1,4 +1,4 @@
-import { useAdminUsers } from '@/api/admin-users/use-admin-users';
+import { useUsers } from '@/api/users/use-users';
 import { useLiveDashboard } from '@/api/realtime/use-live-dashboard';
 import {
   usersPageSizes,
@@ -29,39 +29,44 @@ export const UsersPanel = () => {
   const [query, setQuery] = useState<UsersQuery>(defaultQuery);
 
   // The search box shows each keystroke at once; the query takes it once typing pauses.
-  const [search, setSearch] = useState<string>('');
+  const [searchText, setSearchText] = useState<string>('');
   const [openUserId, setOpenUserId] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  const { data, isPending, isError, refetch } = useAdminUsers(query);
+  const { data, isPending, isError, refetch } = useUsers(query);
 
   // Times stop moving while the connection is lost, so they read as of when it dropped.
   const connectionLostAt = useLiveDashboard();
 
-  // A new search, filter or sort starts again from the first page.
-  const change = (changes: Partial<UsersQuery>) =>
+  // A new search, filter, sort or page size starts again from the first page.
+  const updateUsersQuery = (changes: Partial<UsersQuery>) =>
     setQuery((current) => ({ ...current, page: 0, ...changes }));
-  const searchLater = useMemo(
+
+  const debouncedSetUserIdSearch = useMemo(
     () =>
       debounce(
-        (userIdSearch: string) =>
-          setQuery((current) => ({ ...current, page: 0, userIdSearch })),
+        (userIdSearch: string) => updateUsersQuery({ userIdSearch }),
         searchDelayMs,
       ),
     [],
   );
 
+  const search = (text: string) => {
+    setSearchText(text);
+    debouncedSetUserIdSearch(text);
+  };
+
   const clearFilters = () => {
-    searchLater.clear();
-    setSearch('');
-    change({
+    debouncedSetUserIdSearch.clear();
+    setSearchText('');
+    updateUsersQuery({
       userIdSearch: undefined,
       status: undefined,
       activeWithin: defaultQuery.activeWithin,
     });
   };
 
-  const filtered =
+  const hasActiveFilters =
     !!query.userIdSearch ||
     !!query.status ||
     query.activeWithin !== defaultQuery.activeWithin;
@@ -71,7 +76,7 @@ export const UsersPanel = () => {
   if (isError) return <UsersLoadError onRetry={() => refetch()} />;
 
   // Only ticked users still on screen count: a new page, search or filter leaves the others out.
-  const selectedOnScreen = selected.filter((userId) =>
+  const selectedOnScreen = selectedUserIds.filter((userId) =>
     data.rows.some((row) => row.userId === userId),
   );
 
@@ -81,7 +86,7 @@ export const UsersPanel = () => {
         <ConnectionLostBanner lostAt={connectionLostAt} />
       )}
       <Paper variant="outlined">
-        {!data.total && !filtered ? (
+        {!data.total && !hasActiveFilters ? (
           <UsersEmptyState />
         ) : (
           <>
@@ -93,25 +98,19 @@ export const UsersPanel = () => {
                 <Typography variant="h6" component="h2">
                   Users
                 </Typography>
-                <UsersSearch
-                  value={search}
-                  onChange={(value) => {
-                    setSearch(value);
-                    searchLater(value);
-                  }}
-                />
+                <UsersSearch value={searchText} onChange={search} />
               </Stack>
               {selectedOnScreen.length ? (
                 <SelectionToolbar
                   userIds={selectedOnScreen}
-                  onClear={() => setSelected([])}
+                  onClear={() => setSelectedUserIds([])}
                 />
               ) : (
                 <UsersFilters
                   query={query}
                   counts={data.counts}
-                  filtered={filtered}
-                  onChange={change}
+                  hasActiveFilters={hasActiveFilters}
+                  onChange={updateUsersQuery}
                   onClear={clearFilters}
                 />
               )}
@@ -122,11 +121,11 @@ export const UsersPanel = () => {
                 frozenAt={connectionLostAt}
                 sort={query.sort}
                 order={query.order}
-                onSort={(sort, order) => change({ sort, order })}
+                onSort={(sort, order) => updateUsersQuery({ sort, order })}
                 openUserId={openUserId}
                 onOpen={setOpenUserId}
-                selected={selectedOnScreen}
-                onSelect={setSelected}
+                selectedUserIds={selectedOnScreen}
+                onSelect={setSelectedUserIds}
               />
             ) : (
               <NoMatches onClearFilters={clearFilters} />
@@ -139,7 +138,7 @@ export const UsersPanel = () => {
               rowsPerPageOptions={[...usersPageSizes]}
               onPageChange={(_, page) => setQuery({ ...query, page })}
               onRowsPerPageChange={(event) =>
-                change({
+                updateUsersQuery({
                   pageSize: usersQuerySchema.shape.pageSize.parse(
                     event.target.value,
                   ),

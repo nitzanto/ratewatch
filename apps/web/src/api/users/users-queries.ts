@@ -19,13 +19,13 @@ import {
 } from '@tanstack/react-query';
 import { api } from '../api-client';
 
-export const adminUsersQueryKey = ['admin', 'users'] as const;
+export const usersQueryKey = ['users'] as const;
 
 // Apart from the users table's key, so its page updaters never meet a user's detail.
-const adminUserKey = ['admin', 'user'] as const;
-const adminUserHistoryKey = ['admin', 'user-history'] as const;
+const userQueryKey = ['user'] as const;
+const userHistoryQueryKey = ['user-history'] as const;
 
-export const getAdminUsers = (query: UsersQuery) =>
+export const getUsers = (query: UsersQuery) =>
   api.get(
     `/admin/users?${new URLSearchParams(
       Object.entries(query).flatMap(([paramName, paramValue]) =>
@@ -52,19 +52,19 @@ export const getMsUntilFirstPauseEnds = (rows: UserRow[] = []) => {
     : false;
 };
 
-export const adminUsersQueries = {
+export const usersQueries = {
   // A new search, filter, sort or page shouldReplaceRow the last page on screen until its own arrives.
   list: (query: UsersQuery) =>
     queryOptions({
-      queryKey: [...adminUsersQueryKey, query],
-      queryFn: () => getAdminUsers(query),
+      queryKey: [...usersQueryKey, query],
+      queryFn: () => getUsers(query),
       placeholderData: keepPreviousData,
       refetchInterval: ({ state }) =>
         getMsUntilFirstPauseEnds(state.data?.rows),
     }),
   detail: (userId: string) =>
     queryOptions({
-      queryKey: [...adminUserKey, userId],
+      queryKey: [...userQueryKey, userId],
       queryFn: () =>
         api.get(`/admin/users/${encodeURIComponent(userId)}`, userDetailSchema),
       refetchInterval: ({ state }) =>
@@ -73,7 +73,7 @@ export const adminUsersQueries = {
   // The other range stays on screen until this one arrives, so the switch doesn't flash empty.
   history: (userId: string, range: ActivityRange) =>
     queryOptions({
-      queryKey: [...adminUserHistoryKey, userId, range],
+      queryKey: [...userHistoryQueryKey, userId, range],
       queryFn: () =>
         api.get(
           `/admin/users/${encodeURIComponent(userId)}/history?range=${range}`,
@@ -154,7 +154,7 @@ export const applyUserRow = (
   let isRowWritten = false;
 
   // Step 1: every cached page that shows the user.
-  client.setQueriesData<UsersPage>({ queryKey: adminUsersQueryKey }, (page) => {
+  client.setQueriesData<UsersPage>({ queryKey: usersQueryKey }, (page) => {
     if (!page) return page;
 
     const updatedPage = applyRowToPage(page, incomingUserRow, shouldReplaceRow);
@@ -167,7 +167,7 @@ export const applyUserRow = (
 
   // Step 2: the open user, if it's them.
   client.setQueryData<UserDetail>(
-    [...adminUserKey, incomingUserRow.userId],
+    [...userQueryKey, incomingUserRow.userId],
     (detail) => {
       if (!detail || !shouldReplaceRow(detail.row)) return detail;
 
@@ -225,7 +225,7 @@ export const applyRateUpdate = (
   applyUserRow(client, row, byAdmin);
 
   // Step 2: the new requests, into the open user's recent requests.
-  client.setQueryData<UserDetail>([...adminUserKey, row.userId], (detail) => {
+  client.setQueryData<UserDetail>([...userQueryKey, row.userId], (detail) => {
     if (!detail) return detail;
 
     const recent = mergeNewRequests(detail.recent, requests);
@@ -235,7 +235,7 @@ export const applyRateUpdate = (
 
   // Step 3: their activity chart, fetched again if it's on screen.
   void client.invalidateQueries({
-    queryKey: [...adminUserHistoryKey, row.userId],
+    queryKey: [...userHistoryQueryKey, row.userId],
   });
 
   return row;
@@ -251,7 +251,7 @@ export const applyAdminChange = (
 ): UserRow[] => {
   for (const row of rows) {
     applyUserRow(client, row, true);
-    void client.invalidateQueries({ queryKey: [...adminUserKey, row.userId] });
+    void client.invalidateQueries({ queryKey: [...userQueryKey, row.userId] });
   }
 
   return rows;
@@ -260,7 +260,7 @@ export const applyAdminChange = (
 /** Every users-table row in the cache, on any page. */
 const getRowsOnScreen = (client: QueryClient) =>
   client
-    .getQueriesData<UsersPage>({ queryKey: adminUsersQueryKey })
+    .getQueriesData<UsersPage>({ queryKey: usersQueryKey })
     .flatMap(([, page]) => page?.rows ?? []);
 
 /** The users whose live updates the dashboard needs: the rows of the page on screen, not of pages cached earlier, and the open user. */
@@ -268,13 +268,13 @@ export const getUserIdsOnScreen = (client: QueryClient) => [
   ...new Set([
     ...client
       .getQueriesData<UsersPage>({
-        queryKey: adminUsersQueryKey,
+        queryKey: usersQueryKey,
         type: 'active',
       })
       .flatMap(([, page]) => page?.rows.map(({ userId }) => userId) ?? []),
     ...client
-      .getQueriesData<UserDetail>({ queryKey: adminUserKey, type: 'active' })
-      .map(([queryKey]) => String(queryKey[adminUserKey.length])),
+      .getQueriesData<UserDetail>({ queryKey: userQueryKey, type: 'active' })
+      .map(([queryKey]) => String(queryKey[userQueryKey.length])),
   ]),
 ];
 

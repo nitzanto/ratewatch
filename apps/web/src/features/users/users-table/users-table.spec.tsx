@@ -29,7 +29,7 @@ const renderTable = (props: Partial<TableProps> & { rows: UserRow[] }) => {
     onSort: vi.fn(),
     openUserId: null,
     onOpen: vi.fn(),
-    selected: [],
+    selectedUserIds: [],
     onSelect: vi.fn(),
     ...props,
   };

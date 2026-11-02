@@ -1,4 +1,4 @@
-import { useAdminSummary } from '@/api/admin-summary/use-admin-summary';
+import { useUsersSummary } from '@/api/users-summary/use-users-summary';
 import { sizes } from '@/theme/sizes';
 import { Box, Paper, Stack, Typography, type Theme } from '@mui/material';
 
@@ -8,7 +8,7 @@ const pastRank = (theme: Theme) =>
 
 /** The users with the most requests in their current window, each with a bar against the first; kept live by `rate:summary`. */
 export const TopUsers = () => {
-  const { data } = useAdminSummary();
+  const { data } = useUsersSummary();
   const topUsers = data?.topUsers ?? [];
   const most = Math.max(1, ...topUsers.map(({ used }) => used));
 

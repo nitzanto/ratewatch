@@ -1,5 +1,5 @@
 import { replaceRealtime } from '@/api/realtime/realtime-client';
-import { resetUsers } from '@/mocks/handlers/admin-users';
+import { resetUsers } from '@/mocks/handlers/users';
 import { resetClicks } from '@/mocks/handlers/clicks';
 import { setMockSession } from '@/mocks/handlers/session';
 import { server } from '@/mocks/node';

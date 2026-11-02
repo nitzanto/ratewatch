@@ -9,7 +9,7 @@ import { useState, type SubmitEvent } from 'react';
 import { formatHourMinute } from '@/utils/format-time';
 
 /** Why `limit` can't be saved, or `undefined` when it can; `extra` is the window's extra requests, kept on top. */
-const problemWith = (limit: number | null, extra: number) => {
+const getLimitProblem = (limit: number | null, extra: number) => {
   if (limit === null)
     return `Enter a whole number from 1 to ${maxLimit.toLocaleString('en')}.`;
 
@@ -23,7 +23,7 @@ const problemWith = (limit: number | null, extra: number) => {
  * How this hour's limit splits into the limit every hour and the extra requests on top, or `undefined` without extra
  * requests. Typing the limit it already has points to Reset limit, the one way to drop the extra requests early.
  */
-const splitNote = (row: UserRow, limit: number | null, extra: number) => {
+const buildSplitNote = (row: UserRow, limit: number | null, extra: number) => {
   if (extra <= 0 || row.resetAt === null) return undefined;
 
   const split = `${row.limit.toLocaleString('en')} this hour = ${row.baseLimit.toLocaleString('en')} limit + ${extra} extra, until ${formatHourMinute(new Date(row.resetAt))}.`;
@@ -51,8 +51,8 @@ export const CustomLimitForm = ({
   // An empty field is 0, so it fails the 1 to 1,000 rule too.
   const limit = parsed.success ? parsed.data : null;
   const extra = row.limit - row.baseLimit;
-  const problem = problemWith(limit, extra);
-  const note = splitNote(row, limit, extra);
+  const problem = getLimitProblem(limit, extra);
+  const note = buildSplitNote(row, limit, extra);
   // The next request is refused once what's used reaches the new limit plus this window's extra requests.
   const refusesNext =
     limit !== null && row.resetAt !== null && row.used >= limit + extra;

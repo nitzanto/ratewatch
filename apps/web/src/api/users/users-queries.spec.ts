@@ -3,7 +3,7 @@ import {
   applyRowToPage,
   buildExceededRow,
   mergeNewRequests,
-} from './admin-users-queries';
+} from './users-queries';
 
 const row = (userId: string, overrides: Partial<UserRow> = {}): UserRow => ({
   userId,

@@ -1,8 +1,5 @@
 import { userRow } from '@/mocks/data/users';
-import {
-  setMockRefusedToday,
-  setMockUsers,
-} from '@/mocks/handlers/admin-users';
+import { setMockRefusedToday, setMockUsers } from '@/mocks/handlers/users';
 import { server } from '@/mocks/node';
 import { renderWithProviders } from '@/test/render-app';
 import { minuteMs } from '@/test/users-table';

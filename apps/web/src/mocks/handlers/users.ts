@@ -84,7 +84,7 @@ const changeUsers = (
   return HttpResponse.json({ rows: changedUsers } satisfies AdminChange);
 };
 
-export const adminUserHandlers = [
+export const userHandlers = [
   http.get('/api/admin/summary', () => HttpResponse.json(getMockSummary())),
   http.get('/api/admin/users', ({ request }) =>
     HttpResponse.json(

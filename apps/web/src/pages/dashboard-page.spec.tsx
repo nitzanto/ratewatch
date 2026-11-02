@@ -1,5 +1,5 @@
 import { userRow } from '@/mocks/data/users';
-import { setMockUsers } from '@/mocks/handlers/admin-users';
+import { setMockUsers } from '@/mocks/handlers/users';
 import { setMockSession } from '@/mocks/handlers/session';
 import { refuseRealtime, sendRateUpdate, sendSummary } from '@/mocks/realtime';
 import { renderApp } from '@/test/render-app';

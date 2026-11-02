@@ -38,10 +38,12 @@ export const AdminControls = ({ row }: { row: UserRow }) => {
   const setLimit = useSetLimit();
   const pause = usePause();
   const unlock = useUnlock();
-  const [pauseMenu, setPauseMenu] = useState<HTMLElement | null>(null);
+  const [pauseMenuAnchor, setPauseMenuAnchor] = useState<HTMLElement | null>(
+    null,
+  );
   const pauseMenuId = useId();
-  const noWindow = row.resetAt === null;
-  const atMax = !canAddExtraRequests(row.limit);
+  const hasNoOpenWindow = row.resetAt === null;
+  const isAtExtraRequestsMax = !canAddExtraRequests(row.limit);
 
   const changes = [
     [reset, `Couldn't reset ${userId}'s limit.`],
@@ -74,7 +76,7 @@ export const AdminControls = ({ row }: { row: UserRow }) => {
               </Button>
               <Button
                 variant="outlined"
-                disabled={noWindow || atMax}
+                disabled={hasNoOpenWindow || isAtExtraRequestsMax}
                 loading={addExtra.isPending}
                 onClick={() => {
                   clearOtherFailures(addExtra);
@@ -99,17 +101,17 @@ export const AdminControls = ({ row }: { row: UserRow }) => {
                   variant="outlined"
                   loading={pause.isPending}
                   aria-haspopup="menu"
-                  aria-expanded={pauseMenu !== null}
-                  aria-controls={pauseMenu ? pauseMenuId : undefined}
-                  onClick={(event) => setPauseMenu(event.currentTarget)}
+                  aria-expanded={pauseMenuAnchor !== null}
+                  aria-controls={pauseMenuAnchor ? pauseMenuId : undefined}
+                  onClick={(event) => setPauseMenuAnchor(event.currentTarget)}
                 >
                   Pause
                 </Button>
               )}
             </Stack>
-            {(noWindow || atMax) && (
+            {(hasNoOpenWindow || isAtExtraRequestsMax) && (
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {noWindow
+                {hasNoOpenWindow
                   ? 'Extra requests are for the current window, and this user has none open.'
                   : `A limit can't go above ${maxLimit.toLocaleString('en')}.`}
               </Typography>
@@ -117,16 +119,16 @@ export const AdminControls = ({ row }: { row: UserRow }) => {
           </Stack>
           <Menu
             id={pauseMenuId}
-            anchorEl={pauseMenu}
-            open={pauseMenu !== null}
-            onClose={() => setPauseMenu(null)}
+            anchorEl={pauseMenuAnchor}
+            open={pauseMenuAnchor !== null}
+            onClose={() => setPauseMenuAnchor(null)}
           >
             {(Object.keys(pauseLabels) as PauseDuration[]).map((duration) => (
               <MenuItem
                 key={duration}
-                disabled={duration === 'untilReset' && noWindow}
+                disabled={duration === 'untilReset' && hasNoOpenWindow}
                 onClick={() => {
-                  setPauseMenu(null);
+                  setPauseMenuAnchor(null);
                   clearOtherFailures(pause);
                   pause.mutate({ userId, pause: { duration } });
                 }}

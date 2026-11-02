@@ -7,13 +7,13 @@ const counts = { ok: 2, warning: 1, exceeded: 1, paused: 1 };
 
 const renderFilters = (
   changes: Partial<UsersQuery> = {},
-  { filtered = false, onChange = vi.fn(), onClear = vi.fn() } = {},
+  { hasActiveFilters = false, onChange = vi.fn(), onClear = vi.fn() } = {},
 ) =>
   renderWithProviders(
     <UsersFilters
       query={{ ...usersQuerySchema.parse({}), ...changes }}
       counts={counts}
-      filtered={filtered}
+      hasActiveFilters={hasActiveFilters}
       onChange={onChange}
       onClear={onClear}
     />,
@@ -44,7 +44,10 @@ it("marks the picked status's chip", async () => {
 
 it('offers to clear the filters while some are set', async () => {
   const onClear = vi.fn();
-  await renderFilters({ status: 'warning' }, { filtered: true, onClear });
+  await renderFilters(
+    { status: 'warning' },
+    { hasActiveFilters: true, onClear },
+  );
 
   fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 

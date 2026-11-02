@@ -1,5 +1,5 @@
 import { StatusChip } from '@/components/status-chip';
-import { getSortValue } from '@/api/admin-users/admin-users-queries';
+import { getSortValue } from '@/api/users/users-queries';
 import { sizes } from '@/theme/sizes';
 import {
   defaultHourlyLimit,
@@ -44,7 +44,7 @@ const features = tableFeatures({
   tableMeta: {} as {
     frozenAt: number | null;
     onOpen: (userId: string) => void;
-    selected: string[];
+    selectedUserIds: string[];
     onSelect: (userIds: string[]) => void;
   },
 });
@@ -69,9 +69,11 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: 'select',
     header: ({ table }) => {
-      const { selected = [], onSelect } = table.options.meta ?? {};
+      const { selectedUserIds = [], onSelect } = table.options.meta ?? {};
       const userIds = table.getRowModel().rows.map((row) => row.id);
-      const ticked = userIds.filter((userId) => selected.includes(userId));
+      const ticked = userIds.filter((userId) =>
+        selectedUserIds.includes(userId),
+      );
 
       return (
         <Checkbox
@@ -84,20 +86,20 @@ const columns = columnHelper.columns([
       );
     },
     cell: ({ row, table }) => {
-      const { selected = [], onSelect } = table.options.meta ?? {};
+      const { selectedUserIds = [], onSelect } = table.options.meta ?? {};
 
       return (
         <Checkbox
           size="small"
-          checked={selected.includes(row.id)}
+          checked={selectedUserIds.includes(row.id)}
           slotProps={{ input: { 'aria-label': `Select ${row.id}` } }}
           // A tick never opens the user.
           onClick={(event) => event.stopPropagation()}
           onChange={(event) =>
             onSelect?.(
               event.target.checked
-                ? [...selected, row.id]
-                : selected.filter((userId) => userId !== row.id),
+                ? [...selectedUserIds, row.id]
+                : selectedUserIds.filter((userId) => userId !== row.id),
             )
           }
         />
@@ -187,7 +189,7 @@ const sortByHeldOrder = (rows: UserRow[], order: string[]) => {
 
 /**
  * Every user's state, in the API's order: a header sorts the API's page with `onSort`, a row opens its user with
- * `onOpen`, and its checkbox ticks it for the selection toolbar (`selected`, `onSelect`). Live changes re-sort the rows on screen the same way, only while the pointer is off the table and no user
+ * `onOpen`, and its checkbox ticks it for the selection toolbar (`selectedUserIds`, `onSelect`). Live changes re-sort the rows on screen the same way, only while the pointer is off the table and no user
  * is open.
  */
 export const UsersTable = ({
@@ -198,7 +200,7 @@ export const UsersTable = ({
   onSort,
   openUserId,
   onOpen,
-  selected,
+  selectedUserIds,
   onSelect,
 }: {
   rows: UserRow[];
@@ -208,14 +210,15 @@ export const UsersTable = ({
   onSort: (sort: UsersQuery['sort'], order: UsersQuery['order']) => void;
   openUserId: string | null;
   onOpen: (userId: string) => void;
-  selected: string[];
+  selectedUserIds: string[];
   onSelect: (userIds: string[]) => void;
 }) => {
   // The row order on screen when the pointer came onto the table or a user opened, so a live change never moves a
   // row under the admin. It holds while either lasts.
   const [frozenOrder, setFrozenOrder] = useState<string[] | null>(null);
-  const [pointerOn, setPointerOn] = useState<boolean>(false);
-  const heldOrder = pointerOn || openUserId !== null ? frozenOrder : null;
+  const [isPointerOnTable, setIsPointerOnTable] = useState<boolean>(false);
+  const heldOrder =
+    isPointerOnTable || openUserId !== null ? frozenOrder : null;
   const data = useMemo(
     () => (heldOrder ? sortByHeldOrder(rows, heldOrder) : rows),
     [rows, heldOrder],
@@ -243,16 +246,16 @@ export const UsersTable = ({
     meta: {
       frozenAt,
       onOpen: (userId) => {
-        freeze();
+        freezeRowOrder();
         onOpen(userId);
       },
-      selected,
+      selectedUserIds,
       onSelect,
     },
   });
 
   // Called from events only, once `table` exists.
-  const freeze = () =>
+  const freezeRowOrder = () =>
     setFrozenOrder(table.getRowModel().rows.map((row) => row.id));
 
   return (
@@ -263,14 +266,14 @@ export const UsersTable = ({
         sx={{ tableLayout: 'fixed' }}
         aria-label="Users"
         onPointerEnter={() => {
-          setPointerOn(true);
-          freeze();
+          setIsPointerOnTable(true);
+          freezeRowOrder();
         }}
         // A header click lifts the freeze; the next move takes it again, in the new order.
         onPointerMove={() => {
-          if (!frozenOrder) freeze();
+          if (!frozenOrder) freezeRowOrder();
         }}
-        onPointerLeave={() => setPointerOn(false)}
+        onPointerLeave={() => setIsPointerOnTable(false)}
       >
         <TableHead>
           {table.getHeaderGroups().map((headerGroup) => (

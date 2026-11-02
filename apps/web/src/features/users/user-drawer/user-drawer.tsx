@@ -1,6 +1,6 @@
 import { LoadingPlaceholder } from '@/components/loading-placeholder';
 import { StatusChip } from '@/components/status-chip';
-import { useAdminUser } from '@/api/admin-users/use-admin-user';
+import { useUser } from '@/api/users/use-user';
 import { CloseIcon } from '@/theme/icons';
 import { sizes } from '@/theme/sizes';
 import { ExceededIcon, OkIcon } from '@/theme/status-icons';
@@ -199,7 +199,7 @@ const UserDetails = ({
   frozenAt: number | null;
   onClose: () => void;
 }) => {
-  const { data, isPending, isError, refetch } = useAdminUser(userId);
+  const { data, isPending, isError, refetch } = useUser(userId);
 
   return (
     <Stack sx={{ gap: 3, px: 3, pt: 3, pb: 4 }}>
@@ -261,9 +261,9 @@ export const UserDrawer = ({
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   // Still shows the user while the drawer slides out.
-  const [shown, setShown] = useState<string | null>(userId);
+  const [shownUserId, setShownUserId] = useState<string | null>(userId);
 
-  if (userId !== null && userId !== shown) setShown(userId);
+  if (userId !== null && userId !== shownUserId) setShownUserId(userId);
 
   return (
     <Drawer
@@ -282,10 +282,10 @@ export const UserDrawer = ({
         transition: { onEntering: () => closeRef.current?.focus() },
       }}
     >
-      {shown && (
+      {shownUserId && (
         <UserDetails
-          key={shown}
-          userId={shown}
+          key={shownUserId}
+          userId={shownUserId}
           titleId={titleId}
           closeRef={closeRef}
           frozenAt={frozenAt}

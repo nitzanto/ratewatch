@@ -6,17 +6,17 @@ import {
   type UsersQuery,
 } from '@ratewatch/contracts';
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import { adminUsersQueryKey } from '../admin-users/admin-users-queries';
+import { usersQueryKey } from '../users/users-queries';
 import { api } from '../api-client';
 
-export const adminSummaryQueryKey = ['admin', 'summary'] as const;
+export const usersSummaryQueryKey = ['users-summary'] as const;
 
-export const getAdminSummary = () =>
+export const getUsersSummary = () =>
   api.get('/admin/summary', adminSummarySchema);
 
-export const adminSummaryQueries = {
+export const usersSummaryQueries = {
   summary: () =>
-    queryOptions({ queryKey: adminSummaryQueryKey, queryFn: getAdminSummary }),
+    queryOptions({ queryKey: usersSummaryQueryKey, queryFn: getUsersSummary }),
 };
 
 const { activeWithin: summaryActiveWithin } = usersQuerySchema.parse({});
@@ -27,12 +27,12 @@ const { activeWithin: summaryActiveWithin } = usersQuerySchema.parse({});
  * the chips then follow users off the page, whose updates the table doesn't get.
  */
 export const applySummary = (client: QueryClient, summary: AdminSummary) => {
-  client.setQueryData(adminSummaryQueryKey, summary);
+  client.setQueryData(usersSummaryQueryKey, summary);
   client.setQueriesData<UsersPage>(
     {
-      queryKey: adminUsersQueryKey,
+      queryKey: usersQueryKey,
       predicate: ({ queryKey }) => {
-        const pageQuery = queryKey[adminUsersQueryKey.length] as UsersQuery;
+        const pageQuery = queryKey[usersQueryKey.length] as UsersQuery;
 
         return (
           !pageQuery.userIdSearch &&

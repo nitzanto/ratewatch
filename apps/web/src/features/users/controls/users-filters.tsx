@@ -18,13 +18,13 @@ const activeWithinLabels = {
 export const UsersFilters = ({
   query,
   counts,
-  filtered,
+  hasActiveFilters,
   onChange,
   onClear,
 }: {
   query: UsersQuery;
   counts: UsersPage['counts'];
-  filtered: boolean;
+  hasActiveFilters: boolean;
   onChange: (changes: Partial<UsersQuery>) => void;
   onClear: () => void;
 }) => (
@@ -62,7 +62,7 @@ export const UsersFilters = ({
         );
       })}
     </Stack>
-    {filtered && <Button onClick={onClear}>Clear filters</Button>}
+    {hasActiveFilters && <Button onClick={onClear}>Clear filters</Button>}
     <Box sx={{ flexGrow: 1 }} />
     <TextField
       select

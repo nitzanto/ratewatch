@@ -24,12 +24,12 @@ export const LiveRow = ({
   onClick: () => void;
   children: ReactNode;
 }) => {
-  const [seen, setSeen] = useState<UserRow>(user);
-  const [changes, setChanges] = useState<number>(0);
+  const [lastSeenUser, setLastSeenUser] = useState<UserRow>(user);
+  const [changeCount, setChangeCount] = useState<number>(0);
 
-  if (user !== seen) {
-    setSeen(user);
-    setChanges(changes + 1);
+  if (user !== lastSeenUser) {
+    setLastSeenUser(user);
+    setChangeCount(changeCount + 1);
   }
 
   return (
@@ -37,11 +37,11 @@ export const LiveRow = ({
       hover
       selected={selected}
       onClick={onClick}
-      data-flash={changes ? changes % 2 : undefined}
+      data-flash={changeCount ? changeCount % 2 : undefined}
       sx={{
         cursor: 'pointer',
-        ...(changes && {
-          animation: `${changes % 2 ? flash : flashAgain} 1.6s ease-out`,
+        ...(changeCount && {
+          animation: `${changeCount % 2 ? flash : flashAgain} 1.6s ease-out`,
         }),
       }}
     >

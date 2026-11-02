@@ -8,7 +8,7 @@ import {
   getMockSummary,
   getMockUsers,
   setMockUsers,
-} from './handlers/admin-users';
+} from './handlers/users';
 import type {
   AdminSummary,
   RateLimitExceededEvent,

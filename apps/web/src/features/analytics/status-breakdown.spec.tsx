@@ -1,5 +1,5 @@
 import { userRow } from '@/mocks/data/users';
-import { setMockUsers } from '@/mocks/handlers/admin-users';
+import { setMockUsers } from '@/mocks/handlers/users';
 import { renderWithProviders } from '@/test/render-app';
 import { screen, within } from '@testing-library/react';
 import { StatusBreakdown } from './status-breakdown';

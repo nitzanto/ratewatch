@@ -1,5 +1,5 @@
 import { statusStyles } from '@/components/status-chip';
-import { useAdminSummary } from '@/api/admin-summary/use-admin-summary';
+import { useUsersSummary } from '@/api/users-summary/use-users-summary';
 import { sizes } from '@/theme/sizes';
 import { userStatusSchema } from '@ratewatch/contracts';
 import { Box, Paper, Stack, Typography } from '@mui/material';
@@ -29,7 +29,7 @@ const iconColors = {
 
 /** How many active users have each status, as one bar and a list; Paused shows only when someone is. Kept live by `rate:summary`. */
 export const StatusBreakdown = () => {
-  const { data } = useAdminSummary();
+  const { data } = useUsersSummary();
 
   if (!data) return null;
 

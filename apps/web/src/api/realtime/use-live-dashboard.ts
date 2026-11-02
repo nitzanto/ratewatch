@@ -2,10 +2,10 @@ import {
   applyLimitExceeded,
   applyRateUpdate,
   applyUserRow,
-  adminUsersQueryKey,
+  usersQueryKey,
   getUserIdsOnScreen,
-} from '../admin-users/admin-users-queries';
-import { applySummary } from '../admin-summary/admin-summary-queries';
+} from '../users/users-queries';
+import { applySummary } from '../users-summary/users-summary-queries';
 import { getConnectionLostAt } from './connection-lost-at';
 import { connectRealtime } from './realtime-client';
 import { sessionQueryKey } from '../session/session-queries';
@@ -33,7 +33,7 @@ export const useLiveDashboard = () => {
       onStatus: (connectionStatus) => {
         // Events sent while the connection was down are gone: refetch, then carry on live.
         if (lost && connectionStatus === 'live')
-          void client.invalidateQueries({ queryKey: adminUsersQueryKey });
+          void client.invalidateQueries({ queryKey: usersQueryKey });
 
         setConnectionLostAt((connectionLostAt) =>
           getConnectionLostAt(connectionLostAt, connectionStatus, Date.now()),

@@ -1,6 +1,6 @@
 import { HealthStatus } from './health-status';
 import { MetricCard } from '@/components/metric-card';
-import { useAdminSummary } from '@/api/admin-summary/use-admin-summary';
+import { useUsersSummary } from '@/api/users-summary/use-users-summary';
 import { PeopleIcon } from '@/theme/icons';
 import { sizes } from '@/theme/sizes';
 import { ExceededIcon, WarningIcon } from '@/theme/status-icons';
@@ -15,7 +15,7 @@ const formatShare = (share: number) =>
 
 /** The dashboard's four summary numbers, kept live by `rate:summary`; each shows a dash until the first summary arrives. */
 export const SummaryCards = () => {
-  const { data, isPending, isError } = useAdminSummary();
+  const { data, isPending, isError } = useUsersSummary();
   // Placeholders until the first summary; after an error the dashes and caption say what's wrong instead.
   const loading = isPending && !isError;
   const waiting = isError ? "Couldn't load the summary" : 'Waiting for the API';

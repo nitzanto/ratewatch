@@ -1,4 +1,4 @@
-import { getSortValue } from '@/api/admin-users/admin-users-queries';
+import { getSortValue } from '@/api/users/users-queries';
 import {
   activeWithinMs,
   activityRanges,

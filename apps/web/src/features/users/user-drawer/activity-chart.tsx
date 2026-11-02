@@ -1,5 +1,5 @@
 import { LoadingPlaceholder } from '@/components/loading-placeholder';
-import { useAdminUserHistory } from '@/api/admin-users/use-admin-user';
+import { useUserHistory } from '@/api/users/use-user';
 import { sizes } from '@/theme/sizes';
 import { formatClockTime } from '@/utils/format-time';
 import type { ActivityRange } from '@ratewatch/contracts';
@@ -39,10 +39,7 @@ const LegendKey = ({ color, label }: { color: string; label: string }) => (
 /** A user's accepted and refused requests over the past hour or day, as stacked bars, refused on top. */
 export const ActivityChart = ({ userId }: { userId: string }) => {
   const [range, setRange] = useState<ActivityRange>('hour');
-  const { data, isPending, isError, refetch } = useAdminUserHistory(
-    userId,
-    range,
-  );
+  const { data, isPending, isError, refetch } = useUserHistory(userId, range);
   const { label, bucket } = ranges[range];
 
   const chart = () => {

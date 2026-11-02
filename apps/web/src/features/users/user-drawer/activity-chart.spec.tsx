@@ -1,5 +1,5 @@
 import { userRow } from '@/mocks/data/users';
-import { setMockUsers } from '@/mocks/handlers/admin-users';
+import { setMockUsers } from '@/mocks/handlers/users';
 import { renderWithProviders } from '@/test/render-app';
 import { fireEvent, screen } from '@testing-library/react';
 import { ActivityChart } from './activity-chart';
