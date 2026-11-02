@@ -29,4 +29,4 @@ The dashboard uses **MUI, styled with Emotion and the MUI theme**. This decision
 
 **Revisit when:** runtime styling becomes a measurable cost on the dashboard's busiest screens.
 
-**In the code:** the theme is `apps/web/src/libs/theme/theme.ts`, applied with `CssBaseline` in `apps/web/src/app/providers.tsx`. Components style with the `sx` prop and theme tokens, never separate CSS files.
+**In the code:** the theme is `apps/web/src/theme/theme.ts`, applied with `CssBaseline` in `apps/web/src/app/providers.tsx`. Components style with the `sx` prop and theme tokens, never separate CSS files.

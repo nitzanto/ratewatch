@@ -48,22 +48,20 @@ if count >= limit and not paused then
   return {0, 0, redis.call('PTTL', KEYS[1]), limit, count, first, 0}
 end
 
--- A pause suspends the burst limit too.
-if not paused then
-  local now = tonumber(ARGV[3])
-  local capacity = tonumber(ARGV[4])
-  local perMs = tonumber(ARGV[5])
-  local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or capacity)
-  local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or now)
-  -- Never negative: another API instance's clock may be a little ahead of this one's.
-  tokens = math.min(capacity, tokens + math.max(now - tokensAt, 0) * perMs)
-  if tokens < 1 then
-    -- Refused: nothing written, so the bucket keeps refilling from its last spend.
-    return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
-      math.ceil((1 - tokens) / perMs)}
-  end
-  redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', now)
+-- Applies even while paused: a pause lifts the hourly limit, never the protection against floods.
+local now = tonumber(ARGV[3])
+local capacity = tonumber(ARGV[4])
+local perMs = tonumber(ARGV[5])
+local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or capacity)
+local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or now)
+-- Never negative: another API instance's clock may be a little ahead of this one's.
+tokens = math.min(capacity, tokens + math.max(now - tokensAt, 0) * perMs)
+if tokens < 1 then
+  -- Refused: nothing written, so the bucket keeps refilling from its last spend.
+  return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
+    math.ceil((1 - tokens) / perMs)}
 end
+redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', now)
 
 count = redis.call('HINCRBY', KEYS[1], 'count', 1)
 -- The expiry is set once, when the window opens; setting it on every request would push the reset back forever.

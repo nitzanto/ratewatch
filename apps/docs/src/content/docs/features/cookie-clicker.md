@@ -25,6 +25,7 @@ The cookie clicker lets anyone experience [rate limiting](../rate-limiting/) fro
 ## Rules
 
 - One click is one request, against the same allowance as every other request: 100 per hour unless an admin set a custom limit.
+- Only users have the cookie clicker. Admins don't see its tab, and opening its address shows them a page-not-found: an admin's clicks are never counted, so it would show them nothing real.
 - Crumb's mood follows the user's status: OK under 90% used, Warning at 90% or more, Exceeded at 100%.
 - While OK, Crumb has five stages, one per 20 requests used: Fresh, Warming up, Excited, Focused and Tired. Each stage change shows a short note.
 - A click refused for arriving too fast shows a "slow down" note; the count stays and clicking carries on.

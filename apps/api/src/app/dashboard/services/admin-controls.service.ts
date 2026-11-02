@@ -24,7 +24,7 @@ import {
 } from '../constants/admin-controls.constants';
 import { userKey } from '../constants/dashboard.constants';
 import { RealtimeGateway } from '../gateways/realtime.gateway';
-import { toFields, toRow } from './users.service';
+import { parseHash, buildUserRow } from '../helpers/users-search.helpers';
 
 /** A change script's reply: the user's record after the change, empty without one. */
 type ChangeReply = string[];
@@ -66,21 +66,30 @@ export class AdminControlsService {
       numberOfKeys: 4,
       lua: resetLimitScript,
     });
+
     for (const [name, lua] of Object.entries(changeScripts))
       redis.defineCommand(name, { numberOfKeys: 4, lua });
+
     this.redis = redis as ControlsRedis;
   }
 
   /** Ends these users' windows now, together; a repeated ID counts once. */
   async reset(userIds: string[]): Promise<AdminChange> {
+    // Step 1: queue one reset script per user, each ID once.
     const pipeline = this.redis.pipeline() as ControlsPipeline;
     const now = Date.now();
+
     for (const userId of new Set(userIds))
       pipeline.resetLimit(...keysOf(userId), now, defaultHourlyLimit);
+
+    // Step 2: run them in one trip; any error fails the whole reset.
     const replies = ((await pipeline.exec()) ?? []).map(([error, reply]) => {
       if (error) throw error;
+
       return reply as ChangeReply;
     });
+
+    // Step 3: send the new rows to the admins following those users.
     return { rows: this.publish(replies) };
   }
 
@@ -117,6 +126,8 @@ export class AdminControlsService {
     ...args: (string | number)[]
   ): Promise<AdminChange> {
     let reply: ChangeReply;
+
+    // Step 1: run the script, and turn its own errors into HTTP errors.
     try {
       reply = (await this.redis[command](
         ...keysOf(userId),
@@ -126,14 +137,19 @@ export class AdminControlsService {
     } catch (error) {
       // Redis puts `ERR ` before a script's own error.
       const message = error instanceof Error ? error.message : '';
+
       if (message.includes('NO_WINDOW'))
         throw new ConflictException(`${userId} has no open window`);
+
       if (message.includes('OVER_MAX_LIMIT'))
         throw new UnprocessableEntityException(
           `A limit can't go above ${maxLimit}`,
         );
+
       throw error;
     }
+
+    // Step 2: send the new row to the admins following the user.
     return { rows: this.publish([reply]) };
   }
 
@@ -142,8 +158,10 @@ export class AdminControlsService {
     const now = Date.now();
     const rows = records
       .filter((record) => record.length)
-      .map((record) => toRow(toFields(record), now));
+      .map((record) => buildUserRow(parseHash(record), now));
+
     for (const row of rows) this.gateway.sendChange(row);
+
     return rows;
   }
 }

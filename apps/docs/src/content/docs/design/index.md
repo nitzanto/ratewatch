@@ -26,7 +26,7 @@ A deep navy shell, a cool grey page, white surfaces and one cobalt accent. Navy 
 
 The three statuses differ in lightness as well as hue, so they stay distinct for people with colour blindness, and every status always comes with an icon and a word. All text meets WCAG AA contrast (4.5:1).
 
-Every colour, Crumb's included, lives in the dashboard's theme (`apps/web/src/libs/theme/palette.ts`). Code never hardcodes one, and lint enforces it: a new colour is added to the design system first.
+Every colour, Crumb's included, lives in the dashboard's theme (`apps/web/src/theme/palette.ts`). Code never hardcodes one, and lint enforces it: a new colour is added to the design system first.
 
 ## Typography
 
@@ -42,7 +42,7 @@ One typeface, **IBM Plex Sans**, in regular, medium and semibold. Headings are s
 
 ## Behaviour rules
 
-- **Nothing moves under the pointer.** Live updates change numbers in place. The table re-sorts only when the pointer is off it and no user is open. Selecting rows swaps the filter row for a same-height selection bar. Messages on the clicker appear in a reserved slot.
+- **Live data updates in place.** Live updates change numbers where they are, and the users table re-sorts the rows on screen as they change. Selecting rows swaps the filter row for a same-height selection bar. Messages on the clicker appear in a reserved slot.
 - **Admin actions are deliberate.** Each one changes the user at once, visibly, with no confirmation step. Pausing throttling always has an end time. Lowering a limit below what the user already used warns first.
 - **The limit is never a surprise.** The count updates after every click; a refusal says why and shows the time the user can try again.
 
@@ -94,4 +94,4 @@ stateDiagram-v2
 
 - Crumb artwork (SVG): `apps/docs/public/design/crumb/`.
 - Interactive prototypes of every screen: `docs/design/prototypes/`.
-- The theme in code: `apps/web/src/libs/theme/`.
+- The theme in code: `apps/web/src/theme/`.

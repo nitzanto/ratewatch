@@ -158,7 +158,7 @@ components:
 
 ratewatch is an operator's tool with one playful corner. The admin dashboard is **Operate** mode: calm, dense, familiar controls, colour spent only on actions, selection and status. The cookie clicker is where personality lives, through **Crumb**, a chocolate-chip cookie whose face and chips track the user's allowance.
 
-The palette is called **Harbor**: a deep navy shell, a cool grey ground, white surfaces and a single cobalt accent. Navy is the complement of Crumb's dough, so the mascot reads instantly in the app bar. The look is built on MUI components. The theme in `apps/web/src/libs/theme/` carries these tokens (`palette.ts`, `typography.ts`, `sizes.ts`, and one override file per component in `components/`). Code never hardcodes a colour (lint enforces it), so add a new token here and in `palette.ts` first.
+The palette is called **Harbor**: a deep navy shell, a cool grey ground, white surfaces and a single cobalt accent. Navy is the complement of Crumb's dough, so the mascot reads instantly in the app bar. The look is built on MUI components. The theme in `apps/web/src/theme/` carries these tokens (`palette.ts`, `typography.ts`, `sizes.ts`, and one override file per component in `components/`). Code never hardcodes a colour (lint enforces it), so add a new token here and in `palette.ts` first.
 
 Prototypes for every screen are in `docs/design/prototypes/`; Crumb's artwork is in `apps/docs/public/design/crumb/`.
 
@@ -204,7 +204,7 @@ Radius 8px for cards and drawers, 6px for buttons, inputs, banners and toasts, p
 
 - **Status chip**: outlined pill with the status icon in the status colour and the label in `ink`. Status never relies on colour alone.
 - **Filter chips**: OK, Warning, Exceeded, Paused and All, each with a live count derived from the data. Selected chips fill with `accent`.
-- **Users table**: checkbox, user (with "Custom limit" caption), remaining / total with a usage bar, resets (clock time plus "in N min"), status, last request. Every header is a sort button with `aria-sort`. Live updates change values in place; the table re-sorts only while the pointer is off it and no user is open. A changed row flashes `live-flash` and fades over 1.6s.
+- **Users table**: checkbox, user (with "Custom limit" caption), remaining / total with a usage bar, resets (clock time plus "in N min"), status, last request. Every header is a sort button with `aria-sort`. Live updates change values in place, and the table re-sorts the rows on screen as they change. A changed row flashes `live-flash` and fades over 1.6s.
 - **Selection toolbar**: ticking rows swaps the filter row for a selection bar of the same 48px height ("3 users selected", Reset their limits, Clear selection), so the table never moves.
 - **User drawer**: 460px dialog from the right with stats, Past hour / Past day activity (accepted vs refused), recent requests and admin controls. Esc, the close button or the scrim closes it; focus moves to the close button on open.
 - **Admin controls**: Reset limit and Add 10 requests are secondary buttons; Pause asks for a duration (15 minutes, 1 hour, until the next reset) and shows "Paused until HH:MM"; Save limit is the one primary action and warns inline when the new limit is below what the user already used. When the user has extra requests, an info alert under the "Limit every hour" field shows how this hour's limit splits.

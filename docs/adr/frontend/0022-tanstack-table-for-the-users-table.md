@@ -6,7 +6,7 @@ status: accepted
 
 # TanStack Table for the users table, rendered with MUI's table components
 
-The admin users table uses TanStack Table 9 (`@tanstack/react-table`, pinned to an exact version) for its state (sorting now; selection next), rendered with MUI's `Table` components, instead of the MUI X Data Grid that ADR-0005 planned. The table's behaviour is mostly custom: rows update in place from live events and flash, keep their order while the pointer is on the table (a snapshot of row IDs passed as `manualSorting` data), and cells are two-line compositions (usage bar, reset time with "in N min", status chip). A headless core gives that control without fighting a grid's own rendering, and MUI's table markup keeps the theme the single styling source.
+The admin users table uses TanStack Table 9 (`@tanstack/react-table`, pinned to an exact version) for its state (sorting now; selection next), rendered with MUI's `Table` components, instead of the MUI X Data Grid that ADR-0005 planned. The table's behaviour is mostly custom: rows update in place from live events, flash and re-sort on screen the way the API orders them, and cells are two-line compositions (usage bar, reset time with "in N min", status chip). A headless core gives that control without fighting a grid's own rendering, and MUI's table markup keeps the theme the single styling source.
 
 ## Considered Options
 

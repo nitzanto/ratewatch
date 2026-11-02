@@ -1,9 +1,9 @@
 import { ROUTES } from '@/app/route-paths';
-import { BrandMark } from '@/components/ui/brand-mark';
-import { Crumb } from '@/components/ui/crumb';
-import { useSession } from '@/hooks/api/use-session';
-import { useSignIn } from '@/hooks/api/use-sign-in';
-import { sizes } from '@/libs/theme/sizes';
+import { BrandMark } from '@/components/brand-mark';
+import { Crumb } from '@/components/crumb';
+import { useSession } from '@/api/session/use-session';
+import { useSignIn } from '@/api/session/use-sign-in';
+import { sizes } from '@/theme/sizes';
 import { Alert, Box, Button, Typography } from '@mui/material';
 import { Navigate, type Path, useLocation } from 'react-router';
 
@@ -18,6 +18,7 @@ export const SignInPage = () => {
   const from: Path | undefined = useLocation().state?.from;
 
   if (isPending) return null;
+
   if (session) return <Navigate to={from ?? ROUTES.home} replace />;
 
   return (

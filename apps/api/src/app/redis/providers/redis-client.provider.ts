@@ -12,14 +12,17 @@ import { redisClient, redisOptions } from '../constants/redis.constants';
 export const createRedisClient = (url: string) => {
   const logger = new Logger('Redis');
   let down = false;
+
   return new Redis(url, redisOptions)
     .on('error', (error: Error) => {
       if (down) return;
+
       down = true;
       logger.error(`Redis unavailable: ${error.message}`);
     })
     .on('ready', () => {
       if (!down) return;
+
       down = false;
       logger.log('Redis is back');
     });

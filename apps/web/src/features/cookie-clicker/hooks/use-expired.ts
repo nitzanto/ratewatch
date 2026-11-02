@@ -7,6 +7,7 @@ export const useExpired = (ms: number) => {
   // eslint-disable-next-line no-restricted-syntax -- a timeout is an outside system to sync with: set on mount, cleared on unmount.
   useEffect(() => {
     const id = setTimeout(() => setExpired(true), ms);
+
     return () => clearTimeout(id);
   }, [ms]);
 

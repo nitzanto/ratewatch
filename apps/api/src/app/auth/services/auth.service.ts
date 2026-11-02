@@ -21,8 +21,10 @@ export class AuthService {
    */
   readSession(cookie: unknown): Session | undefined {
     const parsed = sessionSchema.safeParse(cookie);
+
     if (!parsed.success || Date.parse(parsed.data.expiresAt) <= Date.now())
       return undefined;
+
     return parsed.data;
   }
 }

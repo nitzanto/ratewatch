@@ -67,6 +67,14 @@ Four labels: `needs-triage`, `needs-info`, `ready-for-development`, `wontfix`. S
 
 Single-context: one root `GLOSSARY.md`. ADRs are split by area into `docs/adr/{architecture,backend,frontend,infrastructure}/` (AI tooling goes in `infrastructure/`, anything spanning two or more areas in `architecture/`), numbered in one sequence across all areas. Every ADR links the GitHub issue it was made for, and the issue gets a comment linking back. See `docs/agents/domain.md` and `.claude/skills/domain-modeling/ADR-FORMAT.md`.
 
+## Code style
+
+- **Name functions by their action**: `build…`, `parse…`, `add…`, `merge…`, `get…`, `send…` (`buildUserRow`, `parseSearchReply`, `addUserSearch`), not nouns such as `toRow` or `repliesOf`.
+- **Return a value instead of `void` when a function changes something**: return the new or changed value (a merged object, the pipeline it queued on, how many items it dropped), and prefer building a new object over mutating an argument. Lifecycle hooks, event emits and logging stay `void`.
+- **No single-letter names** such as `i`, `j` or `k`: name what the index counts (`userIndex`, `chunkStart`, `bucketIndex`).
+- **Number the steps of a method that does several things**, one short `// Step 1: …` line each. Skip it for a method that does one thing.
+- **Blank lines between steps** are enforced by ESLint's `padding-line-between-statements` in `apps/api` and `apps/web` (Prettier never adds blank lines); `nx lint --fix` applies it.
+
 ## Working with Nx
 
 - Explore projects, targets and dependencies with the `nx-workspace` skill; scaffold with the `nx-generate` skill, before writing files by hand.

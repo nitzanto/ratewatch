@@ -22,6 +22,6 @@ ratewatch has no accounts: the sign-in page offers **Sign in as User** (a new ra
 - The web app keeps the session as a TanStack Query entry restored from `GET /auth/me`, not in a React context: it's server state, and only signing in or out changes it. Signing in or out drops every other cached query, since it belonged to the last person.
 - A 401 mid-use signs the person out from the query client's cache-level `onError`, not the API client's: that can't reach the cache, and it also sees the expected 401 from `/auth/me`.
 - The page to return to after sign-in travels in router state, never a query parameter, so no link can choose where sign-in goes. Signing out doesn't pass it on.
-- The web app mirrors the 403: `/` sends the Admin to `/dashboard` and a User to `/play`, Users don't see the Dashboard tab, and admin routes sit under a layout route that shows a User the not-found page, so the UI never reveals admin pages. Hiding them is never the only protection.
+- The web app mirrors the 403: `/` sends the Admin to `/dashboard` and a User to `/play`, Users don't see the Dashboard tab and the Admin doesn't see the Cookie Clicker tab, and each role's routes sit under a layout route that shows the other role the not-found page, so the UI never reveals them. The Admin has no cookie clicker because the limiter never counts the Admin's clicks. Hiding them is never the only protection.
 - Changing `SESSION_SECRET` signs everyone out.
 - Anyone can click **Sign in as Admin**: acceptable only because ratewatch isn't deployed publicly.

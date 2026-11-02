@@ -25,7 +25,7 @@ Never call `useEffect` directly. Use derived state, event handlers, TanStack Que
 | Instead of useEffect for...           | Use                                           |
 | ------------------------------------- | --------------------------------------------- |
 | Deriving state from other state/props | Inline computation (Rule 1)                   |
-| Fetching data                         | A `hooks/api` hook over TanStack Query (Rule 2) |
+| Fetching data                         | A query hook from `api/` over TanStack Query (Rule 2) |
 | Responding to user actions            | Event handlers (Rule 3)                       |
 | One-time external sync on mount       | `useMountEffect` (Rule 4)                     |
 | Resetting state when a prop changes   | `key` prop on parent (Rule 5)                 |
@@ -55,7 +55,7 @@ pnpm nx run-many -t lint typecheck test -p web
 
 ## The Escape Hatch: useMountEffect
 
-For the rare case where you need to sync with an external system on mount. It wraps `useEffect` with an empty dependency array to make the intent explicit. Create it in `apps/web/src/hooks/ui/use-mount-effect.ts` the first time it's needed:
+For the rare case where you need to sync with an external system on mount. It wraps `useEffect` with an empty dependency array to make the intent explicit. Create it the first time it's needed, in the feature's `hooks/` (or `apps/web/src/hooks/use-mount-effect.ts` once two features use it):
 
 ```ts
 import { type EffectCallback, useEffect } from 'react';
@@ -96,7 +96,7 @@ const ProductList = () => {
 
 ### Rule 2: Use TanStack Query
 
-Effect-based fetching creates race conditions and duplicated caching logic. Fetch through the resource's query-options factory in `libs/api/` and a one-line hook in `hooks/api/`.
+Effect-based fetching creates race conditions and duplicated caching logic. Fetch through the resource's query-options factory in `api/<resource>/<resource>-queries.ts` and a one-line hook beside it.
 
 ```tsx
 // BAD: Race condition risk
@@ -109,7 +109,7 @@ const ProductPage = ({ productId }: { productId: string }) => {
 };
 
 // GOOD: TanStack Query handles cancellation, caching and staleness
-// hooks/api/use-product.ts
+// api/product/use-product.ts
 export const useProduct = (productId: string) =>
   useQuery(productQueries.detail(productId));
 

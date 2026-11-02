@@ -176,14 +176,16 @@ describe('UsersService.list', () => {
 
     expect(
       userIds(
-        await users.list(query({ q: `${prefix}-`, sort: 'id', order: 'asc' })),
+        await users.list(
+          query({ userIdSearch: `${prefix}-`, sort: 'id', order: 'asc' }),
+        ),
       ),
     ).toEqual([`${prefix}-one`, `${prefix}-two`]);
-    expect(userIds(await users.list(query({ q: `${prefix}-two` })))).toEqual([
-      `${prefix}-two`,
-    ]);
+    expect(
+      userIds(await users.list(query({ userIdSearch: `${prefix}-two` }))),
+    ).toEqual([`${prefix}-two`]);
     await expect(
-      users.list(query({ q: `${prefix}} | @id:{*` })),
+      users.list(query({ userIdSearch: `${prefix}} | @id:{*` })),
     ).resolves.toMatchObject({ total: 0 });
   });
 
@@ -203,7 +205,7 @@ describe('UsersService.list', () => {
     const withStatus = async (status: UserStatus) =>
       userIds(
         await users.list(
-          query({ q: prefix, status, sort: 'id', order: 'asc' }),
+          query({ userIdSearch: prefix, status, sort: 'id', order: 'asc' }),
         ),
       );
     expect(await withStatus('ok')).toEqual([`${prefix}-ended`, `${prefix}-ok`]);
@@ -211,7 +213,7 @@ describe('UsersService.list', () => {
     expect(await withStatus('exceeded')).toEqual([`${prefix}-exceeded`]);
     expect(await withStatus('paused')).toEqual([`${prefix}-paused`]);
     expect(
-      (await users.list(query({ q: prefix, status: 'ok' }))).counts,
+      (await users.list(query({ userIdSearch: prefix, status: 'ok' }))).counts,
     ).toEqual({ ok: 2, warning: 1, exceeded: 1, paused: 1 });
   });
 
@@ -221,7 +223,8 @@ describe('UsersService.list', () => {
     await record(`${prefix}-earlier`, 1, { idleMs: 30 * minuteMs });
 
     const activeWithin = async (within: UsersQuery['activeWithin']) =>
-      (await users.list(query({ q: prefix, activeWithin: within }))).total;
+      (await users.list(query({ userIdSearch: prefix, activeWithin: within })))
+        .total;
     expect(await activeWithin('15m')).toBe(1);
     expect(await activeWithin('1h')).toBe(2);
   });
@@ -244,7 +247,7 @@ describe('UsersService.list', () => {
     );
 
     const page = await users.list(
-      query({ q: prefix, sort: 'id', order: 'asc', page: 1 }),
+      query({ userIdSearch: prefix, sort: 'id', order: 'asc', page: 1 }),
     );
 
     expect(userIds(page)).toEqual([`${prefix}-25`]);
@@ -275,7 +278,7 @@ describe('UsersService.list', () => {
       ['lastRequest', 'desc', [ended, b, a]],
     ])('sorts by %s %s', async (sort, order, expected) => {
       expect(
-        userIds(await users.list(query({ q: prefix, sort, order }))),
+        userIds(await users.list(query({ userIdSearch: prefix, sort, order }))),
       ).toEqual(expected);
     });
   });

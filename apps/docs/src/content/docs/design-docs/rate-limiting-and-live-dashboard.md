@@ -91,18 +91,16 @@ if count >= limit and not paused then
   return {0, 0, redis.call('PTTL', KEYS[1]), limit, count, first, 0}
 end
 
--- Burst limit: a token bucket in the window's hash. ARGV: now (ms), capacity, tokens per ms.
-if not paused then
-  local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or ARGV[4])
-  local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or ARGV[3])
-  tokens = math.min(tonumber(ARGV[4]), tokens + math.max(tonumber(ARGV[3]) - tokensAt, 0) * tonumber(ARGV[5]))
-  if tokens < 1 then
-    -- Refused: nothing written, so the bucket keeps refilling from its last spend.
-    return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
-      math.ceil((1 - tokens) / tonumber(ARGV[5]))}
-  end
-  redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', ARGV[3])
+-- Burst limit: a token bucket in the window's hash, checked even while paused. ARGV: now (ms), capacity, tokens per ms.
+local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or ARGV[4])
+local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or ARGV[3])
+tokens = math.min(tonumber(ARGV[4]), tokens + math.max(tonumber(ARGV[3]) - tokensAt, 0) * tonumber(ARGV[5]))
+if tokens < 1 then
+  -- Refused: nothing written, so the bucket keeps refilling from its last spend.
+  return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
+    math.ceil((1 - tokens) / tonumber(ARGV[5]))}
 end
+redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', ARGV[3])
 
 count = redis.call('HINCRBY', KEYS[1], 'count', 1)
 if count == 1 then
@@ -115,7 +113,7 @@ It returns `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal, ms
 
 - **Refused requests don't count:** the refused branch writes only `notified`, never `count`.
 - **The expiry is set once,** when `count` becomes 1. Setting it on every request would push the reset time back forever.
-- **Pause:** a paused user's requests are counted but never refused. `x-count` is 0 once they pass their limit.
+- **Pause:** a paused user's requests are counted and never refused for the hourly limit, but the burst limit still applies. `x-count` is 0 once they pass their limit.
 - **What the script avoids,** because the unit-test mock gets it wrong: `HMGET` (arrays come back 0-based to Lua), `cjson`, and `TIME`.
 
 ### Responses
@@ -210,7 +208,7 @@ While Redis is down the dashboard publisher keeps the latest numbers in memory (
 
 | Parameter      | Values                                             | Default       |
 | -------------- | -------------------------------------------------- | ------------- |
-| `q`            | Full user ID, or a prefix of at least 2 characters | none          |
+| `userIdSearch` | Full user ID, or a prefix of at least 2 characters | none          |
 | `status`       | `ok`, `warning`, `exceeded`, `paused`              | all           |
 | `activeWithin` | `15m`, `1h`, `24h`                                 | `24h`         |
 | `sort`         | `id`, `left`, `resetAt`, `ratio`, `lastRequest`    | `lastRequest` |
@@ -276,13 +274,13 @@ sequenceDiagram
     P->>R: one pipeline: records, history, recent, refused today
     P->>S: rate:update to each changed user's room
     S-)W: rate:update (only rows on screen)
-    W->>W: update the row in place, no re-sort
+    W->>W: update the row in place, re-sort the rows on screen
   end
 ```
 
 **The web app:**
 
-- Rows update in place in the TanStack Query cache, and flash. The table re-sorts the rows on screen only while the pointer is off it and no user is open, so nothing moves under the admin; a row never moves to another page until the page is fetched again.
+- Rows update in place in the TanStack Query cache, and flash. The table re-sorts the rows on screen at once; a row never moves to another page until the page is fetched again.
 - It keeps an update only when it isn't older than the row it has: a later `resetAt`, or the same `resetAt` with at least as many requests used (an equal count can still carry a limit or pause change). Reset times within 5 seconds count as the same, because `rate:limit_exceeded` carries the instance's own reset time. An admin's change (`byAdmin`, or the rows a control answers) always replaces the row: a reset row has no window, so it would look older.
 - On reconnect it refetches the page and sends `rate:subscribe` again, since a new connection follows nobody. Both answers pass the same newer-or-same check, so their order doesn't matter.
 - The open user's drawer takes the same rows, and puts each update's requests at the top of its recent requests, skipping any older than the newest it has (the detail may have been fetched after that batch was written). Their activity is fetched again on each update while it's on screen.

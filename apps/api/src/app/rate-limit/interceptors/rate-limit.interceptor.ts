@@ -66,13 +66,17 @@ export class RateLimitInterceptor implements NestInterceptor {
   }
 
   async intercept(context: ExecutionContext, next: CallHandler) {
+    // Step 1: skip what isn't counted: anything but HTTP, and the Admin.
     if (context.getType() !== 'http') return next.handle();
 
     const { session } = context.switchToHttp().getRequest<SessionRequest>();
+
     if (session.role === 'admin') return next.handle();
 
+    // Step 2: check and count the request in Redis, in one atomic script. If Redis can't answer, let it through.
     const at = Date.now();
     let reply: RateLimitReply;
+
     try {
       reply = await this.redis.rateLimit(
         ...rateLimitKeys(session.userId),
@@ -84,8 +88,11 @@ export class RateLimitInterceptor implements NestInterceptor {
       );
     } catch (error) {
       this.failOpen(error);
+
       return next.handle();
     }
+
+    // Step 3: read the script's answer.
     const [
       allowed,
       requestsLeft,
@@ -95,8 +102,12 @@ export class RateLimitInterceptor implements NestInterceptor {
       firstRefusal,
       msUntilToken,
     ] = reply;
+
     const resetAt = at + msUntilReset;
-    // In memory only: the dashboard writes it to Redis with the rest of the second's decisions.
+
+    // Step 4: tell the dashboard. No Redis call: the result waits in memory, and within a second
+    // `DashboardPublisher.flush()` writes it to Redis through `UsersService.record()`, in one batch. Why wait: the
+    // click stays one Redis call, repeated clicks merge into one write, and many users share one trip to Redis.
     this.dashboard.record({
       userId: session.userId,
       allowed: allowed === 1,
@@ -106,11 +117,14 @@ export class RateLimitInterceptor implements NestInterceptor {
       resetAt,
       firstRefusal: firstRefusal === 1,
     });
+
+    // Step 5: refused, so a 429 that says which limit refused it and when to try again.
     const response = context.switchToHttp().getResponse<Response>();
 
     if (!allowed) {
       const burst = msUntilToken > 0;
       const msUntilRetry = burst ? msUntilToken : msUntilReset;
+
       response.setHeader('Retry-After', Math.ceil(msUntilRetry / 1000));
       throw new HttpException(
         {
@@ -124,7 +138,9 @@ export class RateLimitInterceptor implements NestInterceptor {
       );
     }
 
+    // Step 6: allowed, so send the requests left in `x-count` and go on to the handler.
     response.setHeader(requestsLeftHeader, requestsLeft);
+
     return next.handle();
   }
 
@@ -134,7 +150,9 @@ export class RateLimitInterceptor implements NestInterceptor {
    */
   private failOpen(error: unknown) {
     const now = Date.now();
+
     if (now - this.lastLoggedAt < uncountedLogEveryMs) return;
+
     this.logger.error(
       `Rate limit unavailable, letting requests through uncounted (${error instanceof Error ? error.message : String(error)})`,
       error instanceof Error ? error.stack : undefined,

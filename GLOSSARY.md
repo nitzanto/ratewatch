@@ -57,7 +57,7 @@ Ending a user's current window early, so their count is zero and their next requ
 _Avoid_: Clear, refill
 
 **Pause**:
-An admin switching a user's limit off for a set time; the user's requests still count but are never refused. It ends by itself.
+An admin switching a user's limit off for a set time; the user's requests still count but are never refused for the limit. The burst limit still applies. It ends by itself.
 _Avoid_: Suspend, whitelist, exempt
 
 **Unlock**:

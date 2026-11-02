@@ -43,16 +43,22 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
 
   /** Reads the signed session cookie from the handshake as `main.ts`'s cookie-parser does for HTTP. */
   afterInit(server: Server) {
+    // Step 1: the same cookie check as HTTP, built once with the session secret.
     const parseCookies = cookieParser(
       this.config.get('SESSION_SECRET', { infer: true }),
     );
+
+    // Step 2: on every handshake, read the session and let only the Admin connect.
     server.use((socket, next) => {
       const request = socket.request as Request;
+
       parseCookies(request, {} as Response, () => {
         const session = this.authService.readSession(
           request.signedCookies[sessionCookie],
         );
+
         if (session?.role !== 'admin') return next(new Error('Admins only'));
+
         socket.data.expiresAt = Date.parse(session.expiresAt);
         next();
       });
@@ -61,11 +67,15 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
 
   /** Joins the admins' room, and ends the connection when the session it was opened with does, like the cookie. */
   handleConnection(socket: Socket) {
+    // Step 1: join the admins' room, for events about any user.
     void socket.join(adminsRoom);
+
+    // Step 2: disconnect when the session expires, and stop the timer if the admin leaves first.
     const timer = setTimeout(
       () => socket.disconnect(true),
       (socket.data.expiresAt as number) - Date.now(),
     );
+
     socket.on('disconnect', () => clearTimeout(timer));
   }
 
@@ -78,14 +88,22 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     @ConnectedSocket() socket: Socket,
     @MessageBody() body: unknown,
   ): Promise<RateSubscribeAck> {
+    // Step 1: validate the user IDs.
     const parsed = rateSubscribeSchema.safeParse(body);
+
     if (!parsed.success) throw new WsException(parsed.error.message);
+
+    // Step 2: leave the rooms of users no longer on screen, and join the new ones.
     const rooms = parsed.data.userIds.map(userRoom);
+
     for (const room of socket.rooms)
       if (room.startsWith(userRoom('')) && !rooms.includes(room))
         await socket.leave(room);
+
     await socket.join(rooms);
-    // Without Redis there are no rows to send, but the rooms are joined, so updates follow once it's back.
+
+    // Step 3: answer their current rows. Without Redis there are none, but the rooms are joined, so updates follow
+    // once it's back.
     return {
       rows: await this.users.rows(parsed.data.userIds).catch(() => []),
     };

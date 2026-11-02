@@ -49,9 +49,9 @@ export const activeWithinMs = {
 /** The users table's page sizes. */
 export const usersPageSizes = [25, 50, 100] as const;
 
-/** Query of `GET /admin/users`. `q` is a full user ID, or a prefix of at least 2 characters. */
+/** Query of `GET /admin/users`. `userIdSearch` is a full user ID, or a prefix of at least 2 characters. */
 export const usersQuerySchema = z.object({
-  q: z.string().trim().max(100).optional(),
+  userIdSearch: z.string().trim().max(100).optional(),
   status: userStatusSchema.optional(),
   activeWithin: z.enum(['15m', '1h', '24h']).default('24h'),
   sort: z

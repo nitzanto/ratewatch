@@ -31,8 +31,10 @@ export class AdminUsersController {
   @ZodSerializerDto(UserDetailDto)
   async detail(@Param() { id }: UserParamsDto): Promise<UserDetail> {
     const detail = await this.users.detail(id);
+
     if (!detail)
       throw new NotFoundException(`No request from ${id} in the past 24 hours`);
+
     return detail;
   }
 

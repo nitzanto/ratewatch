@@ -35,11 +35,13 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Session {
     const session = this.authService.createSession(role);
+
     res.cookie(sessionCookie, session, {
       ...this.cookieOptions,
       signed: true,
       maxAge: sessionTtlMs,
     });
+
     return session;
   }
 

@@ -9,9 +9,9 @@ export const redisClient = Symbol('redisClient');
  * reconnecting in the background with ioredis's default backoff.
  */
 export const redisOptions: RedisOptions = {
-  enableOfflineQueue: false,
-  maxRetriesPerRequest: 0,
+  enableOfflineQueue: false, // Don't queue new cmds while until reconnect
+  maxRetriesPerRequest: 0, // If the connection drops while a command is in flight, dont resend it on reconnect, just fail it now.
   // shortcut: 50 ms is about 10 times the limit check's p99 target; the load test (#41) sets the final value.
-  commandTimeout: 50,
-  connectTimeout: 2000,
+  commandTimeout: 50, // How long to wait for the reply to one command, on an already-open connection.
+  connectTimeout: 2000, // How long to wait while opening the TCP connection before giving up on that attempt.
 };
