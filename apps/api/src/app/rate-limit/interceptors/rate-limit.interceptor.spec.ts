@@ -101,13 +101,14 @@ describe('rate limit', () => {
       expect(afterSix.filter((res) => res.status === 200)).toHaveLength(6);
     });
 
-    it("never burst-limits a paused user's clicks", async () => {
+    it("still burst-limits a paused user's clicks", async () => {
       const { userId, cookie } = await signedInUser(baseUrl);
       await redis.set(rateLimitKeys(userId)[2], start.getTime() + 60_000);
 
       const statuses = (await clicks(cookie, 30)).map((res) => res.status);
 
-      expect(statuses.every((status) => status === 200)).toBe(true);
+      expect(statuses.filter((status) => status === 200)).toHaveLength(20);
+      expect(statuses.filter((status) => status === 429)).toHaveLength(10);
     });
   });
 

@@ -20,16 +20,20 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   override createIOServer(port: number, options?: ServerOptions): Server {
+    // Step 1: a dedicated subscriber connection that waits out an outage instead of failing fast.
     const subscriber = this.redis.duplicate({
       enableOfflineQueue: true,
       maxRetriesPerRequest: null,
       commandTimeout: undefined,
     });
-    // The shared client already logs the outage once; this one would log every reconnect attempt.
+
+    // Step 2: keep it quiet. The shared client already logs the outage once; this one would log every reconnect
+    // attempt.
     subscriber.on('error', () => undefined);
     // The adapter never handles these replies. Queued while Redis is down, they fail only when the connection
     // closes for good at shutdown, which would otherwise be an unhandled rejection.
     const { ssubscribe, sunsubscribe } = subscriber;
+
     subscriber.ssubscribe = ((...channels: string[]) =>
       ssubscribe
         .apply(subscriber, channels)
@@ -39,6 +43,8 @@ export class RedisIoAdapter extends IoAdapter {
         .apply(subscriber, channels)
         .catch(() => 0)) as typeof sunsubscribe;
     this.subscriber = subscriber;
+
+    // Step 3: the Socket.IO server, publishing on the shared client and listening on the subscriber.
     return super.createIOServer(port, {
       ...options,
       adapter: createShardedAdapter(this.redis, subscriber),

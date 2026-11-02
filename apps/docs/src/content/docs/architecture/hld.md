@@ -135,6 +135,12 @@ flowchart LR
 **An allowed request.** The user has requests left.
 
 ```mermaid
+---
+config:
+  sequence:
+    width: 110
+    actorMargin: 40
+---
 sequenceDiagram
   autonumber
   actor U as User
@@ -143,21 +149,23 @@ sequenceDiagram
   end
   box rgba(187,247,208,0.35) API instance
     participant G as Session guard
-    participant L as Rate-limit interceptor
+    participant L as Rate limiter
     participant H as Handler
   end
   box rgba(254,202,202,0.35) Store
     participant R as Redis
   end
-  U->>N: POST /api/clicks (session cookie)
+  U->>N: POST /api/clicks
   N->>G: forward
-  G->>G: check signature and expiry
+  G->>G: check cookie
   G->>L: user ID
-  L->>R: atomic script (user ID, default limit)
-  R-->>L: allowed, requests left 41, reset time
+  L->>R: atomic script
+  R-->>L: allowed, 41 left
   L->>H: continue
   H-->>U: 200, x-count: 41
 ```
+
+The request carries the session cookie; the guard checks its signature and expiry. The script gets the user ID and the default limit, and also answers the reset time.
 
 **A refused request.** The user has no requests left. The store writes nothing, so a refused request does not use up the limit.
 
@@ -205,17 +213,18 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   actor A as Admin
-  participant H as Admin endpoint
+  participant H as API
   participant R as Redis
-  participant P as Dashboard publisher
-  participant S as Realtime gateway
   actor B as Other admins
-  A->>H: PUT /api/admin/users/:id/pause (1 hour)
-  H->>R: one script: set the pause key (expires in 1 hour), update the user record
-  H-->>A: 200, the new row (status Paused)
-  H->>S: rate:update (status Paused)
-  S-)B: rate:update, through the Redis adapter to every API instance
+  A->>H: PUT pause (1 hour)
+  H->>R: one script
+  Note right of R: pause key (1 hour)<br/>+ user record
+  H-->>A: 200, row Paused
+  H-)B: rate:update (Paused)
+  Note over H,B: through the Redis adapter,<br/>to every API instance
 ```
+
+The API's admin endpoint is `PUT /api/admin/users/:id/pause`. It sends the new row to the realtime gateway at once, without waiting for the publisher's next batch.
 
 ## Step 3: Core components
 
@@ -243,7 +252,7 @@ The interceptor runs after the guard, so it knows the user ID. It applies only t
 
 1. Reads the pause, the custom limit (or 100) and the window.
 2. If the user is not paused and has no requests left: returns "refused" and the reset time. It writes nothing.
-3. If the user is not paused: refills the burst limit's bucket for the time since its last spend. With no token left, it returns "too fast" and the time of the next token. It writes nothing.
+3. Refills the burst limit's bucket, even for a paused user, for the time since its last spend. With no token left, it returns "too fast" and the time of the next token. It writes nothing.
 4. Else: spends a token and adds 1 to the count. If this request opened the window, it sets the expiry to one hour.
 5. Returns the requests left and the reset time.
 

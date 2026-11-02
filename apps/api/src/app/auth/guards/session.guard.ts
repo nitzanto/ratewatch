@@ -47,6 +47,7 @@ export class SessionGuard implements CanActivate {
     if (roles && !roles.includes(session.role)) throw new ForbiddenException();
 
     request.session = session;
+
     return true;
   }
 }

@@ -43,9 +43,7 @@ Chosen option: **a token bucket on top of the hourly window**, holding 20 tokens
 flowchart TB
   start([Click from a User]):::person --> hourly{"Not paused and<br/>hour used up?"}:::decision
   hourly -- yes --> hourlyRefuse["429, reason hourly<br/>retry at the window's reset"]:::refused
-  hourly -- no --> paused{"Paused?"}:::decision
-  paused -- yes --> count
-  paused -- no --> refill["Refill the bucket by the time<br/>since its last spend, up to 20"]:::step
+  hourly -- no --> refill["Refill the bucket by the time<br/>since its last spend, up to 20"]:::step
   refill --> token{"At least one token?"}:::decision
   token -- no --> burstRefuse["429, reason burst<br/>retry at the next token"]:::refused
   token -- yes --> spend["Spend one token"]:::step --> count["count + 1"]:::allowed
@@ -63,7 +61,7 @@ For example, a client sends 100 requests at once at 12:00:00. Twenty go through 
 - Each API instance passes its own time to the script. The time since the last spend is never taken as negative, so an instance whose clock is behind can't drain the bucket.
 - A burst refusal writes nothing, like an hourly one, so it never uses up either limit.
 - A burst refusal counts toward the 429s today on the dashboard, but never sends `rate:limit_exceeded`: the user still has requests this hour, and their status stays as it was.
-- A paused user skips the bucket too: a pause suspends throttling.
+- A pause lifts only the hourly limit. A paused user still goes through the bucket, so a pause can never let a client send requests without any bound. (At first a pause skipped the bucket too, reading "suspend throttling" literally; that left a paused user with no limit at all.)
 - The 429 body says which limit refused it with `reason`. The clicker shows "Slow down" for a burst and keeps the count, and shows the wait screen only for the hourly limit.
 
 ### Consequences
@@ -75,7 +73,7 @@ For example, a client sends 100 requests at once at 12:00:00. Twenty go through 
 
 ### Confirmation
 
-- Tests over HTTP with a mock Redis: 21 clicks at once let 20 through; a refusal doesn't lower `x-count`; a token comes back every 200 ms; a paused user is never burst-limited.
+- Tests over HTTP with a mock Redis: 21 clicks at once let 20 through; a refusal doesn't lower `x-count`; a token comes back every 200 ms; a paused user is still burst-limited.
 - A test against a real Redis: 150 simultaneous clicks let exactly 20 through.
 - A web component test: a burst 429 shows "Slow down", keeps the count and keeps clicking on.
 

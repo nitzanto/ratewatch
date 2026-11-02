@@ -91,18 +91,16 @@ if count >= limit and not paused then
   return {0, 0, redis.call('PTTL', KEYS[1]), limit, count, first, 0}
 end
 
--- Burst limit: a token bucket in the window's hash. ARGV: now (ms), capacity, tokens per ms.
-if not paused then
-  local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or ARGV[4])
-  local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or ARGV[3])
-  tokens = math.min(tonumber(ARGV[4]), tokens + math.max(tonumber(ARGV[3]) - tokensAt, 0) * tonumber(ARGV[5]))
-  if tokens < 1 then
-    -- Refused: nothing written, so the bucket keeps refilling from its last spend.
-    return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
-      math.ceil((1 - tokens) / tonumber(ARGV[5]))}
-  end
-  redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', ARGV[3])
+-- Burst limit: a token bucket in the window's hash, checked even while paused. ARGV: now (ms), capacity, tokens per ms.
+local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or ARGV[4])
+local tokensAt = tonumber(redis.call('HGET', KEYS[1], 'tokensAt') or ARGV[3])
+tokens = math.min(tonumber(ARGV[4]), tokens + math.max(tonumber(ARGV[3]) - tokensAt, 0) * tonumber(ARGV[5]))
+if tokens < 1 then
+  -- Refused: nothing written, so the bucket keeps refilling from its last spend.
+  return {0, math.max(limit - count, 0), redis.call('PTTL', KEYS[1]), limit, count, 0,
+    math.ceil((1 - tokens) / tonumber(ARGV[5]))}
 end
+redis.call('HSET', KEYS[1], 'tokens', tokens - 1, 'tokensAt', ARGV[3])
 
 count = redis.call('HINCRBY', KEYS[1], 'count', 1)
 if count == 1 then
@@ -115,7 +113,7 @@ It returns `[allowed, requestsLeft, msUntilReset, limit, count, firstRefusal, ms
 
 - **Refused requests don't count:** the refused branch writes only `notified`, never `count`.
 - **The expiry is set once,** when `count` becomes 1. Setting it on every request would push the reset time back forever.
-- **Pause:** a paused user's requests are counted but never refused. `x-count` is 0 once they pass their limit.
+- **Pause:** a paused user's requests are counted and never refused for the hourly limit, but the burst limit still applies. `x-count` is 0 once they pass their limit.
 - **What the script avoids,** because the unit-test mock gets it wrong: `HMGET` (arrays come back 0-based to Lua), `cjson`, and `TIME`.
 
 ### Responses
