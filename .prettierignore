@@ -7,3 +7,5 @@
 # Design canvas sources: the editor's template syntax must stay as authored.
 /docs/design/prototypes/*.dc.html
 /pnpm-lock.yaml
+# Artillery output, kept as Artillery writes it: the latest run behind the wiki's load test results.
+/apps/traffic/*-report.json

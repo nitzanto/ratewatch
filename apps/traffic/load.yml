@@ -1,0 +1,49 @@
+# The load test: many signed-in users clicking at different rates while admins watch live, against a running stack.
+# Fails when a threshold below is missed, or when any user or admin fails a check in load.processor.js:
+# a wrong x-count, more allowed requests than the limit, an error response, or live events that never arrive.
+config:
+  # The API's origin from the root .env, which Nx loads; override with `-- --target <url>`.
+  target: '{{ $env.API_URL }}'
+  phases:
+    - name: Ramp up
+      duration: 10
+      arrivalRate: 1
+      rampTo: 10
+    - name: Sustained
+      duration: 50
+      arrivalRate: 10
+  # Read in order and interleaved, so every run gets the same mix. In each 30 users:
+  # 18 click 110 times at 4 a second (exactly 100 allowed, then refused for the hour),
+  # 6 click 30 times a second apart (all allowed), 5 send 60 clicks at once (the burst limit refuses most),
+  # and 1 is an admin who follows the 100 most recently active users for 45 s.
+  payload:
+    path: load-profiles.csv
+    fields: [role, clicks, pause, expectAllowed, watchSeconds]
+    order: sequence
+    skipHeader: true
+  processor: ./load.processor.js
+  plugins:
+    ensure:
+      # Each check passes when the metric is below the value. Any failed user or admin fails the run.
+      thresholds:
+        - vusers.failed: 1
+        - http.response_time.p95: 50
+        - http.response_time.p99: 100
+        - load.admin.update_lag.p95: 2000
+
+scenarios:
+  - name: Signed-in user or admin
+    flow:
+      - post:
+          url: /api/auth/sign-in
+          json:
+            role: '{{ role }}'
+          afterResponse: keepSessionCookie
+      - loop:
+          - post:
+              url: /api/clicks
+              afterResponse: checkClick
+          - think: '{{ pause }}'
+        count: '{{ clicks }}'
+      - function: checkUserTotal
+      - function: watchLiveEvents

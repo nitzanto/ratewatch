@@ -17,6 +17,23 @@
             "ARTILLERY_DISABLE_TELEMETRY": "true"
           }
         }
+      },
+      "load": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "artillery run load.yml --output load-report.json && node build-load-report.js && prettier --write ../docs/src/content/docs/architecture/load-test-results.md",
+          "cwd": "{projectRoot}",
+          "env": {
+            "ARTILLERY_DISABLE_TELEMETRY": "true"
+          }
+        }
+      },
+      "load-report": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node build-load-report.js && prettier --write ../docs/src/content/docs/architecture/load-test-results.md",
+          "cwd": "{projectRoot}"
+        }
       }
     }
   }
