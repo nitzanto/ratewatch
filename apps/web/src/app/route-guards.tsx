@@ -22,8 +22,8 @@ export const RoleLanding = () => {
  * The layout route of one role's pages: the other role gets the not-found page, so the UI never reveals they exist.
  * The dashboard is the Admin's; the cookie clicker is a User's, since the Admin's clicks are never counted.
  */
-export const RoleRoute = ({ role }: { role: Role }) => {
+export const RoleRoute = ({ allowedRole }: { allowedRole: Role }) => {
   const { data: session } = useSession();
 
-  return session?.role === role ? <Outlet /> : <NotFoundPage />;
+  return session?.role === allowedRole ? <Outlet /> : <NotFoundPage />;
 };

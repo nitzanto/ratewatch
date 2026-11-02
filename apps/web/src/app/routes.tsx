@@ -15,11 +15,11 @@ export const routes: RouteObject[] = [
     children: [
       { path: ROUTES.home, element: <RoleLanding /> },
       {
-        element: <RoleRoute role="admin" />,
+        element: <RoleRoute allowedRole="admin" />,
         children: [{ path: ROUTES.dashboard, element: <DashboardPage /> }],
       },
       {
-        element: <RoleRoute role="user" />,
+        element: <RoleRoute allowedRole="user" />,
         children: [{ path: ROUTES.play, element: <PlayPage /> }],
       },
       { path: ROUTES.notFound, element: <NotFoundPage /> },
