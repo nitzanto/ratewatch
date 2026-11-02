@@ -15,7 +15,7 @@ Each user gets 100 requests per hour, or their custom limit, plus any extra requ
 
 - **Correctness:** exactly the limit succeeds under concurrent requests, on any number of instances.
 - **The product contract:** a single number for "requests left" and a single reset time for the 429.
-- **Performance:** the check adds less than 1 ms at p50 and 5 ms at p99, at up to 100,000 requests per second.
+- **Performance:** the check adds less than 1 ms at p50 and 5 ms at p99, at up to 10,000 requests per second.
 - **Identity:** the key is the signed session's user ID, which only the API can read.
 - **Admin controls:** custom limit, extra requests and pause apply on the next request.
 

@@ -101,6 +101,29 @@ The simulator sends its requests to `API_URL` from the root `.env`. To point it 
 pnpm nx simulate traffic -- --target http://localhost:8080
 ```
 
+## Load test
+
+The load test checks that the rate limiter holds under sustained traffic. Start the product, wait until the API answers, then run, natively:
+
+```sh
+pnpm nx load traffic
+```
+
+For one minute, about 550 users arrive, ramping up over the first 10 seconds. In each group of 30:
+
+| Users | What they do                                        | Must end with                                                      |
+| ----- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| 18    | 110 clicks, 4 a second                              | Exactly 100 allowed, then 429s for the hour                        |
+| 6     | 30 clicks, one a second                             | All 30 allowed                                                     |
+| 5     | 60 clicks at once                                   | Most refused by the burst limit                                    |
+| 1     | An admin follows the 100 most recently active users | `rate:update`, `rate:limit_exceeded` and `rate:summary` all arrive |
+
+Every allowed click must carry the right `x-count`, and no user may get an hourly 429 before using their whole limit. The run fails when any user or admin breaks a rule, when the response time p95 is over 50 ms or the p99 over 100 ms, or when a `rate:update` reaches the admin more than 2 seconds after the request (p95). It takes about 2 minutes. The scenario is in `apps/traffic/load.yml`, the checks in `apps/traffic/load.processor.js`, and the mix of users in `apps/traffic/load-profiles.csv`.
+
+The run saves Artillery's full results (`apps/traffic/load-report.json`) and rewrites the [Load test results](../../architecture/load-test-results/) page from them. A load test that fails leaves the page as it was; `pnpm nx load-report traffic` rewrites it from the saved results. Commit the results and the page together, so the wiki shows the latest run.
+
+The load generator runs on the same machine as the product, so the numbers show how the design behaves, not the capacity of a production cluster. To test the production-like stack, pass `-- --target http://localhost:8080`.
+
 ## Test
 
 Tests run natively.
