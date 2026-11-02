@@ -72,6 +72,7 @@ const columns = columnHelper.columns([
       const { selected = [], onSelect } = table.options.meta ?? {};
       const userIds = table.getRowModel().rows.map((row) => row.id);
       const ticked = userIds.filter((userId) => selected.includes(userId));
+
       return (
         <Checkbox
           size="small"
@@ -84,6 +85,7 @@ const columns = columnHelper.columns([
     },
     cell: ({ row, table }) => {
       const { selected = [], onSelect } = table.options.meta ?? {};
+
       return (
         <Checkbox
           size="small"
@@ -178,6 +180,7 @@ const columns = columnHelper.columns([
 const inOrder = (rows: UserRow[], order: string[]) => {
   const rank = new Map(order.map((userId, index) => [userId, index]));
   const rankOf = (row: UserRow) => rank.get(row.userId) ?? order.length;
+
   return [...rows].sort((a, b) => rankOf(a) - rankOf(b));
 };
 
@@ -225,6 +228,7 @@ export const UsersTable = ({
     state: { sorting },
     onSortingChange: (updater: Updater<SortingState>) => {
       const [next] = typeof updater === 'function' ? updater(sorting) : updater;
+
       // The admin asked for this order, so it shows at once though the pointer is on the header.
       setFrozenOrder(null);
       onSort(
@@ -272,6 +276,7 @@ export const UsersTable = ({
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const sorted = header.column.getIsSorted();
+
                 return (
                   // `sortDirection` sets `aria-sort`.
                   <TableCell

@@ -31,15 +31,20 @@ export const useLiveDashboard = () => {
         // Events sent while the connection was down are gone: refetch, then carry on live.
         if (lost && next === 'live')
           void client.invalidateQueries({ queryKey: adminUsersQueryKey });
+
         if (next === 'lost' && !lost) setLostAt(Date.now());
+
         if (next === 'live') setLostAt(null);
+
         lost = next === 'lost';
       },
     });
     // Follows whichever rows the cache holds, so a new page or a refetch changes who the API sends updates for.
     const follow = () => connection.follow(userIdsOnScreen(client));
+
     follow();
     const stopFollowing = client.getQueryCache().subscribe(follow);
+
     return () => {
       stopFollowing();
       connection.close();

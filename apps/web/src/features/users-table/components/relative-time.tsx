@@ -18,5 +18,6 @@ export const RelativeTime = ({
 }) => {
   const liveNow = useNow();
   const ms = Date.parse(at) - (frozenAt ?? liveNow);
+
   return until ? formatTimeUntil(ms) : formatTimeAgo(-ms);
 };

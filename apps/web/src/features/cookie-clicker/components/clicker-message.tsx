@@ -93,6 +93,7 @@ const BriefNote = ({ note, ms }: { note: ClickerNote; ms: number }) =>
 /** A fixed-height slot under the usage bar, so nothing moves under the pointer when the message changes. */
 export const ClickerMessage = ({ note }: { note: ClickerNote }) => {
   const ms = briefNoteMs[note.kind];
+
   return (
     <Box
       sx={{

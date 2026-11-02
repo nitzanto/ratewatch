@@ -33,6 +33,7 @@ export const postClick = async () => {
     clickResponseSchema,
     { responseHeaders: rateLimitHeadersSchema },
   );
+
   return { ...data, requestsLeft: responseHeaders[requestsLeftHeader] };
 };
 
@@ -69,12 +70,14 @@ export const clickMutations = {
       onError: (error, _variables, _result, { client }) => {
         if (!(error instanceof RateLimitedError) || error.reason === 'burst')
           return;
+
         const refused: RateLimit = {
           kind: 'refused',
           message: error.message,
           retryAt: error.retryAt.getTime(),
           refusedAt: Date.now(),
         };
+
         client.setQueryData<RateLimit>(rateLimitQueryKey, refused);
       },
     }),

@@ -18,6 +18,7 @@ export const createQueryClient = () => {
     mutationCache: new MutationCache({ onError }),
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   });
+
   return client;
 };
 

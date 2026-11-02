@@ -44,6 +44,7 @@ export const MuiChip: Components<Theme>['MuiChip'] = {
           color === 'warning'
             ? theme.palette.warning.dark
             : theme.palette[color].main;
+
         return { borderColor: strong, '& .MuiChip-icon': { color: strong } };
       },
     })),

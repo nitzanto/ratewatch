@@ -16,6 +16,7 @@ export const HealthStatus = () => {
         icon={<CircularProgress size={20} aria-label="Loading" />}
       />
     );
+
   if (isError)
     return (
       <MetricCard
@@ -26,6 +27,7 @@ export const HealthStatus = () => {
         live
       />
     );
+
   return (
     <MetricCard
       label="API health"

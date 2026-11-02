@@ -12,6 +12,7 @@ export const DrawerSection = ({
   children: (titleId: string) => ReactNode;
 }) => {
   const titleId = useId();
+
   return (
     <Stack
       component="section"

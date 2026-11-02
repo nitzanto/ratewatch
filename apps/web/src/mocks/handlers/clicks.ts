@@ -17,11 +17,15 @@ export const resetClicks = () => {
 export const clickHandlers = [
   http.post('/api/clicks', () => {
     if (retryAt && Date.now() >= retryAt.getTime()) resetClicks();
+
     if (left === 0) {
       retryAt ??= new Date(Date.now() + mockWaitMs);
+
       return HttpResponse.json(rateLimited(retryAt), { status: 429 });
     }
+
     left -= 1;
+
     return HttpResponse.json(click(), {
       headers: { [requestsLeftHeader]: String(left) },
     });

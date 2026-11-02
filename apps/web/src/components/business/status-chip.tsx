@@ -18,5 +18,6 @@ export const statusStyles = {
 /** A rate-limit status as an icon and a word, never colour alone. */
 export const StatusChip = ({ status }: { status: UserStatus }) => {
   const { label, color, Icon } = statusStyles[status];
+
   return <Chip variant="status" color={color} icon={<Icon />} label={label} />;
 };

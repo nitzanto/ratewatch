@@ -23,7 +23,9 @@ const minuteMs = 60_000;
 
 const statusFor = (used: number, limit: number): UserStatus => {
   if (used >= limit) return 'exceeded';
+
   if (used >= limit * warningThreshold) return 'warning';
+
   return 'ok';
 };
 
@@ -36,6 +38,7 @@ export const userRow = (
 ): UserRow => {
   const now = Date.now();
   const limit = overrides.limit ?? defaultHourlyLimit;
+
   return {
     userId,
     limit,
@@ -105,6 +108,7 @@ export const mockUsers = (): UserRow[] => [
 /** `q` is the whole ID, or a prefix once it's 2 characters; case-insensitive, like the API's search. */
 const matchesId = (userId: string, q: string) => {
   const [id, search] = [userId.toLowerCase(), q.toLowerCase()];
+
   return search.length >= 2 ? id.startsWith(search) : id === search;
 };
 
@@ -135,12 +139,15 @@ export const usersPage = (
     .filter((row) => !status || row.status === status)
     .sort((a, b) => {
       const [x, y] = [sortValueOf(a, sort), sortValueOf(b, sort)];
+
       if (x === undefined || y === undefined)
         return Number(x === undefined) - Number(y === undefined);
+
       return x < y ? -direction : x > y ? direction : 0;
     });
   const count = (each: UserStatus) =>
     matching.filter((row) => row.status === each).length;
+
   return {
     rows: shown.slice(page * pageSize, (page + 1) * pageSize),
     total: shown.length,
@@ -163,6 +170,7 @@ export const summaryOf = (
 ): AdminSummary => {
   const { counts, total } = usersPage(rows);
   const used = (row: UserRow) => row.limit - row.requestsLeft;
+
   return {
     totalUsers: total,
     nearLimitShare: total ? (counts.warning + counts.exceeded) / total : 0,
@@ -184,9 +192,11 @@ export const summaryOf = (
 export const recentRequestsOf = (row: UserRow): RecentRequest[] =>
   Array.from(
     { length: Math.min(row.limit - row.requestsLeft, recentRequestsKept) },
-    (_, i) => ({
-      at: new Date(Date.parse(row.lastRequestAt) - i * 20_000).toISOString(),
-      allowed: !(row.status === 'exceeded' && i === 0),
+    (_, stepsBack) => ({
+      at: new Date(
+        Date.parse(row.lastRequestAt) - stepsBack * 20_000,
+      ).toISOString(),
+      allowed: !(row.status === 'exceeded' && stepsBack === 0),
     }),
   );
 
@@ -206,14 +216,17 @@ export const userHistory = (
 ): UserHistory => {
   const { buckets, bucketMs } = activityRanges[range];
   const first = Math.floor(Date.now() / bucketMs) - buckets + 1;
-  const counts = Array.from({ length: buckets }, (_, i) => ({
-    start: new Date((first + i) * bucketMs).toISOString(),
+  const counts = Array.from({ length: buckets }, (_, bucketIndex) => ({
+    start: new Date((first + bucketIndex) * bucketMs).toISOString(),
     accepted: 0,
     refused: 0,
   }));
+
   for (const { at, allowed } of recentRequestsOf(row)) {
     const bucket = counts[Math.floor(Date.parse(at) / bucketMs) - first];
+
     if (bucket) bucket[allowed ? 'accepted' : 'refused'] += 1;
   }
+
   return { buckets: counts };
 };

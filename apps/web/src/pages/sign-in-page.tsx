@@ -18,6 +18,7 @@ export const SignInPage = () => {
   const from: Path | undefined = useLocation().state?.from;
 
   if (isPending) return null;
+
   if (session) return <Navigate to={from ?? ROUTES.home} replace />;
 
   return (

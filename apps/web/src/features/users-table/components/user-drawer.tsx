@@ -87,6 +87,7 @@ const Details = ({
         <List aria-labelledby={titleId} disablePadding>
           {recent.map(({ at, allowed }, index) => {
             const Icon = allowed ? OkIcon : ExceededIcon;
+
             return (
               // Two requests can share a millisecond; the list only ever grows at the top.
               <ListItem
@@ -136,6 +137,7 @@ const UserDetails = ({
   onClose: () => void;
 }) => {
   const { data, isPending, isError, refetch } = useAdminUser(userId);
+
   return (
     <Stack sx={{ gap: 3, px: 3, pt: 3, pb: 4 }}>
       <Stack
@@ -186,6 +188,7 @@ export const UserDrawer = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   // Still shows the user while the drawer slides out.
   const [shown, setShown] = useState(userId);
+
   if (userId !== null && userId !== shown) setShown(userId);
 
   return (

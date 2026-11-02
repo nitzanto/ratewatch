@@ -30,7 +30,9 @@ const iconColors = {
 /** How many active users have each status, as one bar and a list; Paused shows only when someone is. Kept live by `rate:summary`. */
 export const StatusBreakdown = () => {
   const { data } = useAdminSummary();
+
   if (!data) return null;
+
   const { counts } = data;
   const shown = userStatusSchema.options.filter(
     (status) => status !== 'paused' || counts.paused > 0,
@@ -70,6 +72,7 @@ export const StatusBreakdown = () => {
       <Stack component="ul" sx={{ m: 0, p: 0, listStyle: 'none', gap: 1 }}>
         {shown.map((status) => {
           const { label, Icon } = statusStyles[status];
+
           return (
             <Stack
               component="li"

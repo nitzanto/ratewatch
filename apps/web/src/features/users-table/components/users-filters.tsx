@@ -48,6 +48,7 @@ export const UsersFilters = ({
       {userStatusSchema.options.map((status) => {
         const { label, color, Icon } = statusStyles[status];
         const selected = query.status === status;
+
         return (
           <Chip
             key={status}

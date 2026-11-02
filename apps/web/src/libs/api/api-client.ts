@@ -55,11 +55,15 @@ export const createApiClient = ({
           body: JSON.stringify(body),
         }),
       });
+
       if (!res.ok) throw await toApiError(res);
+
       // The API is a trust boundary for the browser too: parse, don't cast. An empty response's
       // body is `undefined`, so a caller expecting one passes `z.undefined()`.
       const data = schema.parse(hasNoBody(res) ? undefined : await res.json());
+
       if (!responseHeaders) return data;
+
       return {
         data,
         responseHeaders: responseHeaders.parse(Object.fromEntries(res.headers)),

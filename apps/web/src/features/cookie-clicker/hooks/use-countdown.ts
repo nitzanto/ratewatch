@@ -11,12 +11,17 @@ export const useCountdown = (until: number, onDone: () => void) => {
   useEffect(() => {
     const tick = () => {
       const time = nowInSeconds();
+
       setNow(time);
+
       if (time < until) return;
+
       clearInterval(id);
       onDone();
     };
+
     const id = setInterval(tick, 1000);
+
     return () => clearInterval(id);
   }, [until, onDone]);
 

@@ -12,13 +12,17 @@ const tick = () => {
 // One timer for every component on screen, running only while one is subscribed.
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
+
   if (!timer) {
     timer = setInterval(tick, 1000);
     tick();
   }
+
   return () => {
     listeners.delete(listener);
+
     if (listeners.size) return;
+
     clearInterval(timer);
     timer = undefined;
   };

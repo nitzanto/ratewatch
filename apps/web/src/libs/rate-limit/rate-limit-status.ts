@@ -13,7 +13,10 @@ export const usedShare = (requestsLeft: number) =>
 
 export const rateLimitStatus = (requestsLeft: number): RateLimitStatus => {
   const used = usedShare(requestsLeft);
+
   if (used >= 1) return 'exceeded';
+
   if (used >= warningThreshold) return 'warning';
+
   return 'ok';
 };

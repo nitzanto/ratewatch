@@ -52,6 +52,7 @@ export const LiveUsers = () => {
       ),
     [],
   );
+
   const clearFilters = () => {
     searchLater.clear();
     setSearch('');
@@ -61,12 +62,14 @@ export const LiveUsers = () => {
       activeWithin: defaultQuery.activeWithin,
     });
   };
+
   const filtered =
     !!query.q ||
     !!query.status ||
     query.activeWithin !== defaultQuery.activeWithin;
 
   if (isPending) return <CircularProgress aria-label="Loading users" />;
+
   if (isError)
     return (
       <Alert

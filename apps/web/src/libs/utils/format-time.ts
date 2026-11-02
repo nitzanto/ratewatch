@@ -1,6 +1,7 @@
 /** A wait as `m:ss`, from whole-second ms (see `useNow`). */
 export const formatCountdown = (ms: number) => {
   const seconds = Math.max(0, Math.floor(ms / 1000));
+
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
@@ -11,9 +12,13 @@ export const formatTimeUntil = (ms: number) =>
 /** How long ago a time was (`8 s ago`, `3 min ago`, `2 h ago`). */
 export const formatTimeAgo = (ms: number) => {
   const seconds = Math.max(0, Math.floor(ms / 1000));
+
   if (seconds < 60) return `${seconds} s ago`;
+
   const minutes = Math.floor(seconds / 60);
+
   if (minutes < 60) return `${minutes} min ago`;
+
   return `${Math.floor(minutes / 60)} h ago`;
 };
 

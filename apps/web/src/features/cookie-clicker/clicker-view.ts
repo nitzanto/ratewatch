@@ -61,7 +61,9 @@ const crumbMood = (
   unavailable: boolean,
 ): CrumbMood => {
   if (unavailable) return 'unsure';
+
   if (status === 'exceeded' || status === 'warning') return status;
+
   return left === undefined ? 'fresh' : crumbStages[stageOf(left)];
 };
 
@@ -74,13 +76,19 @@ const clickingNote = (
   before: number | undefined,
 ): ClickerNote => {
   if (failed) return { kind: 'failed' };
+
   if (slowDown !== undefined) return { kind: 'slow-down', message: slowDown };
+
   if (left === undefined) return { kind: 'hint' };
+
   if (status === 'warning') return { kind: 'almost-out', requestsLeft: left };
+
   if (status === 'exceeded') return { kind: 'last-request' };
+
   // A note each time a click crosses into a new stage, even when the count jumped past its boundary.
   if (before !== undefined && stageOf(left) > stageOf(before))
     return { kind: 'stage', stage: stageOf(left) };
+
   return { kind: 'hint' };
 };
 
@@ -94,6 +102,7 @@ export const clickerView = (
 ): ClickerView | ClickerWait => {
   if (limit?.kind === 'refused') {
     if (limit.retryAt > limit.refusedAt) return { ...limit, phase: 'waiting' };
+
     return {
       phase: 'refused',
       // A 429 means none left, whatever the last count said.
@@ -118,6 +127,7 @@ export const clickerView = (
   const left = limit?.requestsLeft ?? undefined;
   const unavailable = limit?.requestsLeft === null;
   const status = left === undefined ? undefined : rateLimitStatus(left);
+
   return {
     phase: 'clicking',
     left,

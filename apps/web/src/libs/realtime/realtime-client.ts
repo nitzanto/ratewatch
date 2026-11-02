@@ -67,6 +67,7 @@ const connectSocket: ConnectRealtime = ({
       .catch(() => {
         if (socket.connected) socket.disconnect().connect();
       });
+
   socket.on('connect', () => {
     onStatus('live');
     void subscribe();
@@ -75,10 +76,12 @@ const connectSocket: ConnectRealtime = ({
   // then on. Neither is retried, unlike a network failure.
   socket.on('disconnect', (reason) => {
     onStatus('lost');
+
     if (reason === 'io server disconnect') onRefused();
   });
   socket.on('connect_error', () => {
     onStatus('lost');
+
     if (!socket.active) onRefused();
   });
   // The API is a trust boundary here too: parse, don't cast.
@@ -91,10 +94,13 @@ const connectSocket: ConnectRealtime = ({
   socket.on(realtimeEvents.summary, (payload) =>
     onSummary(adminSummarySchema.parse(payload)),
   );
+
   return {
     follow: (userIds) => {
       if (userIds.join() === followed.join()) return;
+
       followed = userIds;
+
       if (socket.connected) void subscribe();
     },
     close: () => socket.disconnect(),
@@ -120,6 +126,7 @@ const setStatus = (next: RealtimeStatus | null) => {
 export const realtimeStatusStore = {
   subscribe: (listener: () => void) => {
     statusListeners.add(listener);
+
     return () => statusListeners.delete(listener);
   },
   get: () => status,
@@ -133,6 +140,7 @@ export const connectRealtime: ConnectRealtime = (listeners) => {
       listeners.onStatus(next);
     },
   });
+
   return {
     ...connection,
     close: () => {

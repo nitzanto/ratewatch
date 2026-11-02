@@ -14,6 +14,7 @@ export const SelectionToolbar = ({
   onClear: () => void;
 }) => {
   const reset = useResetLimits();
+
   return (
     <Stack
       role="toolbar"

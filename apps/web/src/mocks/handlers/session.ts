@@ -18,13 +18,17 @@ export const setMockSession = (role: Role | null) => {
 export const sessionHandlers = [
   http.post('/api/auth/sign-in', async ({ request }) => {
     const { role } = signInRequestSchema.parse(await request.json());
+
     // A User sign-in is a new user, with a fresh limit.
     if (role === 'user') resetClicks();
+
     setMockSession(role);
+
     return HttpResponse.json(current, { status: 201 });
   }),
   http.post('/api/auth/sign-out', () => {
     setMockSession(null);
+
     return new HttpResponse(null, { status: 204 });
   }),
   http.get('/api/auth/me', () =>

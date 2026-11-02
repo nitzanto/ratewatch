@@ -29,7 +29,7 @@ export const TopUsers = () => {
       </Stack>
       {topUsers.length ? (
         <Stack component="ol" sx={{ m: 0, p: 0, listStyle: 'none', gap: 1.5 }}>
-          {topUsers.map(({ userId, used, limit }, i) => (
+          {topUsers.map(({ userId, used, limit }, rankIndex) => (
             <Stack component="li" key={userId} sx={{ gap: 0.5 }}>
               <Stack direction="row" sx={{ gap: 1, alignItems: 'baseline' }}>
                 <Typography
@@ -39,7 +39,7 @@ export const TopUsers = () => {
                     width: sizes.topUserRankWidth,
                   }}
                 >
-                  {i + 1}
+                  {rankIndex + 1}
                 </Typography>
                 <Typography
                   variant="body2"

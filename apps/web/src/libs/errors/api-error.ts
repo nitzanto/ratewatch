@@ -36,6 +36,7 @@ export const toApiError = async (res: Response): Promise<ApiError> => {
   const body: unknown = await res.json().catch(() => undefined);
   const limited =
     res.status === 429 ? rateLimitedResponseSchema.safeParse(body) : undefined;
+
   return limited?.success
     ? new RateLimitedError(
         body,

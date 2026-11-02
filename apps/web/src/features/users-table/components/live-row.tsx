@@ -26,6 +26,7 @@ export const LiveRow = ({
 }) => {
   const [seen, setSeen] = useState(user);
   const [changes, setChanges] = useState(0);
+
   if (user !== seen) {
     setSeen(user);
     setChanges(changes + 1);

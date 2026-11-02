@@ -11,6 +11,7 @@ export const ResetCell = ({
   frozenAt: number | null;
 }) => {
   if (!resetAt) return '—';
+
   return (
     <>
       <Typography variant="body2">

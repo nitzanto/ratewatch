@@ -8,6 +8,7 @@ import { ROUTES } from './route-paths';
 /** The home route: sends each role to its start page. */
 export const RoleLanding = () => {
   const { data: session } = useSession();
+
   return (
     <Navigate
       to={session?.role === 'admin' ? ROUTES.dashboard : ROUTES.play}
@@ -19,5 +20,6 @@ export const RoleLanding = () => {
 /** The layout route of admin pages: a User gets the not-found page, so the UI never reveals they exist. */
 export const AdminRoute = () => {
   const { data: session } = useSession();
+
   return session?.role === 'admin' ? <Outlet /> : <NotFoundPage />;
 };

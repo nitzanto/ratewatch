@@ -27,6 +27,7 @@ export const AppShell = () => {
   const location = useLocation();
 
   if (isPending) return null;
+
   if (!session)
     return (
       <Navigate

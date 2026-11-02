@@ -47,6 +47,7 @@ export const ActivityChart = ({ userId }: { userId: string }) => {
   const chart = () => {
     if (isPending)
       return <CircularProgress aria-label="Loading the activity" />;
+
     if (isError)
       return (
         <Alert
@@ -56,12 +57,14 @@ export const ActivityChart = ({ userId }: { userId: string }) => {
           Couldn't load the activity.
         </Alert>
       );
+
     const { buckets } = data;
     const sum = (key: 'accepted' | 'refused') =>
       buckets.reduce((total, each) => total + each[key], 0);
     const [accepted, refused] = [sum('accepted'), sum('refused')];
     const tallest = Math.max(1, ...buckets.map((b) => b.accepted + b.refused));
     const share = (count: number) => `${(100 * count) / tallest}%`;
+
     return (
       <>
         <Box

@@ -12,8 +12,10 @@ import { formatHourMinute } from '@/libs/utils/format-time';
 const problemWith = (limit: number | null, extra: number) => {
   if (limit === null)
     return `Enter a whole number from 1 to ${maxLimit.toLocaleString('en')}.`;
+
   if (!canSetLimit(limit, extra))
     return `With ${extra} extra requests this hour, the limit can't go above ${(maxLimit - extra).toLocaleString('en')}.`;
+
   return undefined;
 };
 
@@ -23,7 +25,9 @@ const problemWith = (limit: number | null, extra: number) => {
  */
 const splitNote = (row: UserRow, limit: number | null, extra: number) => {
   if (extra <= 0 || row.resetAt === null) return undefined;
+
   const split = `${row.limit.toLocaleString('en')} this hour = ${row.baseLimit.toLocaleString('en')} limit + ${extra} extra, until ${formatHourMinute(new Date(row.resetAt))}.`;
+
   return limit === row.baseLimit
     ? `${split} Reset limit clears the extra requests now.`
     : split;
@@ -55,6 +59,7 @@ export const CustomLimitForm = ({
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
+
     if (limit !== null && !problem) onSave(limit);
   };
 

@@ -21,6 +21,7 @@ export const getSession = async () => {
     return await api.get('/auth/me', sessionSchema);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return null;
+
     throw error;
   }
 };

@@ -50,6 +50,7 @@ export const AdminControls = ({ row }: { row: UserRow }) => {
     [pause, `Couldn't pause ${userId}'s limit.`],
     [unlock, `Couldn't unlock ${userId}'s limit.`],
   ] as const;
+
   /** Before a change starts: only the latest change's failure shows. */
   const clearOtherFailures = (mutation: (typeof changes)[number][0]) => {
     for (const [other] of changes) if (other !== mutation) other.reset();

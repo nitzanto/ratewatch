@@ -43,6 +43,7 @@ export const untilFirstPauseEnds = (rows: UserRow[] = []) => {
   const ends = rows.flatMap(({ pausedUntil }) =>
     pausedUntil ? [Date.parse(pausedUntil)] : [],
   );
+
   // A moment after the end, so the API has dropped the pause by then.
   return ends.length
     ? Math.max(Math.min(...ends) - Date.now(), 0) + 500
@@ -102,6 +103,7 @@ const windowEnd = (row: UserRow) => (row.resetAt ? Date.parse(row.resetAt) : 0);
  */
 const isNotOlder = (next: UserRow, current: UserRow) => {
   const gap = windowEnd(next) - windowEnd(current);
+
   return Math.abs(gap) < sameWindowToleranceMs
     ? used(next) >= used(current)
     : gap > 0;
@@ -119,15 +121,20 @@ export const applyUserRow = (
   byAdmin = false,
 ) => {
   const keeps = (current: UserRow) => byAdmin || isNotOlder(next, current);
+
   client.setQueriesData<UsersPage>({ queryKey: adminUsersQueryKey }, (page) => {
     if (!page) return page;
+
     const counts = { ...page.counts };
     const rows = page.rows.map((row) => {
       if (row.userId !== next.userId || !keeps(row)) return row;
+
       counts[row.status] -= 1;
       counts[next.status] += 1;
+
       return next;
     });
+
     return { ...page, rows, counts };
   });
   client.setQueryData<UserDetail>([...adminUserKey, next.userId], (detail) =>
@@ -148,20 +155,27 @@ export const applyRateUpdate = (
   applyUserRow(client, row, byAdmin);
   client.setQueryData<UserDetail>([...adminUserKey, row.userId], (detail) => {
     if (!detail) return detail;
+
     const unmatched = [...detail.recent];
     const fresh = requests.filter(({ at, allowed }) => {
       const same = unmatched.findIndex(
         (known) => known.at === at && known.allowed === allowed,
       );
+
       if (same === -1) return true;
+
       unmatched.splice(same, 1);
+
       return false;
     });
+
     if (!fresh.length) return detail;
+
     // ISO times in UTC, so later is greater as text too.
     const recent = [...fresh, ...detail.recent].sort((a, b) =>
       a.at < b.at ? 1 : a.at > b.at ? -1 : 0,
     );
+
     return { ...detail, recent: recent.slice(0, recentRequestsKept) };
   });
   void client.invalidateQueries({
@@ -209,7 +223,9 @@ export const applyLimitExceeded = (
   const row = rowsOnScreen(client).find(
     (candidate) => candidate.userId === userId,
   );
+
   if (!row) return;
+
   applyUserRow(client, {
     ...row,
     limit,
