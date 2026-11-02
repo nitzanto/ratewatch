@@ -470,33 +470,6 @@ describe('open user', () => {
       expect.stringContaining('Refused'),
     );
   });
-
-  it("keeps the table's order while a user is open, then re-sorts", async () => {
-    const first = userRow('user-aaaa1111', 50, 5_000);
-    const second = userRow('user-bbbb2222', 20, minuteMs);
-    setMockUsers([first, second]);
-    await renderPanel();
-    const drawer = await openUser('user-bbbb2222');
-    await within(drawer).findByText('1 min ago');
-
-    act(() =>
-      sendRateUpdate({
-        row: { ...second, lastRequestAt: new Date().toISOString() },
-        requests: [],
-      }),
-    );
-    await within(drawer).findByText('0 s ago');
-    // The open drawer hides the page from assistive tech, as a modal dialog does.
-    expect(screen.getAllByRole('rowheader', { hidden: true })).toEqual(
-      ['user-aaaa1111', 'user-bbbb2222'].map((textContent) =>
-        expect.objectContaining({ textContent }),
-      ),
-    );
-
-    await closeDrawer(drawer);
-
-    await waitFor(() => expectUserIds(['user-bbbb2222', 'user-aaaa1111']));
-  });
 });
 
 describe('admin changes in the table', () => {

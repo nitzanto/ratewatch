@@ -49,6 +49,6 @@ The limit is visible from both sides: admins see every user against their allowa
 
 1. The limit is never a surprise: show what is left on every success and when it comes back on every refusal.
 2. Status is never colour alone: every status has an icon and a word.
-3. Nothing moves under the pointer: live data updates in place.
+3. Live data updates in place: numbers change where they are, and the users table re-sorts as they do.
 4. Every admin action is reversible for a short time or asks first.
 5. Delight lives in the clicker and Crumb; the dashboard stays calm and precise.

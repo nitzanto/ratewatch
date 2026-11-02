@@ -1,11 +1,4 @@
 import {
-  useAddExtraRequests,
-  usePause,
-  useResetLimit,
-  useSetLimit,
-  useUnlock,
-} from '@/api/admin-controls/use-admin-controls';
-import {
   canAddExtraRequests,
   extraRequestsAmount,
   maxLimit,
@@ -23,6 +16,7 @@ import {
 import { useId, useState } from 'react';
 import { CustomLimitForm } from './custom-limit-form';
 import { DrawerSection } from '../drawer-section';
+import { useAdminControlMutations } from './hooks/use-admin-control-mutations';
 
 const pauseLabels: Record<PauseDuration, string> = {
   '15m': '15 minutes',
@@ -33,30 +27,21 @@ const pauseLabels: Record<PauseDuration, string> = {
 /** The drawer's actions on the user's limit; the user's numbers above change at once, and a failure says so here. */
 export const AdminControls = ({ row }: { row: UserRow }) => {
   const { userId } = row;
-  const reset = useResetLimit();
-  const addExtra = useAddExtraRequests();
-  const setLimit = useSetLimit();
-  const pause = usePause();
-  const unlock = useUnlock();
+  const {
+    reset,
+    addExtra,
+    setLimit,
+    pause,
+    unlock,
+    clearOtherFailures,
+    failureMessages,
+  } = useAdminControlMutations(userId);
   const [pauseMenuAnchor, setPauseMenuAnchor] = useState<HTMLElement | null>(
     null,
   );
   const pauseMenuId = useId();
   const hasNoOpenWindow = row.resetAt === null;
   const isAtExtraRequestsMax = !canAddExtraRequests(row.limit);
-
-  const changes = [
-    [reset, `Couldn't reset ${userId}'s limit.`],
-    [addExtra, `Couldn't add requests for ${userId}.`],
-    [setLimit, `Couldn't change ${userId}'s limit.`],
-    [pause, `Couldn't pause ${userId}'s limit.`],
-    [unlock, `Couldn't unlock ${userId}'s limit.`],
-  ] as const;
-
-  /** Before a change starts: only the latest change's failure shows. */
-  const clearOtherFailures = (mutation: (typeof changes)[number][0]) => {
-    for (const [other] of changes) if (other !== mutation) other.reset();
-  };
 
   return (
     <DrawerSection title="Admin controls">
@@ -146,14 +131,11 @@ export const AdminControls = ({ row }: { row: UserRow }) => {
               setLimit.mutate({ userId, limit });
             }}
           />
-          {changes.map(
-            ([mutation, message]) =>
-              mutation.isError && (
-                <Alert key={message} severity="error">
-                  {`${message} Try again.`}
-                </Alert>
-              ),
-          )}
+          {failureMessages.map((message) => (
+            <Alert key={message} severity="error">
+              {`${message} Try again.`}
+            </Alert>
+          ))}
         </Stack>
       )}
     </DrawerSection>

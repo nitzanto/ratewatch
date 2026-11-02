@@ -42,7 +42,7 @@ One typeface, **IBM Plex Sans**, in regular, medium and semibold. Headings are s
 
 ## Behaviour rules
 
-- **Nothing moves under the pointer.** Live updates change numbers in place. The table re-sorts only when the pointer is off it and no user is open. Selecting rows swaps the filter row for a same-height selection bar. Messages on the clicker appear in a reserved slot.
+- **Live data updates in place.** Live updates change numbers where they are, and the users table re-sorts the rows on screen as they change. Selecting rows swaps the filter row for a same-height selection bar. Messages on the clicker appear in a reserved slot.
 - **Admin actions are deliberate.** Each one changes the user at once, visibly, with no confirmation step. Pausing throttling always has an end time. Lowering a limit below what the user already used warns first.
 - **The limit is never a surprise.** The count updates after every click; a refusal says why and shows the time the user can try again.
 

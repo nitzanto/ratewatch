@@ -8,13 +8,7 @@ import {
   usersTable,
 } from '@/test/users-table';
 import type { UserRow } from '@ratewatch/contracts';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, within } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { UsersTable } from './users-table';
 
@@ -123,22 +117,7 @@ describe('live', () => {
     ).not.toHaveProperty('dataset.flash');
   });
 
-  it('keeps the order while the pointer is on the table, then re-sorts', () => {
-    const rerender = renderTable({ rows: [first, second, third] });
-    const table = screen.getByRole('table', { name: 'Users' });
-
-    fireEvent.pointerEnter(table);
-    rerender({ rows: [first, second, requestFrom(third, 11)] });
-
-    expect(rowOf('user-cccc3333').getByText('89 / 100')).toBeTruthy();
-    expectUserIds(['user-aaaa1111', 'user-bbbb2222', 'user-cccc3333']);
-
-    fireEvent.pointerLeave(table);
-
-    expectUserIds(['user-cccc3333', 'user-aaaa1111', 'user-bbbb2222']);
-  });
-
-  it('re-sorts at once while the pointer is off the table', () => {
+  it('re-sorts the rows on screen as soon as a live change arrives', () => {
     const rerender = renderTable({ rows: [first, second, third] });
 
     rerender({ rows: [first, second, requestFrom(third, 11)] });
@@ -192,27 +171,6 @@ describe('sorting', () => {
       'user-eeee5555',
     ]);
     expect(header('Requests left')).toHaveProperty('ariaSort', 'descending');
-  });
-
-  it('sorts at once though the pointer is on the table to click the header, then holds the new order', async () => {
-    const rerender = renderTable({ rows });
-    const table = screen.getByRole('table', { name: 'Users' });
-    fireEvent.pointerEnter(table);
-
-    fireEvent.click(within(header('Requests left')).getByRole('button'));
-    rerender({ sort: 'left', order: 'asc' });
-
-    await waitFor(() => expectUserIds(byRequestsLeft));
-
-    fireEvent.pointerMove(table);
-    rerender({
-      rows: rows.map((row) =>
-        row === ok ? { ...ok, requestsLeft: 1, status: 'warning' } : row,
-      ),
-    });
-
-    expect(rowOf('user-aaaa1111').getByText('1 / 100')).toBeTruthy();
-    expectUserIds(byRequestsLeft);
   });
 });
 

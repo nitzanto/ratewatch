@@ -2,7 +2,8 @@ import { palette } from '@/theme/palette';
 import type { UserRow } from '@ratewatch/contracts';
 import { TableRow } from '@mui/material';
 import { keyframes } from '@mui/material/styles';
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { useChangeCount } from './hooks/use-change-count';
 
 // Two copies of the flash, alternated per change so each one restarts it. Emotion names keyframes
 // by their content, so the second is written with percentages to get its own name.
@@ -24,13 +25,7 @@ export const LiveRow = ({
   onClick: () => void;
   children: ReactNode;
 }) => {
-  const [lastSeenUser, setLastSeenUser] = useState<UserRow>(user);
-  const [changeCount, setChangeCount] = useState<number>(0);
-
-  if (user !== lastSeenUser) {
-    setLastSeenUser(user);
-    setChangeCount(changeCount + 1);
-  }
+  const changeCount = useChangeCount(user);
 
   return (
     <TableRow

@@ -23,7 +23,7 @@ Inside a feature, every level follows the same rules:
 
 - A component with parts gets a folder named after it, its main file inside (`users-table/users-table.tsx`). A component without parts stays a single file.
 - Two or more parts with one role share a folder named for that role (`cells/`, `states/`, `controls/`); a single part sits next to its main file. At most one such level per component folder.
-- `hooks/`, `utils/` and `types/` appear only at a feature's root, and only once there's a file for them.
+- `hooks/`, `utils/` and `types/` sit in the folder of the component that uses them, or at the feature's root when several components do, and only once there's a file for them. Components keep to layout: state goes in a hook, pure rules in a util.
 - Each component's spec sits next to it, and a page's spec covers only how the page wires its parts.
 - No `index.ts` barrels.
 

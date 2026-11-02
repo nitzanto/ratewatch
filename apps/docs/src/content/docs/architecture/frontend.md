@@ -38,24 +38,27 @@ A feature folder groups its files the same way at every level, so it reads like 
 
 ```text
 features/users/
-├── users-panel.tsx           # the container: query, live data, selection, open user; lays out the rest
+├── users-panel.tsx           # the container: lays out the controls, table, states and drawer
+├── hooks/                    # the panel's state: use-users-query.ts, use-row-selection.ts
 ├── controls/                 # what the admin uses above the table: search, filters, selection toolbar
 ├── states/                   # what the panel shows instead of its content: load error, connection lost
-├── hooks/                    # hooks only this feature uses
 ├── users-table/
-│   ├── users-table.tsx       # the main component, named like its folder
+│   ├── users-table.tsx       # the main component, named like its folder: table markup only
 │   ├── live-row.tsx          # a single part sits next to it
 │   ├── cells/                # parts that share a role get a folder named for it
-│   └── states/               # loading skeleton, empty, no matches
+│   ├── states/               # loading skeleton, empty, no matches
+│   ├── hooks/                # the table's own state: change count, the ticking clock
+│   └── utils/                # the column definitions
 └── user-drawer/
     ├── user-drawer.tsx
-    ├── activity-chart.tsx
-    └── admin-controls/       # a part with parts of its own gets its own folder
+    ├── details/              # the open user's header, stats and recent requests
+    ├── activity-chart/       # a part with parts of its own gets its own folder
+    └── admin-controls/       # with its own hooks/ (mutations) and utils/ (limit rules)
 ```
 
 - **A component with parts gets a folder named after it**, its main file inside (`user-drawer/user-drawer.tsx`). A component without parts stays a single file.
 - **Two or more parts with one role share a folder named for that role** (`cells/`, `states/`, `controls/`). A single part sits next to its main file. A component folder has at most one level of these.
-- **`hooks/`, `utils/` and `types/`** appear at a feature's root, and only once there's a file for them.
+- **`hooks/`, `utils/` and `types/`** sit in the folder of the component that uses them (`users-table/hooks/use-change-count.ts`, `users-table/utils/columns.tsx`), or at the feature's root when several components do (`hooks/use-users-query.ts`), and only once there's a file for them. A component keeps to layout: its state and effects go in a hook, its pure rules in a util, each with its own spec.
 - **Specs sit next to the file they test**, so a folder shows at a glance what's covered.
 - **No `index.ts` barrels.** Import the file itself, so its path says where it lives.
 - **Siblings may share.** A part may import from a sibling folder in the same feature (the drawer reuses `users-table/cells/`). Code two features need moves up to a shared folder.

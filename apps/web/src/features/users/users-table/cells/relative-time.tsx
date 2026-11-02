@@ -1,5 +1,5 @@
 import { formatTimeAgo, formatTimeUntil } from '@/utils/format-time';
-import { useNow } from '../../hooks/use-now';
+import { useNow } from '../hooks/use-now';
 
 /**
  * A past time as "8 s ago", or with `until` a future one as "in 31 min", ticking on its own so the
