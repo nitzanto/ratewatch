@@ -4,6 +4,25 @@ A distributed per-user rate limiter (NestJS + Redis) with a real-time admin dash
 
 📖 Docs: https://nitzanto.github.io/ratewatch/
 
+## Overview
+
+Every API instance limits `POST /clicks` per user against one shared Redis:
+
+- **Hourly window**: an hour from the user's first request, checked and counted by one atomic Lua script, so two instances can't both hand out the last request.
+- **Burst limit**: a token bucket on top of the window smooths spikes.
+- **Fails open**: if Redis is down, requests go through rather than the whole API failing.
+- **Admin dashboard**: live per-user status over Socket.IO, with search, filters, and controls to pause a user, reset them, set a custom limit or grant extra requests.
+
+| Layer        | Stack                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------- |
+| API          | NestJS 11, Zod (`nestjs-zod`), ioredis, Socket.IO with the Redis adapter               |
+| Store        | Redis 8: Lua scripts for the limiter, the query engine for the dashboard's users table |
+| Dashboard    | React 19, MUI, TanStack Query and Table, React Router, MSW for mock mode               |
+| Tests        | Vitest, Testcontainers (real Redis), Playwright e2e, Artillery load tests              |
+| Tooling      | Nx monorepo, pnpm, TypeScript, ESLint, Prettier, Conventional Commits                  |
+| Run and ship | Docker Compose, Nginx (one origin in production), GitHub Actions                       |
+| Docs         | Astro Starlight wiki with ADRs for every significant decision                          |
+
 ## Run it
 
 | What        | Where                            |
