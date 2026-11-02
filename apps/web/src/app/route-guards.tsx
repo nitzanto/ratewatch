@@ -1,5 +1,6 @@
 import { useSession } from '@/hooks/api/use-session';
 import { NotFoundPage } from '@/pages/not-found-page';
+import type { Role } from '@ratewatch/contracts';
 import { Navigate, Outlet } from 'react-router';
 import { ROUTES } from './route-paths';
 
@@ -17,9 +18,12 @@ export const RoleLanding = () => {
   );
 };
 
-/** The layout route of admin pages: a User gets the not-found page, so the UI never reveals they exist. */
-export const AdminRoute = () => {
+/**
+ * The layout route of one role's pages: the other role gets the not-found page, so the UI never reveals they exist.
+ * The dashboard is the Admin's; the cookie clicker is a User's, since the Admin's clicks are never counted.
+ */
+export const RoleRoute = ({ role }: { role: Role }) => {
   const { data: session } = useSession();
 
-  return session?.role === 'admin' ? <Outlet /> : <NotFoundPage />;
+  return session?.role === role ? <Outlet /> : <NotFoundPage />;
 };

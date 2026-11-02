@@ -58,20 +58,20 @@ describe('Routing', () => {
     expect(await pageTitle(title)).toBeTruthy();
   });
 
-  it('moves between the dashboard and the cookie clicker', async () => {
+  it('hides the Cookie Clicker tab from the Admin', async () => {
+    await renderApp('/dashboard', { signedInAs: 'admin' });
+
+    expect(
+      await appBar().findByRole('link', { name: 'Dashboard', current: 'page' }),
+    ).toBeTruthy();
+    expect(appBar().queryByRole('link', { name: 'Cookie Clicker' })).toBeNull();
+  });
+
+  it('shows the Admin who opens the cookie clicker a not-found page', async () => {
     await renderApp('/play', { signedInAs: 'admin' });
 
-    expect(await pageTitle('Cookie Clicker')).toBeTruthy();
-    expect(
-      appBar().getByRole('link', { name: 'Cookie Clicker', current: 'page' }),
-    ).toBeTruthy();
-
-    fireEvent.click(appBar().getByRole('link', { name: 'Dashboard' }));
-
-    expect(await pageTitle('Dashboard')).toBeTruthy();
-    expect(
-      appBar().getByRole('link', { name: 'Dashboard', current: 'page' }),
-    ).toBeTruthy();
+    expect(await pageTitle('Page not found')).toBeTruthy();
+    expect(page().queryByRole('button', { name: /cookie/i })).toBeNull();
   });
 
   it('hides the Dashboard tab from a User', async () => {

@@ -23,11 +23,12 @@ describe('Sign-in', () => {
   it('returns a signed-out visitor to the page they opened once they sign in', async () => {
     await renderApp('/play', { signedInAs: null });
 
-    // An Admin would otherwise land on the dashboard.
+    // An Admin would otherwise land on the dashboard. Back on `/play` they get the not-found page, since the cookie
+    // clicker is a User's.
     await signInAs('Sign in as Admin');
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Cookie Clicker' }),
+      await screen.findByRole('heading', { level: 1, name: 'Page not found' }),
     ).toBeTruthy();
   });
 

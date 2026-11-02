@@ -473,14 +473,17 @@ describe('Users table', () => {
     await waitFor(() => expectUserIds(['user-25']));
   });
 
-  it('points to the cookie clicker when there are no users yet', async () => {
+  it('says how to make users when there are none yet, without linking to the cookie clicker', async () => {
     setMockUsers([]);
     await renderApp('/dashboard', { signedInAs: 'admin' });
 
     expect(await page().findByText('No users yet')).toBeTruthy();
     expect(
-      page().getByRole('link', { name: 'Open the Cookie Clicker' }),
-    ).toHaveProperty('pathname', '/play');
+      page().getByText(
+        'To send some, sign in as a User in a private window and click the cookie.',
+      ),
+    ).toBeTruthy();
+    expect(page().queryByRole('link', { name: /cookie clicker/i })).toBeNull();
   });
 
   it('offers a retry when the users fail to load', async () => {

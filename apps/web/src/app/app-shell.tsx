@@ -11,7 +11,7 @@ import { ROUTES } from './route-paths';
 // A tab with `roles` shows only to those roles, like `@Roles` on the API.
 const tabs: { to: string; label: string; roles?: Role[] }[] = [
   { to: ROUTES.dashboard, label: 'Dashboard', roles: ['admin'] },
-  { to: ROUTES.play, label: 'Cookie Clicker' },
+  { to: ROUTES.play, label: 'Cookie Clicker', roles: ['user'] },
 ];
 
 const content = { maxWidth: sizes.contentMaxWidth };

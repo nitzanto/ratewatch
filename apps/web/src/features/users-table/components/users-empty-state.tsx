@@ -1,9 +1,10 @@
-import { ROUTES } from '@/app/route-paths';
 import { Crumb } from '@/components/ui/crumb';
-import { Link, Stack, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router';
+import { Stack, Typography } from '@mui/material';
 
-/** No users have sent a request yet: Crumb points the admin to the cookie clicker to make some. */
+/**
+ * No users have sent a request yet: Crumb tells the admin how to make some. The Admin can't open the cookie clicker,
+ * and signing in as a User in the same browser would replace their session, so it suggests a private window.
+ */
 export const UsersEmptyState = () => (
   <Stack sx={{ alignItems: 'center', gap: 1, py: 6 }}>
     <Crumb mood="fresh" size={96} />
@@ -13,8 +14,8 @@ export const UsersEmptyState = () => (
     <Typography sx={{ color: 'text.secondary' }}>
       Users show here once they send requests.
     </Typography>
-    <Link component={RouterLink} to={ROUTES.play}>
-      Open the Cookie Clicker
-    </Link>
+    <Typography sx={{ color: 'text.secondary' }}>
+      To send some, sign in as a User in a private window and click the cookie.
+    </Typography>
   </Stack>
 );

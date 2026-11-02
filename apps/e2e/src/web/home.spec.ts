@@ -10,22 +10,22 @@ test('home shows the API health status', async ({ homePage }) => {
   await expect(homePage.appBarStatus).toHaveText('Live · API OK');
 });
 
-test('the tabs move between the dashboard and the cookie clicker', async ({
+test('the Admin has no cookie clicker: no tab, and its URL is not found', async ({
   page,
   homePage,
   playPage,
 }) => {
   await homePage.goto();
 
-  await homePage.tab('Cookie Clicker').click();
-  await expect(page).toHaveURL('/play');
-  await expect(playPage.heading).toBeVisible();
-  await expect(homePage.tab('Cookie Clicker')).toHaveAttribute(
+  await expect(homePage.tab('Dashboard')).toHaveAttribute(
     'aria-current',
     'page',
   );
+  await expect(homePage.tab('Cookie Clicker')).toHaveCount(0);
 
-  await homePage.tab('Dashboard').click();
-  await expect(page).toHaveURL('/dashboard');
-  await expect(homePage.apiStatus).toHaveText('OK');
+  await page.goto('/play');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Page not found' }),
+  ).toBeVisible();
+  await expect(playPage.heading).toHaveCount(0);
 });
