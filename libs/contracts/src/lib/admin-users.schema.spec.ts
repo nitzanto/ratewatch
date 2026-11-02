@@ -70,8 +70,12 @@ describe('usersQuerySchema', () => {
 
   it('reads numbers from a query string', () => {
     expect(
-      usersQuerySchema.parse({ page: '2', pageSize: '100', q: ' user-3f ' }),
-    ).toMatchObject({ page: 2, pageSize: 100, q: 'user-3f' });
+      usersQuerySchema.parse({
+        page: '2',
+        pageSize: '100',
+        userIdSearch: ' user-3f ',
+      }),
+    ).toMatchObject({ page: 2, pageSize: 100, userIdSearch: 'user-3f' });
   });
 
   it.each([
@@ -82,7 +86,7 @@ describe('usersQuerySchema', () => {
     { page: '-1' },
     { page: '1.5' },
     { pageSize: '30' },
-    { q: 'x'.repeat(101) },
+    { userIdSearch: 'x'.repeat(101) },
   ])('rejects %j', (bad) => {
     expect(usersQuerySchema.safeParse(bad).success).toBe(false);
   });

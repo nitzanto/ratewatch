@@ -105,9 +105,9 @@ export const mockUsers = (): UserRow[] => [
   userRow('user-72f4c6a9', 0, 70 * minuteMs, { resetAt: null }),
 ];
 
-/** `q` is the whole ID, or a prefix once it's 2 characters; case-insensitive, like the API's search. */
-const matchesId = (userId: string, q: string) => {
-  const [id, search] = [userId.toLowerCase(), q.toLowerCase()];
+/** `userIdSearch` is the whole ID, or a prefix once it's 2 characters; case-insensitive, like the API's search. */
+const matchesId = (userId: string, userIdSearch: string) => {
+  const [id, search] = [userId.toLowerCase(), userIdSearch.toLowerCase()];
 
   return search.length >= 2 ? id.startsWith(search) : id === search;
 };
@@ -119,7 +119,7 @@ const matchesId = (userId: string, q: string) => {
 export const usersPage = (
   rows: UserRow[],
   {
-    q,
+    userIdSearch,
     status,
     activeWithin,
     sort,
@@ -132,7 +132,7 @@ export const usersPage = (
   const matching = rows.filter(
     (row) =>
       Date.parse(row.lastRequestAt) >= since &&
-      (!q || matchesId(row.userId, q)),
+      (!userIdSearch || matchesId(row.userId, userIdSearch)),
   );
   const direction = order === 'asc' ? 1 : -1;
   const shown = matching

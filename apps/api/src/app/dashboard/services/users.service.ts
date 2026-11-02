@@ -332,7 +332,7 @@ export class UsersService {
   }
 
   private async search({
-    q,
+    userIdSearch,
     status,
     activeWithin,
     sort,
@@ -342,7 +342,7 @@ export class UsersService {
   }: UsersQuery): Promise<UsersPage> {
     const now = Date.now();
     // Step 1: the filter every query shares: active within the range, and the ID search.
-    const matching = `@lastRequest:[${now - activeWithinMs[activeWithin]} +inf]${q ? ` ${buildIdQuery(q)}` : ''}`;
+    const matching = `@lastRequest:[${now - activeWithinMs[activeWithin]} +inf]${userIdSearch ? ` ${buildIdQuery(userIdSearch)}` : ''}`;
 
     // Step 2: one page of rows, plus a count per status, in one trip.
     const pipeline = addUserSearch(

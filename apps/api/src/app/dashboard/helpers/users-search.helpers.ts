@@ -143,8 +143,9 @@ export const getReplies = (results: [Error | null, unknown][] | null) =>
   });
 
 /**
- * Users whose ID is `q`, or starts with it once it's 2 characters (the query engine's shortest prefix). Every
- * character but letters, digits and `_` is escaped, so the admin's text is never read as query syntax.
+ * Users whose ID is `userIdSearch`, or starts with it once it's 2 characters (the query engine's shortest
+ * prefix). Every character but letters, digits and `_` is escaped, so the admin's text is never read as query
+ * syntax.
  */
-export const buildIdQuery = (q: string) =>
-  `@id:{${q.replace(/[^\p{L}\p{N}_]/gu, '\\$&')}${q.length >= 2 ? '*' : ''}}`;
+export const buildIdQuery = (userIdSearch: string) =>
+  `@id:{${userIdSearch.replace(/[^\p{L}\p{N}_]/gu, '\\$&')}${userIdSearch.length >= 2 ? '*' : ''}}`;

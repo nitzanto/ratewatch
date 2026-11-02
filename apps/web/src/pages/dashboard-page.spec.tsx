@@ -276,14 +276,17 @@ describe('Users table', () => {
       resetAt: null,
     });
     const chip = (name: string) => page().getByRole('button', { name });
-    const type = (q: string) =>
+    const type = (userIdSearch: string) =>
       fireEvent.change(
         page().getByRole('searchbox', { name: 'Search user ID' }),
-        { target: { value: q } },
+        { target: { value: userIdSearch } },
       );
-    /** Types `q` and waits out the pause the search waits for (300 ms), so the next wait has all its time for the fetch. */
-    const search = async (q: string) => {
-      type(q);
+    /**
+     * Types `userIdSearch` and waits out the pause the search waits for (300 ms), so the next wait has all its time
+     * for the fetch.
+     */
+    const search = async (userIdSearch: string) => {
+      type(userIdSearch);
       await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
     };
     const header = (name: string) =>
@@ -308,12 +311,15 @@ describe('Users table', () => {
     it('searches once typing pauses, not on every keystroke', async () => {
       const searched: string[] = [];
       const onRequest = ({ request }: { request: Request }) => {
-        const q = new URL(request.url).searchParams.get('q');
-        if (q) searched.push(q);
+        const userIdSearch = new URL(request.url).searchParams.get(
+          'userIdSearch',
+        );
+        if (userIdSearch) searched.push(userIdSearch);
       };
       server.events.on('request:start', onRequest);
 
-      for (const q of ['u', 'us', 'user-a', 'user-aa']) type(q);
+      for (const userIdSearch of ['u', 'us', 'user-a', 'user-aa'])
+        type(userIdSearch);
 
       await waitFor(() => expectUserIds(['user-aabb2222', 'user-aaaa1111']));
       server.events.removeListener('request:start', onRequest);

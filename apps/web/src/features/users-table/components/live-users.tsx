@@ -47,7 +47,8 @@ export const LiveUsers = () => {
   const searchLater = useMemo(
     () =>
       debounce(
-        (q: string) => setQuery((current) => ({ ...current, page: 0, q })),
+        (userIdSearch: string) =>
+          setQuery((current) => ({ ...current, page: 0, userIdSearch })),
         searchDelayMs,
       ),
     [],
@@ -57,14 +58,14 @@ export const LiveUsers = () => {
     searchLater.clear();
     setSearch('');
     change({
-      q: undefined,
+      userIdSearch: undefined,
       status: undefined,
       activeWithin: defaultQuery.activeWithin,
     });
   };
 
   const filtered =
-    !!query.q ||
+    !!query.userIdSearch ||
     !!query.status ||
     query.activeWithin !== defaultQuery.activeWithin;
 

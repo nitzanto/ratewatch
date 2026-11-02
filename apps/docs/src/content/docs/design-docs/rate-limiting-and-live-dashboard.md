@@ -208,7 +208,7 @@ While Redis is down the dashboard publisher keeps the latest numbers in memory (
 
 | Parameter      | Values                                             | Default       |
 | -------------- | -------------------------------------------------- | ------------- |
-| `q`            | Full user ID, or a prefix of at least 2 characters | none          |
+| `userIdSearch` | Full user ID, or a prefix of at least 2 characters | none          |
 | `status`       | `ok`, `warning`, `exceeded`, `paused`              | all           |
 | `activeWithin` | `15m`, `1h`, `24h`                                 | `24h`         |
 | `sort`         | `id`, `left`, `resetAt`, `ratio`, `lastRequest`    | `lastRequest` |
