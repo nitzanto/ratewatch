@@ -16,6 +16,23 @@ const noUseEffectRules = [
   },
 ];
 
+const typedState =
+  'Give useState and useRef their type, even when TypeScript could infer it: useState<UsersQuery>(defaultQuery).';
+
+// useState(x) / React.useState(x) without <Type>, and the same for useRef.
+const typedStateRules = [
+  {
+    selector:
+      'CallExpression[callee.name=/^use(State|Ref)$/]:not([typeArguments])',
+    message: typedState,
+  },
+  {
+    selector:
+      'CallExpression[callee.property.name=/^use(State|Ref)$/]:not([typeArguments])',
+    message: typedState,
+  },
+];
+
 const noColor =
   "Don't hardcode a colour: use a theme token (sx `color: 'text.secondary'`, `useTheme().palette`). Add a missing one to DESIGN.md and theme/palette.ts.";
 const colorPattern = '/#[0-9a-f]{3,8}\\b|\\b(rgb|hsl)a?\\(/i';
@@ -30,6 +47,7 @@ export default [
       'no-restricted-syntax': [
         'error',
         ...noUseEffectRules,
+        ...typedStateRules,
         { selector: `Literal[value=${colorPattern}]`, message: noColor },
         {
           selector: `TemplateElement[value.raw=${colorPattern}]`,
@@ -121,6 +139,12 @@ export default [
   {
     // The theme is the one place colours are defined.
     files: ['src/theme/**'],
-    rules: { 'no-restricted-syntax': ['error', ...noUseEffectRules] },
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...noUseEffectRules,
+        ...typedStateRules,
+      ],
+    },
   },
 ];

@@ -24,8 +24,8 @@ export const LiveRow = ({
   onClick: () => void;
   children: ReactNode;
 }) => {
-  const [seen, setSeen] = useState(user);
-  const [changes, setChanges] = useState(0);
+  const [seen, setSeen] = useState<UserRow>(user);
+  const [changes, setChanges] = useState<number>(0);
 
   if (user !== seen) {
     setSeen(user);

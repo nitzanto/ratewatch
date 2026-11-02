@@ -26,10 +26,10 @@ const searchDelayMs = 300;
 
 /** The dashboard's users section, kept live: owns the query (search, filters, sort, page), the ticked users and the open user, and lays out the controls, table, states and drawer. */
 export const UsersPanel = () => {
-  const [query, setQuery] = useState(defaultQuery);
+  const [query, setQuery] = useState<UsersQuery>(defaultQuery);
 
   // The search box shows each keystroke at once; the query takes it once typing pauses.
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [openUserId, setOpenUserId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
 

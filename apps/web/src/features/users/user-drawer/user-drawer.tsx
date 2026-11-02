@@ -261,7 +261,7 @@ export const UserDrawer = ({
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   // Still shows the user while the drawer slides out.
-  const [shown, setShown] = useState(userId);
+  const [shown, setShown] = useState<string | null>(userId);
 
   if (userId !== null && userId !== shown) setShown(userId);
 

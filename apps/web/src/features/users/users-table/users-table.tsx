@@ -214,7 +214,7 @@ export const UsersTable = ({
   // The row order on screen when the pointer came onto the table or a user opened, so a live change never moves a
   // row under the admin. It holds while either lasts.
   const [frozenOrder, setFrozenOrder] = useState<string[] | null>(null);
-  const [pointerOn, setPointerOn] = useState(false);
+  const [pointerOn, setPointerOn] = useState<boolean>(false);
   const heldOrder = pointerOn || openUserId !== null ? frozenOrder : null;
   const data = useMemo(
     () => (heldOrder ? sortByHeldOrder(rows, heldOrder) : rows),

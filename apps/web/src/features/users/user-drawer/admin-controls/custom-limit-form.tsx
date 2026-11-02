@@ -46,7 +46,7 @@ export const CustomLimitForm = ({
   saving: boolean;
   onSave: (limit: number) => void;
 }) => {
-  const [limitInput, setLimitInput] = useState(String(row.baseLimit));
+  const [limitInput, setLimitInput] = useState<string>(String(row.baseLimit));
   const parsed = limitSchema.safeParse(Number(limitInput));
   // An empty field is 0, so it fails the 1 to 1,000 rule too.
   const limit = parsed.success ? parsed.data : null;
