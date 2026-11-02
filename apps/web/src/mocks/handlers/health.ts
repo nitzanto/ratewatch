@@ -1,4 +1,4 @@
-import { health } from '@/mocks/data/health';
+import { health } from '../data/health';
 import { http, HttpResponse } from 'msw';
 
 export const healthHandlers = [

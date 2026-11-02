@@ -1,5 +1,5 @@
-import { CookieClicker } from '@/features/cookie-clicker/components/cookie-clicker';
-import { sizes } from '@/libs/theme/sizes';
+import { CookieClicker } from '@/features/cookie-clicker/cookie-clicker';
+import { sizes } from '@/theme/sizes';
 import { Stack, Typography } from '@mui/material';
 import { defaultHourlyLimit } from '@ratewatch/contracts';
 

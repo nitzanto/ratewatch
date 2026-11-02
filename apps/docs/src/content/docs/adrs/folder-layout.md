@@ -1,33 +1,43 @@
 ---
 title: Folder layout
-description: The dashboard's shared code is split by layer, with one working example in every layer; code only one feature uses lives in that feature's folder.
+description: Thin pages over feature folders that mirror the UI they build, with a few shared folders for what two or more features use.
 sidebar:
   order: 14
 ---
 
-**Status:** Accepted · **Issue:** [#31](https://github.com/nitzanto/ratewatch/issues/31)
+**Status:** Accepted · **Issues:** [#31](https://github.com/nitzanto/ratewatch/issues/31), [#84](https://github.com/nitzanto/ratewatch/issues/84)
 
-Every upcoming dashboard feature needs the same plumbing: an API call, a cached query, a hook, a component, a mock and a test. Without a shared shape, the first feature to land would set the pattern by accident. We split `apps/web/src` **by layer** (`pages/`, `components/`, `hooks/`, `libs/`, `mocks/`, …), and every layer holds one working example, so a feature starts by copying the example next to it.
+The dashboard needed a shape that tells a developer or an agent where every file goes without inventing anything. The first version split `apps/web/src` by layer (`components/`, `hooks/`, `libs/`), with a `features/` folder for code only one feature used. As the users table grew, that shape stopped helping: one screen's code was spread over five folders, and the table's fifteen components sat in one flat list, so nothing said that a row belonged to the table or a form to the drawer.
 
-Code that **only one feature uses** goes in that feature's own folder, `features/<feature>/`, for example `features/cookie-clicker/`, with its own `components/`, `hooks/` and pure logic. The API layer stays shared even when only one feature calls an endpoint, because its calls, hooks and mocks match one to one. When a second feature needs something from a feature folder, it moves up to a layer.
+We now keep **pages thin** and put each part of the product in a **feature folder** that mirrors the UI it builds. Code two or more features use lives in a few **shared folders**: `components/`, `api/` (one folder per resource, its queries and hooks together), `theme/`, `utils/`, `mocks/` and `test/`.
 
 ```mermaid
 flowchart TD
-  page["pages/play-page.tsx"] --> feature["features/cookie-clicker/<br/>components, hooks, clicker-view.ts"]
-  feature --> layers["Shared layers<br/>components/, hooks/, libs/, mocks/"]
-  layers -. "never" .-> feature
+  page["pages/dashboard-page.tsx<br/>lays out features"] --> feature["features/users/<br/>users-panel, controls/, users-table/, user-drawer/"]
+  feature --> shared["Shared folders<br/>components/, api/, theme/, utils/"]
+  shared -. "never" .-> feature
+  feature -. "never" .-> other["another feature"]
 ```
+
+Inside a feature, every level follows the same rules:
+
+- A component with parts gets a folder named after it, its main file inside (`users-table/users-table.tsx`). A component without parts stays a single file.
+- Two or more parts with one role share a folder named for that role (`cells/`, `states/`, `controls/`); a single part sits next to its main file. At most one such level per component folder.
+- `hooks/`, `utils/` and `types/` appear only at a feature's root, and only once there's a file for them.
+- Each component's spec sits next to it, and a page's spec covers only how the page wires its parts.
+- No `index.ts` barrels.
 
 **Options considered**
 
-- **Layers plus feature folders** (chosen): shared code by layer, each feature's own code together.
-- **Layers only** (the first version of this decision): one place for each kind of code, but the cookie clicker's seven presentational parts, its view rules and its timers would sit among shared components and hooks, though nothing else uses them.
-- **Feature folders only** (`features/users/…`): keep a feature's files together, but the dashboard is one domain. The live table, user detail, search and analytics all read the same users and rate-limit status, so most code would end up in a shared folder anyway, and every feature would draw its own line between "mine" and "shared".
+- **Feature folders mirroring the UI, thin pages** (chosen).
+- **Everything under the page** (`pages/dashboard/components/users/users-table/cells/…`): one folder per screen, but six levels deep before a file, past the three or four levels React's own guidance suggests, and every import gets longer.
+- **Layers plus feature folders** (the previous version): one place for each kind of code, but a screen's code spread across five folders, and a large feature still a flat list.
+- **A `components/` folder inside every component folder**: the most uniform, but `components/…/components/…` paths repeat themselves and get deep fast.
 
-**Why:** the features share their data far more than they differ, so shared code by layer, with a working example in each, is a template a developer or an agent can follow without inventing anything. Code only one feature uses stays next to that feature, so it doesn't crowd the shared layers and is easy to find and delete.
+**Why:** a feature folder reads like the screen it builds, so finding a file means following the UI, and deleting a feature means deleting one folder. Shared folders stay small because only what two features use goes there. Keeping each resource's queries and hooks together in `api/` keeps query keys and cache updates in one place, since live updates write into several resources' caches at once.
 
-**Trade-offs we accept:** someone has to decide whether new code is shared or one feature's own, and move it when a second feature needs it. Lint enforces the direction: shared layers never import a feature, and features never import each other. An `@/` import alias keeps cross-layer imports readable.
+**Trade-offs we accept:** someone has to decide whether new code is one feature's own or shared, and move it when a second feature needs it. Paths are longer than in a flat layout (`features/users/users-table/cells/reset-cell.tsx`). Lint enforces the direction: shared folders never import a feature or a page, features never import each other or a page, and pages never import each other.
 
-**Revisit when:** the dashboard grows parts that share little data with the rest, where a feature folder would keep them apart.
+**Revisit when:** a feature grows past one level of grouping folders, which is the sign it should split into two features.
 
-**In the code:** the tree and what each layer holds are in [Frontend architecture](../../architecture/frontend/#structure). The `@/` alias is set in `apps/web/tsconfig.app.json`, `apps/web/tsconfig.spec.json` and `apps/web/vite.config.mts`, and the import rules (`no-restricted-imports`) in `apps/web/eslint.config.mjs`.
+**In the code:** the tree and the rules are in [Frontend architecture](../../architecture/frontend/#structure). The `@/` alias is set in `apps/web/tsconfig.app.json`, `apps/web/tsconfig.spec.json` and `apps/web/vite.config.mts`, and the import rules (`no-restricted-imports`) in `apps/web/eslint.config.mjs`.

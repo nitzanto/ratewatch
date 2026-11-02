@@ -1,4 +1,4 @@
-import { session } from '@/mocks/data/session';
+import { session } from '../data/session';
 import {
   type Role,
   type Session,

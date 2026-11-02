@@ -1,4 +1,4 @@
-import { renderApp } from '@/libs/test-utils/render-app';
+import { renderApp } from '@/test/render-app';
 import { server } from '@/mocks/node';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';

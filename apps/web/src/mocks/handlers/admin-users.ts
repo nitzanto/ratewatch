@@ -8,7 +8,7 @@ import {
   userDetail,
   userHistory,
   usersPage,
-} from '@/mocks/data/users';
+} from '../data/users';
 import {
   canAddExtraRequests,
   canSetLimit,

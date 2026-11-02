@@ -1,5 +1,5 @@
-import { endSessionOnUnauthorized } from '@/libs/api/session-queries';
-import { theme } from '@/libs/theme/theme';
+import { endSessionOnUnauthorized } from '@/api/session/session-queries';
+import { theme } from '@/theme/theme';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import {
   MutationCache,

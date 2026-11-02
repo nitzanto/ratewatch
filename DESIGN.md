@@ -158,7 +158,7 @@ components:
 
 ratewatch is an operator's tool with one playful corner. The admin dashboard is **Operate** mode: calm, dense, familiar controls, colour spent only on actions, selection and status. The cookie clicker is where personality lives, through **Crumb**, a chocolate-chip cookie whose face and chips track the user's allowance.
 
-The palette is called **Harbor**: a deep navy shell, a cool grey ground, white surfaces and a single cobalt accent. Navy is the complement of Crumb's dough, so the mascot reads instantly in the app bar. The look is built on MUI components. The theme in `apps/web/src/libs/theme/` carries these tokens (`palette.ts`, `typography.ts`, `sizes.ts`, and one override file per component in `components/`). Code never hardcodes a colour (lint enforces it), so add a new token here and in `palette.ts` first.
+The palette is called **Harbor**: a deep navy shell, a cool grey ground, white surfaces and a single cobalt accent. Navy is the complement of Crumb's dough, so the mascot reads instantly in the app bar. The look is built on MUI components. The theme in `apps/web/src/theme/` carries these tokens (`palette.ts`, `typography.ts`, `sizes.ts`, and one override file per component in `components/`). Code never hardcodes a colour (lint enforces it), so add a new token here and in `palette.ts` first.
 
 Prototypes for every screen are in `docs/design/prototypes/`; Crumb's artwork is in `apps/docs/public/design/crumb/`.
 

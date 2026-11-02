@@ -26,7 +26,7 @@ A deep navy shell, a cool grey page, white surfaces and one cobalt accent. Navy 
 
 The three statuses differ in lightness as well as hue, so they stay distinct for people with colour blindness, and every status always comes with an icon and a word. All text meets WCAG AA contrast (4.5:1).
 
-Every colour, Crumb's included, lives in the dashboard's theme (`apps/web/src/libs/theme/palette.ts`). Code never hardcodes one, and lint enforces it: a new colour is added to the design system first.
+Every colour, Crumb's included, lives in the dashboard's theme (`apps/web/src/theme/palette.ts`). Code never hardcodes one, and lint enforces it: a new colour is added to the design system first.
 
 ## Typography
 
@@ -94,4 +94,4 @@ stateDiagram-v2
 
 - Crumb artwork (SVG): `apps/docs/public/design/crumb/`.
 - Interactive prototypes of every screen: `docs/design/prototypes/`.
-- The theme in code: `apps/web/src/libs/theme/`.
+- The theme in code: `apps/web/src/theme/`.

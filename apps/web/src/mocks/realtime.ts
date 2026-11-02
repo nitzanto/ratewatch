@@ -1,14 +1,14 @@
 import type {
   ConnectRealtime,
   RealtimeListeners,
-} from '@/libs/realtime/realtime-client';
-import { afterRequest } from '@/mocks/data/users';
+} from '@/api/realtime/realtime-client';
+import { afterRequest } from './data/users';
 import {
   addMockRefusal,
   getMockSummary,
   getMockUsers,
   setMockUsers,
-} from '@/mocks/handlers/admin-users';
+} from './handlers/admin-users';
 import type {
   AdminSummary,
   RateLimitExceededEvent,

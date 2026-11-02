@@ -1,4 +1,4 @@
-import { click, rateLimited } from '@/mocks/data/clicks';
+import { click, rateLimited } from '../data/clicks';
 import { defaultHourlyLimit, requestsLeftHeader } from '@ratewatch/contracts';
 import { http, HttpResponse } from 'msw';
 

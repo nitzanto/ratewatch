@@ -89,4 +89,4 @@ flowchart LR
 
 ## In the code
 
-The event payloads are in `libs/contracts` (`realtime.schema.ts`), and the web app's Socket.IO client is `apps/web/src/libs/realtime/realtime-client.ts`. In the API, `RealtimeGateway` (handshake, rooms and `rate:subscribe`) and `RedisIoAdapter` (the sharded Redis adapter, set up in `main.ts`) are in `apps/api/src/app/dashboard/`. The rooms and payloads are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).
+The event payloads are in `libs/contracts` (`realtime.schema.ts`), and the web app's Socket.IO client is `apps/web/src/api/realtime/realtime-client.ts`. In the API, `RealtimeGateway` (handshake, rooms and `rate:subscribe`) and `RedisIoAdapter` (the sharded Redis adapter, set up in `main.ts`) are in `apps/api/src/app/dashboard/`. The rooms and payloads are in the [rate limiting and live dashboard design doc](../../design-docs/rate-limiting-and-live-dashboard/).

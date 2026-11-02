@@ -1,4 +1,4 @@
-import { useSession } from '@/hooks/api/use-session';
+import { useSession } from '@/api/session/use-session';
 import { NotFoundPage } from '@/pages/not-found-page';
 import type { Role } from '@ratewatch/contracts';
 import { Navigate, Outlet } from 'react-router';

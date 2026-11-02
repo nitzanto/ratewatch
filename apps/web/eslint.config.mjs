@@ -3,7 +3,7 @@ import pluginQuery from '@tanstack/eslint-plugin-query';
 import baseConfig from '../../eslint.config.mjs';
 
 const noUseEffect =
-  "Don't call useEffect: derive state, use an event handler, a hooks/api query, a key, or useMountEffect. A component's own timer or subscription may disable this with a reason. See the no-use-effect skill.";
+  "Don't call useEffect: derive state, use an event handler, an api/ query hook, a key, or useMountEffect. A component's own timer or subscription may disable this with a reason. See the no-use-effect skill.";
 
 const noUseEffectRules = [
   {
@@ -17,7 +17,7 @@ const noUseEffectRules = [
 ];
 
 const noColor =
-  "Don't hardcode a colour: use a theme token (sx `color: 'text.secondary'`, `useTheme().palette`). Add a missing one to DESIGN.md and libs/theme/palette.ts.";
+  "Don't hardcode a colour: use a theme token (sx `color: 'text.secondary'`, `useTheme().palette`). Add a missing one to DESIGN.md and theme/palette.ts.";
 const colorPattern = '/#[0-9a-f]{3,8}\\b|\\b(rgb|hsl)a?\\(/i';
 
 export default [
@@ -39,17 +39,17 @@ export default [
     },
   },
   {
-    // Shared layers never reach into a feature: move shared code up instead.
-    files: ['src/{app,components,contexts,hooks,libs,mocks}/**'],
+    // Shared folders never reach into a page or a feature: move shared code up instead.
+    files: ['src/{api,components,hooks,mocks,test,theme,utils}/**'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@/features/**'],
+              group: ['@/features/**', '@/pages/**'],
               message:
-                'Shared code must not import a feature. Move what both need into a shared layer.',
+                'Shared code must not import a page or a feature. Move what both need into a shared folder.',
             },
           ],
         },
@@ -57,7 +57,7 @@ export default [
     },
   },
   {
-    // A feature imports its own files relatively and never another feature.
+    // A feature imports its own files relatively, and never another feature or a page.
     files: ['src/features/**'],
     rules: {
       'no-restricted-imports': [
@@ -65,9 +65,27 @@ export default [
         {
           patterns: [
             {
-              group: ['@/features/**'],
+              group: ['@/features/**', '@/pages/**'],
               message:
-                "Features don't import each other. Move what both need into a shared layer.",
+                "Features don't import each other or pages. Move what both need into a shared folder.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // A page lays out features; it never imports another page.
+    files: ['src/pages/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/pages/**'],
+              message:
+                "Pages don't import each other. Move what both need into a feature or a shared folder.",
             },
           ],
         },
@@ -78,7 +96,7 @@ export default [
     // Prettier keeps blank lines but never adds them, so this one spaces out the steps of a function, as in the
     // API. Specs keep their own arrange / act / assert spacing.
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['**/*.spec.ts', '**/*.spec.tsx', 'src/libs/test-utils/**'],
+    ignores: ['**/*.spec.ts', '**/*.spec.tsx', 'src/test/**'],
     rules: {
       'padding-line-between-statements': [
         'error',
@@ -102,7 +120,7 @@ export default [
   },
   {
     // The theme is the one place colours are defined.
-    files: ['src/libs/theme/**'],
+    files: ['src/theme/**'],
     rules: { 'no-restricted-syntax': ['error', ...noUseEffectRules] },
   },
 ];

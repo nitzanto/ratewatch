@@ -3,7 +3,7 @@ import { NotFoundPage } from '@/pages/not-found-page';
 import { PlayPage } from '@/pages/play-page';
 import { SignInPage } from '@/pages/sign-in-page';
 import type { RouteObject } from 'react-router';
-import { AppShell } from './app-shell';
+import { AppShell } from './app-shell/app-shell';
 import { RoleLanding, RoleRoute } from './route-guards';
 import { ROUTES } from './route-paths';
 
