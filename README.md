@@ -2,26 +2,57 @@
 
 A distributed per-user rate limiter (NestJS + Redis) with a real-time admin dashboard.
 
-Docs: https://nitzanto.github.io/ratewatch/
+📖 Docs: https://nitzanto.github.io/ratewatch/
 
-## Getting started
+## Run it
 
-**With Docker** (any Docker engine with the Compose 2.24.4+ and Buildx plugins: Docker Desktop, OrbStack, Colima, Docker Engine):
+| What        | Where                            |
+| ----------- | -------------------------------- |
+| Dashboard   | http://localhost:4200            |
+| API         | http://localhost:3000/api        |
+| Docs (wiki) | http://localhost:4321/ratewatch/ |
 
-```sh
-docker compose up --watch
-```
+### Option 1: everything in Docker Compose
 
-The dashboard is on http://localhost:4200 and the API on http://localhost:3000/api. Edits hot-reload, and every `up` rebuilds the images (cached), so they always match your checkout.
-
-To run the production images on one origin instead: `SESSION_SECRET=$(openssl rand -hex 32) docker compose -f compose.yaml -f compose.prod.yaml up --build`, then open http://localhost:8080.
-
-**Natively** (for tests, linting and mock mode; needs [fnm](https://github.com/Schniz/fnm) and pnpm):
+Needs Docker with Compose 2.24.4+ and Buildx.
 
 ```sh
-fnm use
-pnpm install
-pnpm nx run-many -t serve -p api web
+docker compose up --watch     # API + dashboard + Redis, with hot reload
+pnpm nx dev docs              # optional: the docs (needs the native setup below)
 ```
 
-See [Running locally](https://nitzanto.github.io/ratewatch/guides/running-locally/) for tests and every other command.
+Stop with `Ctrl+C`, then `docker compose down`.
+
+### Option 2: run the apps natively, with only Redis in Docker
+
+Needs [fnm](https://github.com/Schniz/fnm) and pnpm.
+
+```sh
+fnm use && pnpm install
+docker compose up -d redis              # only Redis
+pnpm nx run-many -t serve -p api web    # API + dashboard
+pnpm nx dev docs                        # optional: the docs
+```
+
+## Commands
+
+| Command                                             | What it does                            |
+| --------------------------------------------------- | --------------------------------------- |
+| `pnpm nx serve api` / `pnpm nx serve web`           | Start the API / the dashboard           |
+| `pnpm nx serve web -c mock`                         | Dashboard in mock mode                  |
+| `pnpm nx dev docs`                                  | The docs site                           |
+| `pnpm nx simulate traffic`                          | Fill the dashboard with simulated users |
+| `pnpm nx load traffic`                              | Load test (app must be running)         |
+| `pnpm nx run-many -t test`                          | Unit and component tests                |
+| `pnpm nx e2e ratewatch-e2e`                         | End-to-end tests (Playwright)           |
+| `pnpm nx affected -t lint typecheck test build e2e` | What CI runs                            |
+| `pnpm nx format:write`                              | Fix formatting                          |
+
+Production-like stack on one origin (http://localhost:8080):
+
+```sh
+SESSION_SECRET=$(openssl rand -hex 32) REDIS_PASSWORD=$(openssl rand -hex 32) \
+  docker compose -f compose.yaml -f compose.prod.yaml up --build
+```
+
+Full details: [Running locally](https://nitzanto.github.io/ratewatch/guides/running-locally/).
